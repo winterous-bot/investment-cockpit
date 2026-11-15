@@ -35,7 +35,7 @@ const percent = value => Number.isFinite(value) ? value.toFixed(1)+'%' : '—';
 const fnum = (value,digits=2) => Number.isFinite(value) ? value.toFixed(digits) : '—';
 const dateBeijing = input => {if(!input)return '尚未采集';let d=new Date(input);return Number.isNaN(d.getTime())?'未知':new Intl.DateTimeFormat('zh-CN',{timeZone:'Asia/Shanghai',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).format(d)+' 北京时间';};
 const normNum = raw => {const v=Number(raw);return raw!==''&&raw!==null&&Number.isFinite(v)&&v>=0?v:null;};
-function initState(){return {v:1,regime:'structural',cash:0,debt:0,watch:clone(DEFAULT_WATCH),holdings:[],rules:clone(DEFAULT_RULES)};}
+function initState(){return {v:1,regime:'structural',cash:0,debt:0,watch:clone(DEFAULT_WATCH),holdings:[],liveProxyUrl:'',rules:clone(DEFAULT_RULES)};}
 let state;
 try{const saved=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');state=saved&&Array.isArray(saved.watch)&&saved.rules?{...initState(),...saved}:initState();}catch(_){state=initState();}
 let market={updated_at:null,source:'等待首次行情采集',count:0,quotes:{},index:null,technical:null};
@@ -169,7 +169,7 @@ function renderRules(){
 }
 function renderSettings(){
  return `<div class="intro-top"><div><div class="eyebrow">DATA / PRIVACY / SYNC</div><h1 class="page-title">数据与设置</h1><div class="subtle">行情从公开数据源采集；个人仓位仅保存在本机</div></div></div>
- <div class="section-heading"><h2>行情自动更新</h2></div><div class="panel"><div class="row-between"><span class="mini">行情来源</span><b style="font-size:12px">${esc(market.source||'尚未采集')}</b></div><div class="divider"></div><div class="row-between"><span class="mini">最近采集</span><b style="font-size:12px">${dateBeijing(market.updated_at)}</b></div><div class="divider"></div><div class="row-between"><span class="mini">报价数量</span><b style="font-size:12px">${n(market.count).toLocaleString('zh-CN')} 只</b></div><div class="action-toolbar"><button class="button" data-action="refresh">立即重新读取</button></div><div class="muted-note" style="margin-top:11px">定时采集由GitHub Actions执行（北京时间工作日16:23）。手机的「立即读取」只是重新加载服务端最新快照，并不直接向交易所发起实时行情请求。节假日和任务失败可能出现延迟。</div></div>
+ <div class="section-heading"><h2>行情自动更新</h2></div><div class="panel"><div class="row-between"><span class="mini">行情来源</span><b style="font-size:12px">${esc(market.source||'尚未采集')}</b></div><div class="divider"></div><div class="row-between"><span class="mini">最近采集</span><b style="font-size:12px">${dateBeijing(market.updated_at)}</b></div><div class="divider"></div><div class="row-between"><span class="mini">报价数量</span><b style="font-size:12px">${n(market.count).toLocaleString('zh-CN')} 只</b></div><div class="action-toolbar"><button class="button" data-action="refresh-live">盘中获取观察池最新价</button><button class="button secondary" data-action="refresh">读取GitHub收盘快照</button></div><div class="muted-note" style="margin-top:11px">盘中获取仅查询本机观察池及持仓的股票代码，不上传股票数量、成本、现金或融资。非交易时段返回最近可用交易价。浏览器直连接口可能受到跨域限制；如果失败，可配置下面的行情代理。每日收盘快照仍由GitHub Actions在北京时间工作日16:23生成。</div><div class="divider"></div><div class="field"><label for="quoteProxyUrl">盘中行情代理地址（可选；填 Worker 根网址）</label><input id="quoteProxyUrl" type="url" inputmode="url" placeholder="https://你的Worker.workers.dev" value="${esc(state.liveProxyUrl||'')}"></div><div class="action-toolbar"><button class="button small secondary" data-action="save-live-proxy">保存行情代理地址</button></div><div class="muted-note">首次未配置代理时会尝试浏览器直接获取。仅允许HTTPS地址，勿填写券商登录凭据、GitHub Token或个人持仓数据。</div></div>
  <div class="section-heading"><h2>数据迁移与备份</h2></div><div class="panel"><div class="notice">观察池、买入价格、实际持仓、现金和融资数据均位于当前浏览器的本地存储。它们不会被GitHub Pages自动同步到其他设备，也不会自动传给行情采集脚本。</div><div class="action-toolbar"><button class="button secondary" data-action="export-backup">导出完整JSON备份</button><button class="button secondary" data-action="import-backup">导入JSON</button><button class="button quiet" data-action="export-csv">导出投资汇总CSV</button></div><div class="warning-band">JSON备份包含真实持仓与融资信息，不要上传至公开GitHub仓库，也不要随意转发。安装到iPhone主屏幕后，建议在主屏幕版内完成数据录入，避免Safari和主屏幕版存储隔离造成误解。</div></div>
  <div class="section-heading"><h2>产品边界</h2></div><div class="panel"><div class="tableish"><div class="row-between" style="margin-bottom:11px"><span>每日A股收盘快照</span><span class="pill good">已实现</span></div><div class="row-between" style="margin-bottom:11px"><span>多档买价、仓位提醒</span><span class="pill good">已实现</span></div><div class="row-between" style="margin-bottom:11px"><span>本地备份与数据导出</span><span class="pill good">已实现</span></div><div class="row-between" style="margin-bottom:11px"><span>手机后台推送通知</span><span class="pill">暂不支持</span></div><div class="row-between" style="margin-bottom:11px"><span>券商账户自动同步</span><span class="pill">暂不支持</span></div><div class="row-between"><span>美股行情 / 财报估值模型</span><span class="pill">后续扩展</span></div></div></div><div class="section-heading"><h2>危险操作</h2></div><button class="button danger" data-action="reset">清空本机设置与持仓</button><div class="subtle" style="margin:13px 0 22px">版本 1.0 · 使用北京时间 · 仅提供风险预算与行情展示，不会自动下单</div>`;
 }
@@ -241,12 +241,40 @@ function handleAction(action,el){
  }
  case 'use-suggested':if(market.technical?.suggested&&confirm(`确认将市场阶段改为「${regimeName(market.technical.suggested)}」？风控预算将立即变化。`)){state.regime=market.technical.suggested;persist();render();}break;
  case 'refresh':refreshMarket(true);break;
+  case 'refresh-live':refreshLiveQuotes(true);break;
+  case 'save-live-proxy':{const value=$('#quoteProxyUrl')?.value.trim()||'';try{if(value){const u=new URL(value);if(u.protocol!=='https:'||u.username||u.password||u.search||u.hash)throw new Error('请填写不含账号、参数的HTTPS Worker根网址');}state.liveProxyUrl=value.replace(/\/+$/,'');persist();render();toast(value?'已保存行情代理地址':'已清除代理地址，改用浏览器直连');}catch(e){toast(e.message);}break;}
+
  case 'export-backup':exportJSON();break;
  case 'export-csv':exportCSV();break;
  case 'import-backup':$('#importFile').click();break;
  case 'reset':if(confirm('将删除当前设备中的所有观察计划、实际持仓、风险参数。该操作无法撤销，建议先导出备份。')&&confirm('再次确认：要清空本机所有投资数据吗？')){state=initState();persist();render();toast('已恢复初始示例观察池');}break;
  }
 }
+
+let liveRefreshing=false;
+async function refreshLiveQuotes(notify=false){
+ if(liveRefreshing)return;
+ const service=window.NorthstarLiveQuotes;
+ if(!service){if(notify)toast('新行情模块尚未加载；请更新主屏幕App网页缓存');return;}
+ liveRefreshing=true;
+ const button=$('#refreshTop');button?.classList.add('loading');
+ try{
+  const symbols=[...new Set([...state.watch.map(w=>w.symbol),...state.holdings.map(h=>h.symbol)])];
+  const result=await service.fetchBatch(symbols,state.liveProxyUrl||'');
+  // Preserve old quotes for symbols unavailable from the provider; never replace a valid quote with zero.
+  market={...market,updated_at:result.updated_at,source:result.source,
+          coverage:'watchlist-live',quotes:{...(market.quotes||{}),...result.quotes}};
+  market.count=Object.keys(market.quotes).length;
+  const keep={},requested=new Set(symbols);
+  requested.forEach(code=>{if(market.quotes[code])keep[code]=market.quotes[code];});
+  try{localStorage.setItem(MARKET_CACHE_KEY,JSON.stringify({...market,quotes:keep}));}catch(_){}
+  render();
+  if(notify)toast('已按需查询 '+result.count+'/'+result.requested+' 只；行情实际时间以个股报价为准');
+ }catch(error){
+  if(notify)toast('盘中查询失败，已保留原行情。'+error.message);
+ }finally{liveRefreshing=false;button?.classList.remove('loading');}
+}
+
 async function refreshMarket(notify=false){
  const refresh=$('#refreshTop');refresh?.classList.add('loading');
  try{
@@ -273,7 +301,7 @@ document.addEventListener('change',ev=>{
 document.addEventListener('input',ev=>{
  if(ev.target.id==='stockSearch'){searchText=ev.target.value;const selectionStart=ev.target.selectionStart;render();const input=$('#stockSearch');input?.focus();if(input)input.setSelectionRange(selectionStart,selectionStart);}
 });
-$('#refreshTop').addEventListener('click',()=>refreshMarket(true));
+$('#refreshTop').addEventListener('click',()=>refreshLiveQuotes(true));
 $('#importFile').addEventListener('change',async ev=>{
  const file=ev.target.files[0];if(!file)return;
  try{const raw=JSON.parse(await file.text());const s=raw.state;if(raw.app!=='northstar-investment-cockpit'||!s||!Array.isArray(s.watch)||!Array.isArray(s.holdings)||!s.rules)throw new Error('不是本工具的有效备份');
