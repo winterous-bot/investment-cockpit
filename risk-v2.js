@@ -199,5 +199,6 @@ DEFAULT_WATCH=DEFAULT_WATCH.map(w=>({
  needsCategoryReview:false
 }));
 state=migrateState(state);
+window.__northstarRiskV2Ready=true;
 persist();
 render();
