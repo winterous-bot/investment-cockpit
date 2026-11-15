@@ -56,8 +56,8 @@ function exposureStatus(p,w){
  if(!p.valid)return null;
  const r=rule(),cat=r[w.category]||r.thematic,cfg=CATEGORIES.find(c=>c.id===w.category)||CATEGORIES[4],own=stockPct(p,w.symbol),total=(p.categoryMV[w.category]||0)/p.equity*100;
  const groupTotal=w.riskGroup?(p.groupMV[w.riskGroup]||0)/p.equity*100:own;
- const categoryRoom=Math.max(0,cat.total-(total-own)),groupRoom=Math.max(0,r.clusterCap-(groupTotal-own)),portfolioRoom=Math.max(0,r.totalCap-(p.stockPct-own)),stressRoom=Math.max(0,r.singleStressCap/(cfg.shock/100));
- return {own,total,groupTotal,singleCap:cat.single,categoryCap:cat.total,room:categoryRoom,groupRoom,portfolioRoom,stressRoom,budgetCap:Math.max(0,Math.min(cat.single,categoryRoom,groupRoom,portfolioRoom,stressRoom))};
+ const categoryRoom=Math.max(0,cat.total-(total-own)),groupRoom=Math.max(0,r.clusterCap-(groupTotal-own)),portfolioRoom=Math.max(0,r.totalCap-(p.stockPct-own)),stressRoom=Math.max(0,r.singleStressCap/(cfg.shock/100)),portfolioStressRoom=Math.max(0,r.drawdownCap/0.2-(p.stockPct-own)),leverageBlocked=p.debtPct>r.debtCap+0.01;
+ return {own,total,groupTotal,singleCap:cat.single,categoryCap:cat.total,room:categoryRoom,groupRoom,portfolioRoom,portfolioStressRoom,stressRoom,leverageBlocked,budgetCap:leverageBlocked?0:Math.max(0,Math.min(cat.single,categoryRoom,groupRoom,portfolioRoom,portfolioStressRoom,stressRoom))};
 }
 
 function computeAlerts(p){
