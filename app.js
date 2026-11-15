@@ -2,7 +2,7 @@
 /* Northstar 投资决策驾驶舱 v1.0 — 本地风控计算，不向服务器上传用户持仓 */
 const STORAGE_KEY = 'northstar_investment_cockpit_v1';
 const MARKET_CACHE_KEY = 'northstar_market_cache_v1';
-const CATEGORIES = [
+let CATEGORIES = [
   {id:'growth',name:'科技高增长'}, {id:'core',name:'白马/行业龙头'},
   {id:'theme',name:'题材/高波动'}, {id:'other',name:'其他'}
 ];
@@ -10,14 +10,14 @@ const REGIMES = [
   {id:'bull',name:'牛市主升'}, {id:'structural',name:'结构性行情'},
   {id:'range',name:'震荡市'}, {id:'bottoming',name:'震荡筑底'}, {id:'bear',name:'熊市'}
 ];
-const DEFAULT_RULES = {
+let DEFAULT_RULES = {
  bull:{debtSuggest:'10–20%',debtCap:30,totalCap:125, growth:{single:15,total:55},core:{single:25,total:75},theme:{single:8,total:20},other:{single:10,total:25}},
  structural:{debtSuggest:'5–15%',debtCap:20,totalCap:105,growth:{single:12,total:45},core:{single:20,total:65},theme:{single:5,total:15},other:{single:8,total:20}},
  range:{debtSuggest:'0–5%',debtCap:10,totalCap:80,growth:{single:8,total:30},core:{single:15,total:50},theme:{single:3,total:8},other:{single:5,total:15}},
  bottoming:{debtSuggest:'0%',debtCap:5,totalCap:60,growth:{single:5,total:20},core:{single:10,total:35},theme:{single:2,total:5},other:{single:4,total:10}},
  bear:{debtSuggest:'0%',debtCap:0,totalCap:35,growth:{single:3,total:10},core:{single:8,total:25},theme:{single:1,total:3},other:{single:2,total:5}}
 };
-const DEFAULT_WATCH = [
+let DEFAULT_WATCH = [
  {symbol:'002475',name:'立讯精密',sector:'消费电子 / AI互联',category:'growth',thesis:'关注汽车电子、数据中心互联、盈利质量及估值',levels:[],thesisValid:true},
  {symbol:'002371',name:'北方华创',sector:'半导体设备',category:'growth',thesis:'关注国产设备渗透率、毛利率和估值',levels:[],thesisValid:true},
  {symbol:'300604',name:'长川科技',sector:'半导体测试设备',category:'growth',thesis:'关注测试设备订单、利润增长和现金流',levels:[],thesisValid:true},
@@ -171,7 +171,7 @@ function renderSettings(){
  return `<div class="intro-top"><div><div class="eyebrow">DATA / PRIVACY / SYNC</div><h1 class="page-title">数据与设置</h1><div class="subtle">行情从公开数据源采集；个人仓位仅保存在本机</div></div></div>
  <div class="section-heading"><h2>行情自动更新</h2></div><div class="panel"><div class="row-between"><span class="mini">行情来源</span><b style="font-size:12px">${esc(market.source||'尚未采集')}</b></div><div class="divider"></div><div class="row-between"><span class="mini">最近采集</span><b style="font-size:12px">${dateBeijing(market.updated_at)}</b></div><div class="divider"></div><div class="row-between"><span class="mini">报价数量</span><b style="font-size:12px">${n(market.count).toLocaleString('zh-CN')} 只</b></div><div class="action-toolbar"><button class="button" data-action="refresh-live">盘中获取观察池最新价</button><button class="button secondary" data-action="refresh">读取GitHub收盘快照</button></div><div class="muted-note" style="margin-top:11px">盘中获取仅查询本机观察池及持仓的股票代码，不上传股票数量、成本、现金或融资。非交易时段返回最近可用交易价。浏览器直连接口可能受到跨域限制；如果失败，可配置下面的行情代理。每日收盘快照仍由GitHub Actions在北京时间工作日16:23生成。</div><div class="divider"></div><div class="field"><label for="quoteProxyUrl">盘中行情代理地址（可选；填 Worker 根网址）</label><input id="quoteProxyUrl" type="url" inputmode="url" placeholder="https://你的Worker.workers.dev" value="${esc(state.liveProxyUrl||'')}"></div><div class="action-toolbar"><button class="button small secondary" data-action="save-live-proxy">保存行情代理地址</button></div><div class="muted-note">首次未配置代理时会尝试浏览器直接获取。仅允许HTTPS地址，勿填写券商登录凭据、GitHub Token或个人持仓数据。</div></div>
  <div class="section-heading"><h2>数据迁移与备份</h2></div><div class="panel"><div class="notice">观察池、买入价格、实际持仓、现金和融资数据均位于当前浏览器的本地存储。它们不会被GitHub Pages自动同步到其他设备，也不会自动传给行情采集脚本。</div><div class="action-toolbar"><button class="button secondary" data-action="export-backup">导出完整JSON备份</button><button class="button secondary" data-action="import-backup">导入JSON</button><button class="button quiet" data-action="export-csv">导出投资汇总CSV</button></div><div class="warning-band">JSON备份包含真实持仓与融资信息，不要上传至公开GitHub仓库，也不要随意转发。安装到iPhone主屏幕后，建议在主屏幕版内完成数据录入，避免Safari和主屏幕版存储隔离造成误解。</div></div>
- <div class="section-heading"><h2>产品边界</h2></div><div class="panel"><div class="tableish"><div class="row-between" style="margin-bottom:11px"><span>每日A股收盘快照</span><span class="pill good">已实现</span></div><div class="row-between" style="margin-bottom:11px"><span>多档买价、仓位提醒</span><span class="pill good">已实现</span></div><div class="row-between" style="margin-bottom:11px"><span>本地备份与数据导出</span><span class="pill good">已实现</span></div><div class="row-between" style="margin-bottom:11px"><span>手机后台推送通知</span><span class="pill">暂不支持</span></div><div class="row-between" style="margin-bottom:11px"><span>券商账户自动同步</span><span class="pill">暂不支持</span></div><div class="row-between"><span>美股行情 / 财报估值模型</span><span class="pill">后续扩展</span></div></div></div><div class="section-heading"><h2>危险操作</h2></div><button class="button danger" data-action="reset">清空本机设置与持仓</button><div class="subtle" style="margin:13px 0 22px">版本 1.1 · 使用北京时间 · 仅提供风险预算与行情展示，不会自动下单</div>`;
+ <div class="section-heading"><h2>产品边界</h2></div><div class="panel"><div class="tableish"><div class="row-between" style="margin-bottom:11px"><span>每日A股收盘快照</span><span class="pill good">已实现</span></div><div class="row-between" style="margin-bottom:11px"><span>多档买价、仓位提醒</span><span class="pill good">已实现</span></div><div class="row-between" style="margin-bottom:11px"><span>本地备份与数据导出</span><span class="pill good">已实现</span></div><div class="row-between" style="margin-bottom:11px"><span>手机后台推送通知</span><span class="pill">暂不支持</span></div><div class="row-between" style="margin-bottom:11px"><span>券商账户自动同步</span><span class="pill">暂不支持</span></div><div class="row-between"><span>美股行情 / 财报估值模型</span><span class="pill">后续扩展</span></div></div></div><div class="section-heading"><h2>危险操作</h2></div><button class="button danger" data-action="reset">清空本机设置与持仓</button><div class="subtle" style="margin:13px 0 22px">版本 1.2 · 使用北京时间 · 仅提供风险预算与行情展示，不会自动下单</div>`;
 }
 function render(){const renderers={overview:renderOverview,watch:renderWatch,holdings:renderHoldings,rules:renderRules,settings:renderSettings};$('#app').innerHTML=renderers[activeTab]();all('.nav-link').forEach(el=>{el.classList.toggle('active',el.dataset.tab===activeTab);el.setAttribute('aria-current',el.dataset.tab===activeTab?'page':'false');});}
 function go(tab){activeTab=tab;render();window.scrollTo({top:0,behavior:'instant'});}
@@ -221,7 +221,7 @@ function holdingModal(symbol=null){
 }
 function downloadText(filename,data,type){const blob=new Blob([data],{type});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 function exportCSV(){const p=portfolio();const rows=[['股票代码','股票名称','赛道','分类','最新价','行情状态','持股数','持仓成本','市值','实际仓位占净资产%','单股上限%','一档价','一档目标%','二档价','二档目标%','三档价','三档目标%']];state.watch.forEach(w=>{const q=quoteFor(w.symbol),h=p.rows.find(x=>x.symbol===w.symbol),cat=rule()[w.category]||rule().other;const lv=Array.from({length:3},(_,i)=>(w.levels||[]).find(x=>Number(x.stage)===i+1)||{});rows.push([w.symbol,w.name,w.sector,categoryName(w.category),q?.price??'',q?.manual?'手动':'自动',h?.qty??'',h?.cost??'',h?.mv??'',p.valid?(h?.mv||0)/p.equity*100:'',cat.single,...lv.flatMap(l=>[l.price??'',l.target??''])]);});const csv='\ufeff'+rows.map(a=>a.map(x=>'"'+String(x??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');downloadText('投资驾驶舱_观察池及持仓.csv',csv,'text/csv;charset=utf-8');toast('已生成CSV汇总');}
-function exportJSON(){downloadText('投资驾驶舱_本机备份_'+new Date().toISOString().slice(0,10)+'.json',JSON.stringify({app:'northstar-investment-cockpit',version:1,exported_at:new Date().toISOString(),state},null,2),'application/json;charset=utf-8');toast('已导出完整备份，请妥善保管');}
+function exportJSON(){downloadText('投资驾驶舱_本机备份_'+new Date().toISOString().slice(0,10)+'.json',JSON.stringify({app:'northstar-investment-cockpit',version:2,exported_at:new Date().toISOString(),state},null,2),'application/json;charset=utf-8');toast('已导出完整备份，请妥善保管');}
 function handleAction(action,el){
  switch(action){
  case 'add-stock':stockModal();break;
@@ -306,7 +306,7 @@ $('#importFile').addEventListener('change',async ev=>{
  const file=ev.target.files[0];if(!file)return;
  try{const raw=JSON.parse(await file.text());const s=raw.state;if(raw.app!=='northstar-investment-cockpit'||!s||!Array.isArray(s.watch)||!Array.isArray(s.holdings)||!s.rules)throw new Error('不是本工具的有效备份');
  if(!confirm('导入备份将覆盖本机观察池、持仓和融资规则。确定继续？'))return;
- state={...initState(),...s};persist();render();toast('备份导入成功');
+ state=migrateState(s);persist();render();toast('备份导入成功');
  }catch(e){toast('导入失败：'+e.message);}finally{ev.target.value='';}
 });
 render();refreshMarket();
