@@ -123,7 +123,7 @@ function renderOverview(){
  <div class="section-heading"><h2>市场阶段与融资预算</h2><span class="mini">支持手动确认</span></div>
  <section class="panel"><div class="field"><label for="quickRegime">当前市场阶段</label><select id="quickRegime">${REGIMES.map(x=>`<option value="${x.id}" ${state.regime===x.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select></div><div class="cards-grid" style="margin-top:13px"><div class="metric"><div class="label">建议融资范围</div><div class="val">${esc(r.debtSuggest)}</div><div class="hint">债务 / 净资产</div></div><div class="metric"><div class="label">融资硬上限</div><div class="val">${percent(r.debtCap)}</div><div class="hint">达到即预警</div></div></div><div class="notice" style="margin-top:11px">${marketMessage}${tech&&tech.suggested!==state.regime?`<div style="margin-top:9px"><button class="button small secondary" data-action="use-suggested">确认采用参考阶段</button></div>`:''}</div></section>
  <div class="section-heading"><h2>风险提醒</h2><span class="pill ${alerts.some(a=>a.severity==='error')?'bad':alerts.length?'warn':'good'}">${alerts.length?`${alerts.length}项提醒`:'暂无越线'}</span></div>${alerts.length?alerts.slice(0,7).map(alertHtml).join(''):'<div class="empty"><strong>暂无风险提醒</strong><br>持续检查价格、仓位与融资规则</div>'}${alerts.length>7?'<button class="button quiet block" data-tab-jump="holdings">查看全部持仓风险</button>':''}
- <div class="section-heading"><h2>分类风险敞口</h2><button class="expand-link" data-tab-jump="rules">编辑规则</button></div><div class="panel">${p.valid?catTracks:'<div class="empty">录入持仓并取得报价后，显示四类股票实际占净资产比例</div>'}</div>
+ <div class="section-heading"><h2>分类风险敞口</h2><button class="expand-link" data-tab-jump="rules">编辑规则</button></div><div class="panel">${p.valid?catTracks:'<div class="empty">录入持仓并取得报价后，显示五类股票实际占净资产比例</div>'}</div>
  <div class="section-heading"><h2>长期观察池</h2><button class="expand-link" data-tab-jump="watch">管理观察池</button></div><div class="panel">${watchRows||'<div class="empty">尚无观察标的</div>'}<div style="padding-top:11px">${currentMarketBadge()}</div></div>`;
 }
 function watchCard(w,p){
@@ -137,7 +137,7 @@ function watchCard(w,p){
  <div class="small-actions"><span class="date-stamp">${q?`${esc(q.source)} · ${dateBeijing(q.updated_at)}`:'自动价格待更新'}</span><button class="button small secondary" data-action="edit-stock" data-symbol="${esc(w.symbol)}">编辑计划</button></div></article>`;
 }
 function renderWatch(){
- const p=portfolio();const filtered=state.watch.filter(w=>`${w.symbol} ${w.name} ${w.sector} ${categoryName(w.category)}`.toLowerCase().includes(searchText.toLowerCase()));
+ const p=portfolio();const filtered=state.watch.filter(w=>`${w.symbol} ${w.name} ${w.sector} ${w.riskGroup||''} ${categoryName(w.category)}`.toLowerCase().includes(searchText.toLowerCase()));
  return `<div class="intro-top"><div><div class="eyebrow">RESEARCH & BUY ZONES</div><h1 class="page-title">赛道观察池</h1><div class="subtle">预设价格与累计目标仓位，触发后人工复核</div></div><button class="button" data-action="add-stock">+ 添加</button></div>
  <input class="search-input" id="stockSearch" placeholder="搜索公司、代码、赛道或分类" value="${esc(searchText)}" aria-label="搜索观察池">
  <div class="row-between" style="margin:2px 0 13px"><div class="mini">共 ${state.watch.length} 只 · 当前显示 ${filtered.length} 只</div>${currentMarketBadge()}</div>
@@ -145,7 +145,7 @@ function renderWatch(){
  <div class="notice">分档仓位是<strong>累计目标仓位</strong>，不是每一档追加的仓位。例如：50元配置5%，45元配置10%，意为跌到45元时总持仓目标10%。实际执行还受市场阶段、单股上限、类别上限及现金约束。</div>`;
 }
 function renderHoldings(){
- const p=portfolio(),r=rule(),alerts=computeAlerts(p).filter(a=>a.title.includes('融资')||a.title.includes('超配')||a.title.includes('股票总敞口')||a.title.includes('占净资产'));
+ const p=portfolio(),r=rule(),alerts=computeAlerts(p).filter(a=>!a.title.includes('进入第'));
  const rows=p.rows.map(row=>{
    const cap=(r[row.category]||r.other).single;
    const weight=p.valid?row.mv/p.equity*100:null;
@@ -220,7 +220,7 @@ function holdingModal(symbol=null){
  });
 }
 function downloadText(filename,data,type){const blob=new Blob([data],{type});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
-function exportCSV(){const p=portfolio();const rows=[['股票代码','股票名称','赛道','分类','最新价','行情状态','持股数','持仓成本','市值','实际仓位占净资产%','单股上限%','一档价','一档目标%','二档价','二档目标%','三档价','三档目标%']];state.watch.forEach(w=>{const q=quoteFor(w.symbol),h=p.rows.find(x=>x.symbol===w.symbol),cat=rule()[w.category]||rule().other;const lv=Array.from({length:3},(_,i)=>(w.levels||[]).find(x=>Number(x.stage)===i+1)||{});rows.push([w.symbol,w.name,w.sector,categoryName(w.category),q?.price??'',q?.manual?'手动':'自动',h?.qty??'',h?.cost??'',h?.mv??'',p.valid?(h?.mv||0)/p.equity*100:'',cat.single,...lv.flatMap(l=>[l.price??'',l.target??''])]);});const csv='\ufeff'+rows.map(a=>a.map(x=>'"'+String(x??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');downloadText('投资驾驶舱_观察池及持仓.csv',csv,'text/csv;charset=utf-8');toast('已生成CSV汇总');}
+function exportCSV(){const p=portfolio();const rows=[['股票代码','股票名称','赛道','分类','关联风险组','最新价','行情状态','持股数','持仓成本','市值','实际仓位占净资产%','单股上限%','一档价','一档目标%','二档价','二档目标%','三档价','三档目标%']];state.watch.forEach(w=>{const q=quoteFor(w.symbol),h=p.rows.find(x=>x.symbol===w.symbol),cat=rule()[w.category]||rule().other;const lv=Array.from({length:3},(_,i)=>(w.levels||[]).find(x=>Number(x.stage)===i+1)||{});rows.push([w.symbol,w.name,w.sector,categoryName(w.category),w.riskGroup||'',q?.price??'',q?.manual?'手动':'自动',h?.qty??'',h?.cost??'',h?.mv??'',p.valid?(h?.mv||0)/p.equity*100:'',cat.single,...lv.flatMap(l=>[l.price??'',l.target??''])]);});const csv='\ufeff'+rows.map(a=>a.map(x=>'"'+String(x??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');downloadText('投资驾驶舱_观察池及持仓.csv',csv,'text/csv;charset=utf-8');toast('已生成CSV汇总');}
 function exportJSON(){downloadText('投资驾驶舱_本机备份_'+new Date().toISOString().slice(0,10)+'.json',JSON.stringify({app:'northstar-investment-cockpit',version:2,exported_at:new Date().toISOString(),state},null,2),'application/json;charset=utf-8');toast('已导出完整备份，请妥善保管');}
 function handleAction(action,el){
  switch(action){
