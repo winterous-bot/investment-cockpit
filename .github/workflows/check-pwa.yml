@@ -1,0 +1,25 @@
+name: PWA JavaScript syntax check
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'app.js'
+      - 'live-quotes.js'
+      - 'sw.js'
+      - 'worker/quotes-worker.js'
+      - '.github/workflows/check-pwa.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check browser and service-worker scripts
+        run: |
+          node --check app.js
+          node --check live-quotes.js
+          node --check sw.js
+      - name: Check Cloudflare Worker module syntax
+        run: node --input-type=module --check < worker/quotes-worker.js
