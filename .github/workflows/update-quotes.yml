@@ -1,5 +1,10 @@
 name: 每日A股行情快照
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/update_quotes.py'
+      - '.github/workflows/update-quotes.yml'
   schedule:
     # GitHub cron uses UTC: 08:23 UTC = 北京时间16:23，周一至周五（非交易日也会运行）
     - cron: '23 8 * * 1-5'
