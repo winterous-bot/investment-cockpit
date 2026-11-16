@@ -64,6 +64,7 @@
     const old=ensure().draft;
     const el=id=>document.getElementById(id);
     const scores=FACTORS.map((_,i)=>{
+      if(i===0&&!el('diagTechnicalManual').checked)return null;
       const raw=el('diagScore'+i)?.value.trim();
       if(raw===undefined||raw==='')return null;
       const x=Number(raw);
@@ -159,6 +160,8 @@
     const html=baseRules(),marker='<div class="panel" style="margin-top:15px">';
     return html.includes(marker)?html.replace(marker,entryCard()+marker):entryCard()+html;
   };
+  const baseSettings=renderSettings;
+  renderSettings=function(){return baseSettings().replace('版本 1.2','版本 1.3 · 六维市场诊断').replace('<div class="section-heading"><h2>产品边界</h2></div>',entryCard()+'<div class="section-heading"><h2>产品边界</h2></div>');};
   const baseAlerts=computeAlerts;
   computeAlerts=function(p){
     const a=baseAlerts(p),d=ensure().draft;
