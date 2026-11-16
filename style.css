@@ -17,3 +17,25 @@
 .risk-matrix tr th:last-child,.risk-matrix tr td:last-child{border-right:0}
 .shock-note{display:block;font-weight:400;color:#849bb2;font-size:10px;margin-top:3px}
 @media(max-width:430px){.risk-row{grid-template-columns:minmax(0,1fr) 75px 75px;gap:5px}.matrix-scroll{max-width:100%}.risk-matrix th,.risk-matrix td{padding:10px 9px}}
+
+
+/* V1.3 Market stage diagnosis: compact and legible on iPhone */
+.diag-entry{border-color:#35576a}
+.diag-entry-row{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:12px;margin:12px 0;color:#9fb5c8}
+.diag-entry-row b{color:#e7f6fb}
+.diag-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:12px}
+.diag-summary .val{white-space:normal;overflow-wrap:anywhere}
+.diag-factor{padding:12px 0;border-bottom:1px solid #293a50}
+.diag-factor:last-child{border-bottom:0;padding-bottom:2px}
+.diag-factor label{font-size:12px;font-weight:750;color:#deedf5}
+.diag-factor input{display:block;margin:9px 0 7px;width:100%;background:#0b1727;border:1px solid #38506b;color:#edf6fa;border-radius:11px;min-height:44px;padding:10px;font-size:16px}
+.diag-factor input:disabled{background:#183344;color:#92e8df;opacity:1}
+.diag-factor .muted-note{line-height:1.7}
+.diag-scores-tip{background:#1b2b3e;border-radius:10px;padding:12px;color:#abc9d5;font-size:11px;line-height:1.8}
+.diag-check{display:flex;align-items:flex-start;gap:9px;font-size:12px;line-height:1.65;color:#cbdbe8;margin:10px 0;cursor:pointer}
+.diag-check input{width:18px;height:18px;accent-color:#80d8dc;flex:0 0 auto;margin-top:2px}
+.diag-history-item{padding:11px 0;border-bottom:1px solid #293a50;display:flex;align-items:center;gap:10px;justify-content:space-between}
+.diag-history-item:last-child{border-bottom:0}
+.diag-history-item b{font-size:12px}
+.diag-history-item .mini{margin-top:4px;font-size:10px}
+@media(max-width:390px){.diag-summary{grid-template-columns:1fr}}
