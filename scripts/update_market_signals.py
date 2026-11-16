@@ -18,6 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "data" / "market_signals.json"
 BEIJING = ZoneInfo("Asia/Shanghai")
 KLINE = "https://push2his.eastmoney.com/api/qt/stock/kline/get"
+_KLINE_CACHE = {}
 INDICES = (
     ("000300", "沪深300", "1.000300", 0.30),
     ("000905", "中证500", "1.000905", 0.25),
@@ -31,6 +32,9 @@ def half(value):
 
 
 def kline(secid, limit=285):
+    cached = _KLINE_CACHE.get(secid)
+    if cached and len(cached) >= limit:
+        return cached[-limit:]
     response = download_json(KLINE, {
         "secid": secid, "fields1": "f1,f2,f3,f4,f5,f6",
         "fields2": "f51,f52,f53,f54,f55,f56,f57",
@@ -45,6 +49,7 @@ def kline(secid, limit=285):
         close, amount = finite_float(x[2]), finite_float(x[6])
         if close and close > 0:
             valid.append({"date": x[0], "close": close, "amount": amount})
+    _KLINE_CACHE[secid] = valid
     return valid
 
 
@@ -193,37 +198,67 @@ def breadth():
             "method": "当日全A上涨比例60%+上涨行业比例40%；仅测单日广度，须结合趋势复核"}
 
 
+def turnover_activity(series, label, coverage, issues):
+    """Score relative trading activity from >=65 complete daily turnover observations."""
+    dates = sorted(set.intersection(*[set(s) for s in series]))
+    values = [sum(s[d] for s in series) for d in dates]
+    if len(values) < 65:
+        raise ValueError("交集成交金额历史不足65个交易日")
+    recent20 = statistics.mean(values[-20:])
+    prev20 = statistics.mean(values[-40:-20])
+    ratio = recent20 / prev20 if prev20 > 0 else 0
+    rank = sum(x <= values[-1] for x in values[-60:])/60
+    trend = max(0, min(1, (ratio-0.70)/0.60))
+    return {"score": half(5*(.55*rank + .45*trend)),
+            "coverage": round(coverage*100), "asof": dates[-1],
+            "turnover_today_yuan": round(values[-1], 0),
+            "turnover20_yuan": round(recent20, 0),
+            "turnover20_vs_previous20": round(ratio, 3),
+            "turnover60_percentile": round(rank, 3),
+            "method": label + "：近60日成交额分位55% + 20日成交变化45%；只是交易活跃度代理，不代表ETF/融资净流入",
+            "issues": issues}
+
+
+def amounts(rows):
+    return {x["date"]: x["amount"] for x in rows
+            if x["amount"] is not None and x["amount"] > 0}
+
+
 def liquidity():
-    """Turnover is liquidity/activity, explicitly NOT fund net inflows."""
+    """Prefer both entire exchanges; fallback to disjoint CSI size-index samples."""
+    issues = []
     try:
         sh = kline("1.000001", 90)
         try:
-            sz = kline("0.399107", 90)  # SZSE A-share index includes all SZ A stocks
+            sz = kline("0.399107", 90)  # SZSE A-share index: all SZ A stocks
             if len(sz) < 65: raise ValueError("深证A指历史不足65条")
         except Exception:
             sz = kline("0.399106", 90)  # SZSE composite backup, includes B shares
-        sh_map = {x["date"]: x["amount"] for x in sh if x["amount"] and x["amount"] > 0}
-        sz_map = {x["date"]: x["amount"] for x in sz if x["amount"] and x["amount"] > 0}
-        dates = sorted(set(sh_map) & set(sz_map))
-        values = [sh_map[d]+sz_map[d] for d in dates]
-        if len(values) < 65:
-            raise ValueError("两市成交金额历史不足65个交易日")
-        recent20 = statistics.mean(values[-20:])
-        prev20 = statistics.mean(values[-40:-20])
-        ratio = recent20 / prev20 if prev20 > 0 else 0
-        rank = sum(x <= values[-1] for x in values[-60:])/60
-        trend = max(0, min(1, (ratio-0.70)/0.60))
-        score = half(5*(.55*rank + .45*trend))
-        return {"score": score, "coverage": 100, "asof": dates[-1],
-                "turnover_today_yuan": round(values[-1], 0),
-                "turnover20_yuan": round(recent20, 0),
-                "turnover20_vs_previous20": round(ratio, 3),
-                "turnover60_percentile": round(rank, 3),
-                "method": "沪综指+深证A指（失败时深证综指）历史成交额代理：近60日成交分位55% + 20日量能变化45%；不等于ETF/融资净流入",
-                "issues": []}
+        return turnover_activity([amounts(sh), amounts(sz)],
+                    "上证综指 + 深证A指（必要时深证综指）成交额",
+                    1.0, [])
     except Exception as exc:
-        return {"score": None, "coverage": 0, "issues": [str(exc)]}
-
+        issues.append("沪深交易所成交额不可用，改用宽基样本代理: "+str(exc))
+    series, weight = [], 0.
+    for code, name, secid, w in INDICES:
+        try:
+            amounts_by_day = amounts(kline(secid))
+            if len(amounts_by_day) < 65:
+                raise ValueError("成交额历史不足65条")
+            series.append(amounts_by_day)
+            weight += w
+        except Exception as exc:
+            issues.append(name+"量能不可用: "+str(exc))
+    if weight < .75 or len(series) < 3:
+        return {"score": None, "coverage": round(weight*100),
+                "issues": issues+["宽基成交样本覆盖不足75%"]}
+    try:
+        return turnover_activity(series,
+                "沪深300/中证500/中证1000/中证2000等互补宽基样本成交额（非两市全量）",
+                weight, issues)
+    except Exception as exc:
+        return {"score": None, "coverage": round(weight*100),
+                "issues": issues+[str(exc)]}
 
 def main():
     now = datetime.now(BEIJING).isoformat(timespec="seconds")
