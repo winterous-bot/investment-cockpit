@@ -109,7 +109,7 @@ def quote_row(entry):
 
 
 def fetch_all_a_shares():
-    page_size = 80  # conservative to avoid upstream response-size truncation
+    page_size = 35  # keep Eastmoney clist payload small; larger pages may be truncated
     common = {"pn": 1, "pz": page_size, "po": 0, "np": 1, "fltt": 2, "invt": 2,
               "fid": "f12", "fs": MARKETS, "fields": FIELDS}
     first = download_json(f"{BASE}/clist/get", common)
