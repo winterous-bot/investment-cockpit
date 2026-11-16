@@ -1,7 +1,7 @@
 'use strict';
 /* This module deliberately has no server writes: all portfolio and diagnostic decisions stay on this device. */
 (function(){
-  const FACTORS=[{"id":"trend","name":"价格趋势与技术结构","weight":30,"tip":"自动：沪深300(30%)、中证500(25%)、中证1000(25%)、中证2000(20%)；按MA20/60/250、MA20斜率与20日涨幅打分。"},{"id":"breadth","name":"市场广度与行业结构","weight":20,"tip":"自动：全A上涨个股占比(60%)及上涨行业板块占比(40%)。仅是单交易日截面，需同时判断持续性。"},{"id":"flow","name":"资金流动与交易活跃度","weight":20,"tip":"自动仅覆盖成交活跃度：近60交易日两市成交额分位及20日量能变化；不等于ETF申购、融资余额或资金净流入。"},{"id":"earnings","name":"宏观经济与企业盈利","weight":15,"tip":"人工：PMI、新订单、社融趋势和上市公司盈利预期；必须有来源和日期。"},{"id":"policy","name":"国内政策与流动性","weight":10,"tip":"人工：货币财政与资本市场政策，区分政策发布和实际见效。"},{"id":"overseas","name":"海外金融环境","weight":5,"tip":"人工：美股科技、美元、美债利率、人民币和重大海外风险。"}];
+  const FACTORS=[{"id":"trend","name":"价格趋势与技术结构","weight":30,"tip":"自动：沪深300(30%)、中证500(25%)、中证1000(25%)、中证2000(20%)；按MA20/60/250、MA20斜率与20日涨幅打分。"},{"id":"breadth","name":"市场广度与行业结构","weight":20,"tip":"个股MA60趋势广度40%、同源行业趋势35%、近5日市场参与度25%；积累足够历史后才能自动评分。"},{"id":"flow","name":"资金流动与交易活跃度","weight":20,"tip":"自动仅覆盖成交活跃度：近60交易日两市成交额分位及20日量能变化；不等于ETF申购、融资余额或资金净流入。"},{"id":"earnings","name":"宏观经济与企业盈利","weight":15,"tip":"人工：PMI、新订单、社融趋势和上市公司盈利预期；必须有来源和日期。"},{"id":"policy","name":"国内政策与流动性","weight":10,"tip":"人工：货币财政与资本市场政策，区分政策发布和实际见效。"},{"id":"overseas","name":"海外金融环境","weight":5,"tip":"人工：美股科技、美元、美债利率、人民币和重大海外风险。"}];
     const STAGES={bull:'牛市主升',structural:'结构性行情',range:'震荡市',bottoming:'震荡筑底',bear:'熊市'};
   const RISK={normal:'正常',warning:'警戒',severe:'严重'};
   const scoreBand=n=>n>=4?'强支持':n>=3?'偏支持':n>=2?'中性':n>=1?'偏不利':'明显不利';
@@ -41,7 +41,7 @@
       const response=await fetch(url,{cache:'no-store'});
       if(!response.ok)throw new Error('HTTP '+response.status);
       const payload=await response.json();
-      if(payload?.version!==2||!payload.technical||!payload.breadth||!payload.liquidity)
+      if(payload?.version!==3||!payload.technical||!payload.breadth||!payload.liquidity)
         throw new Error('自动指标版本或结构不匹配');
       signalCache=payload;
       signalError='';
@@ -50,32 +50,37 @@
   }
   function freshTechnical(){return recentSignal('technical');}
     function calculate(d){
- const tech=recentSignal('technical');
- const values=FACTORS.map((f,i)=>{
-  const auto=i<3?recentSignal(SIGNAL_KEYS[i]):null;
-  const override=Boolean(d.manualOverrides?.[f.id]||(i===0&&d.technicalManual));
-  if(auto&&!override)return {value:auto.score,source:i===2?'自动·成交活跃代理':'自动·公开数据',auto};
-  const raw=d.scores?.[i],num=raw===null||raw===''||raw===undefined?NaN:Number(raw);
-  return Number.isFinite(num)&&num>=0&&num<=5&&Math.abs(num*2-Math.round(num*2))<1e-8
-   ?{value:num,source:'人工'}:{value:null,source:'待评估'};
- });
- const coverage=FACTORS.reduce((v,f,i)=>v+(values[i].value===null?0:f.weight),0);
- const score=coverage?half(FACTORS.reduce((v,f,i)=>v+(values[i].value===null?0:f.weight*values[i].value),0)/coverage):null;
- const bottoms=['price','momentum','breadth'].filter(k=>Boolean(d.bottoms?.[k])).length;
- const enough=coverage>=70&&d.trend!=='unknown'&&d.breadth!=='unknown';
- let suggestion=null,candidate=null;
- if(d.trend==='down'){
-  if(d.priorDecline&&bottoms>=2){candidate='bottoming';suggestion=d.stable?'bottoming':'bear';}
-  else suggestion='bear';
- }else if(d.trend==='up'){
-  suggestion=d.breadth==='weak'?'range':d.breadth==='broad'&&values[0].value>=3.5&&values[2].value>=3&&d.stable?'bull':'structural';
- }else if(d.trend==='sideways'){
-  if(d.priorDecline&&bottoms>=2&&d.stable)suggestion='bottoming';
-  else suggestion=d.breadth==='narrow'&&values[0].value>=2.5&&values[2].value>=2.5?'structural':'range';
- }
- const contradictory=(d.trend==='up'&&values[0].value!==null&&values[0].value<2)||(d.trend==='down'&&values[0].value!==null&&values[0].value>=3.5);
- const confidence=!enough?'证据不足':coverage>=85&&d.stable&&!contradictory?'较高':coverage>=70&&!contradictory?'中等':'偏低';
- return {tech,values,coverage,score,bottoms,enough,suggestion:enough?suggestion:null,candidate,candidateLabel:candidate&&!d.stable?'筑底信号待持续确认':'',confidence,contradictory};
+  const tech=recentSignal('technical');
+  const values=FACTORS.map((f,i)=>{
+    const auto=i<3?recentSignal(SIGNAL_KEYS[i]):null;
+    const override=Boolean(d.manualOverrides?.[f.id]||(i===0&&d.technicalManual));
+    if(auto&&!override){
+      const raw=Number(auto.coverage);
+      const sourceCoverage=Number.isFinite(raw)?Math.max(0,Math.min(1,raw/100)):0;
+      if(sourceCoverage>0)return {value:auto.score,source:i===2?'自动·成交活跃代理':'自动·公开数据',sourceCoverage,auto};
+    }
+    const raw=d.scores?.[i],num=raw===null||raw===''||raw===undefined?NaN:Number(raw);
+    return Number.isFinite(num)&&num>=0&&num<=5&&Math.abs(num*2-Math.round(num*2))<1e-8
+      ?{value:num,source:'人工',sourceCoverage:1}:{value:null,source:'待评估',sourceCoverage:0};
+  });
+  const weightedEvidence=FACTORS.reduce((v,f,i)=>v+f.weight*values[i].sourceCoverage,0);
+  const coverage=Math.round(weightedEvidence*10)/10;
+  const score=weightedEvidence?half(FACTORS.reduce((v,f,i)=>v+f.weight*values[i].sourceCoverage*(values[i].value??0),0)/weightedEvidence):null;
+  const bottoms=['price','momentum','breadth'].filter(k=>Boolean(d.bottoms?.[k])).length;
+  const enough=coverage>=70&&d.trend!=='unknown'&&d.breadth!=='unknown';
+  let suggestion=null,candidate=null;
+  if(d.trend==='down'){
+    if(d.priorDecline&&bottoms>=2){candidate='bottoming';suggestion=d.stable?'bottoming':'bear';}
+    else suggestion='bear';
+  }else if(d.trend==='up'){
+    suggestion=d.breadth==='weak'?'range':d.breadth==='broad'&&values[0].value>=3.5&&values[2].value>=3&&d.stable?'bull':'structural';
+  }else if(d.trend==='sideways'){
+    if(d.priorDecline&&bottoms>=2&&d.stable)suggestion='bottoming';
+    else suggestion=d.breadth==='narrow'&&values[0].value>=2.5&&values[2].value>=2.5?'structural':'range';
+  }
+  const contradictory=(d.trend==='up'&&values[0].value!==null&&values[0].value<2)||(d.trend==='down'&&values[0].value!==null&&values[0].value>=3.5);
+  const confidence=!enough?'证据不足':coverage>=85&&d.stable&&!contradictory?'较高':coverage>=70&&!contradictory?'中等':'偏低';
+  return {tech,values,coverage,score,bottoms,enough,suggestion:enough?suggestion:null,candidate,candidateLabel:candidate&&!d.stable?'筑底信号待持续确认':'',confidence,contradictory};
 }
     function readForm(){
  const old=ensure().draft;
@@ -109,7 +114,7 @@
   function statusHTML(result,d){
     const status=result.enough?STAGES[result.suggestion]:'证据不足';
     const className=result.enough?'good':'warn';
-    return `<div class="diag-summary"><div class="metric"><div class="label">已评分维度的加权均值</div><div class="val">${result.score===null?'—':result.score.toFixed(1)+' /5'}</div><div class="hint">证据覆盖权重 ${result.coverage}% · 缺失项不按0分处理</div></div><div class="metric"><div class="label">模型规则建议</div><div class="val" style="font-size:18px">${esc(status)}</div><div class="hint">${esc(result.confidence)} · ${result.enough?'非未来涨跌概率':'不触发阶段推断'}</div></div></div>
+    return `<div class="diag-summary"><div class="metric"><div class="label">已评分维度的加权均值</div><div class="val">${result.score===null?'—':result.score.toFixed(1)+' /5'}</div><div class="hint">有效证据覆盖权重 ${result.coverage}% · 子项缺失按真实权重折算</div></div><div class="metric"><div class="label">模型规则建议</div><div class="val" style="font-size:18px">${esc(status)}</div><div class="hint">${esc(result.confidence)} · ${result.enough?'非未来涨跌概率':'不触发阶段推断'}</div></div></div>
     ${result.candidateLabel?`<div class="notice">${esc(result.candidateLabel)}：当前不能直接升级为已确认筑底。</div>`:''}
     ${result.contradictory?'<div class="warning-band">当前人工趋势判断与技术评分明显冲突，请检查日期及判断依据。</div>':''}
     <div class="notice">${esc(riskText(d))}</div>`;
@@ -132,7 +137,7 @@
   const val=activeAuto?auto.score:d.scores[i];
   const source=result.values[i].source;
   const trace=auto?('数据日期 '+auto.asof+' · 采集覆盖 '+auto.coverage+'% · '+(auto.method||'')):
-       (i<3?'自动数据不可用、过期或证据不足；请人工评分，或刷新后台快照。':'');
+       (i<3?'自动数据不可用、过期或历史积累不足；可人工评分，或等待后台采集。':'');
   const issue=i<3?(signalCache?.[SIGNAL_KEYS[i]]?.issues||[]).join('；'):'';
   return `<div class="diag-factor"><div class="row-between"><label for="diagScore${i}">${esc(f.name)} <span class="mini">${f.weight}%</span></label><span class="mini">${esc(source)}</span></div>
     ${i<3?`<label class="diag-check"><input id="diagManual${i}" type="checkbox" ${overridden?'checked':''}>改为人工评分（勾选后立即解锁）</label>`:''}
@@ -143,8 +148,8 @@
  }).join('');
  const checks=[['price','价格低点趋稳 / 不再持续创新低'],['momentum','短期均线或MACD下跌动能修复'],['breadth','市场广度或资金参与有所改善']].map(([k,t])=>`<label class="diag-check"><input id="diagBottom${k[0].toUpperCase()+k.slice(1)}" type="checkbox" ${d.bottoms[k]?'checked':''}>${esc(t)}</label>`).join('');
  const history=ensure().history.slice(-6).reverse().map(h=>`<div class="diag-history-item"><div><b>${esc(h.applied?'已应用':'仅记录')} · ${esc(STAGES[h.stage]||'未知')}</b><div class="mini">${dateBeijing(h.at)} · 加权均值 ${h.score??'—'}/${h.scoringVersion===2?5:100} · 证据覆盖 ${h.coverage}%</div></div><span class="pill">${esc(RISK[h.risk]||'正常')}</span></div>`).join('');
- return `<div class="intro-top"><div><div class="eyebrow">MARKET REGIME DIAGNOSTICS / V1.4</div><h1 class="page-title">市场阶段诊断</h1><div class="subtle">四宽基趋势 × 自动广度/量能 × 5分制 × 人工确认</div></div></div>
-   <section class="panel" style="margin-top:14px">${statusHTML(result,d)}<div class="divider"></div><div class="row-between"><span class="mini">当前实际应用阶段</span><b>${esc(regimeName(state.regime))}</b></div><div class="muted-note" style="margin-top:8px">本模型用于未来1—3个月的风险预算；六维权重和阈值为待回测假设。行业广度是当日快照，成交额不代表净流入。</div></section>
+ return `<div class="intro-top"><div><div class="eyebrow">MARKET REGIME DIAGNOSTICS / V1.5</div><h1 class="page-title">市场阶段诊断</h1><div class="subtle">四宽基趋势 × 三维广度 × 真实覆盖率 × 人工确认</div></div></div>
+   <section class="panel" style="margin-top:14px">${statusHTML(result,d)}<div class="divider"></div><div class="row-between"><span class="mini">当前实际应用阶段</span><b>${esc(regimeName(state.regime))}</b></div><div class="muted-note" style="margin-top:8px">本模型用于未来1—3个月的风险预算；历史广度需累计5/60/80个交易日后才能参与评分。成交额不代表资金净流入。</div></section>
    <div class="section-heading"><h2>一、自动指标与来源</h2><span class="pill">公开行情</span></div>
    <section class="panel"><div class="muted-note">${esc(idxText)}</div><div class="muted-note" style="margin-top:9px">数据源：${esc(signalCache?.source||signalError)}。最近生成时间：${esc(signalCache?.updated_at||'—')}。</div>
    <button class="button secondary block" style="margin-top:12px" data-action="diag-refresh-data">重新读取自动市场指标</button>
@@ -191,7 +196,7 @@
     return html.includes(marker)?html.replace(marker,entryCard()+marker):entryCard()+html;
   };
   const baseSettings=renderSettings;
-  renderSettings=function(){return baseSettings().replace('版本 1.2','版本 1.4 · 四宽基五分制市场诊断').replace('<div class="section-heading"><h2>产品边界</h2></div>',entryCard()+'<div class="section-heading"><h2>产品边界</h2></div>');};
+  renderSettings=function(){return baseSettings().replace('版本 1.2','版本 1.5 · 多时段市场广度与有效证据覆盖').replace('<div class="section-heading"><h2>产品边界</h2></div>',entryCard()+'<div class="section-heading"><h2>产品边界</h2></div>');};
   const baseAlerts=computeAlerts;
   computeAlerts=function(p){
     const a=baseAlerts(p),d=ensure().draft;
@@ -225,7 +230,7 @@
       toast(action==='diag-apply'?'阶段已确认，风控预算已更新':action==='diag-save'?'诊断记录已保存（未改变市场阶段）':'诊断结果已重新计算（尚未应用）');
     }catch(e){toast('无法保存诊断：'+e.message);}
   };
-  window.NorthstarDiagnostic={FACTORS,calculate,freshTechnical,recentSignal,version:'1.4'};
+  window.NorthstarDiagnostic={FACTORS,calculate,freshTechnical,recentSignal,version:'1.5'};
   document.addEventListener('change',event=>{
     const match=/^diagManual([012])$/.exec(event.target?.id||'');
     if(!match)return;
