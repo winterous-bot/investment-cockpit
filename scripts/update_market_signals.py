@@ -195,7 +195,7 @@ def breadth():
     return {"score": score, "coverage": round(coverage*100),
             "components": components, "issues": issues,
             "asof": json.loads((ROOT/"data"/"quotes.json").read_text(encoding="utf-8")).get("updated_at"),
-            "method": "当日全A上涨比例60%+上涨行业比例40%；仅测单日广度，须结合趋势复核"}
+            "method": "可用项按原预设权重归一：全市场/沪深A指数上涨家数代理60% + 上涨行业板块比例40%（未获取的数据不计分）；仅为单日广度，须结合趋势复核"}
 
 
 def turnover_activity(series, label, coverage, issues):
