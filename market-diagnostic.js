@@ -126,6 +126,24 @@
       <div class="muted-note">模型不会自动修改市场阶段；四宽基趋势、市场广度及两市成交活跃度可自动评分；部分数据缺失时请人工核验。</div>
       <button class="button secondary block" style="margin-top:12px" data-tab-jump="diagnostic">进入市场阶段诊断</button></section>`;
   }
+  function renderBreadthBreakdown(){
+  const b=signalCache?.breadth;
+  if(!b)return '';
+  const parts=(b.components||[]).map(c=>{
+    const days=c.days==null?'':` · 已累积 ${c.days}/${c.need_days} 个交易日`;
+    const sample=c.sample?` · 样本 ${c.sample} 只`:'';
+    const score=c.score==null?'待数据齐备':`${c.score}/5分`;
+    return `<div class="diag-breakdown-row"><div class="row-between"><b>${esc(c.name)}（权重 ${Math.round(c.weight*100)}%）</b><b>${score}</b></div>
+    <div class="muted-note">数据覆盖：${c.coverage||0}%${days}${sample}</div>
+    ${c.issue?`<div class="muted-note" style="color:#dcbb81">${esc(c.issue)}</div>`:''}</div>`;
+  }).join('');
+  const info=b.spot||{};
+  const spot=[info.rising_stock_ratio!=null?`当日沪深A股上涨家数比 ${(info.rising_stock_ratio*100).toFixed(1)}%`:'',
+       info.rising_industry_ratio!=null?`当日行业上涨比 ${(info.rising_industry_ratio*100).toFixed(1)}%（${esc(info.industry_source||'')}）`:''].filter(Boolean).join('；');
+  return `<div class="diag-breakdown"><div style="font-size:12px;font-weight:750">三项市场广度 · 模型内有效覆盖 ${b.coverage||0}%</div>${parts}
+    ${spot?`<div class="muted-note">当日辅助参考（不代替60日趋势）：${spot}</div>`:''}
+    ${b.source_taxonomy?`<div class="muted-note">行业分类：${esc(b.source_taxonomy)}，不同供应商不拼接历史。</div>`:''}</div>`;
+}
   function renderDiagnostic(){
  const d=ensure().draft,result=calculate(d);
  const allIndex=signalCache?.technical?.indices||[];
@@ -144,6 +162,7 @@
     <input id="diagScore${i}" type="number" min="0" max="5" step="0.5" inputmode="decimal" value="${val===null||val===undefined?'':val}" ${activeAuto?'disabled':''} placeholder="0—5分，每0.5分一档" aria-label="${esc(f.name)}评分">
     ${trace?`<div class="muted-note">${esc(trace)}</div>`:''}
     ${issue?`<div class="muted-note" style="color:#dcbb81">缺失信息：${esc(issue)}</div>`:''}
+    ${i===1?renderBreadthBreakdown():""}
     <div class="muted-note">${esc(f.tip)}</div></div>`;
  }).join('');
  const checks=[['price','价格低点趋稳 / 不再持续创新低'],['momentum','短期均线或MACD下跌动能修复'],['breadth','市场广度或资金参与有所改善']].map(([k,t])=>`<label class="diag-check"><input id="diagBottom${k[0].toUpperCase()+k.slice(1)}" type="checkbox" ${d.bottoms[k]?'checked':''}>${esc(t)}</label>`).join('');
