@@ -39,3 +39,10 @@
 .diag-history-item b{font-size:12px}
 .diag-history-item .mini{margin-top:4px;font-size:10px}
 @media(max-width:390px){.diag-summary{grid-template-columns:1fr}}
+
+/* V1.5: auditable multi-horizon breadth evidence */
+.diag-breakdown{margin-top:12px;border:1px solid #38516a;border-radius:10px;padding:10px;background:#15273a;max-width:100%;overflow-wrap:anywhere}
+.diag-breakdown-row{padding:10px 0;border-bottom:1px solid #2a4058}
+.diag-breakdown-row:last-of-type{border-bottom:0}
+.diag-breakdown-row b{font-size:11px;line-height:1.65}
+.diag-breakdown-row .row-between{align-items:flex-start;gap:10px}

@@ -212,10 +212,17 @@ def main():
         coverage = "full"
         print(f"Fetched {len(quotes)} stock quotes / {reported_total} listed rows")
     except Exception as error:
-        print(f"WARN: whole-market feed failed: {error}; trying named-stock fallback", file=sys.stderr)
-        quotes = fallback_quotes()
-        source = "东方财富网页行情 · 预置股票回退采集（部分行情）"
-        coverage = "fallback"
+        print(f"WARN: Eastmoney full-market feed failed: {error}; trying independent Sina full-market fallback", file=sys.stderr)
+        try:
+            from sina_a_share import fetch_all_sina
+            quotes, reported_total = fetch_all_sina()
+            source = "新浪财经公开网页行情 · 全市场备用采集"
+            coverage = "full"
+        except Exception as secondary:
+            print(f"WARN: Sina full-market fallback unavailable: {secondary}; using named-stock fallback", file=sys.stderr)
+            quotes = fallback_quotes()
+            source = "东方财富网页行情 · 预置股票回退采集（部分行情）"
+            coverage = "fallback"
     try:
         index = fetch_index()
     except Exception as error:
@@ -226,6 +233,14 @@ def main():
     except Exception as error:
         print(f"WARN: SSE indicator unavailable: {error}", file=sys.stderr)
         technical = None
+    # Sina's ticktime is not a full trade timestamp: align its snapshot with the
+    # exchange index's actual last trade date rather than inventing today's close.
+    if coverage == "full" and source.startswith("新浪"):
+        if not index or not index.get("trade_at"):
+            coverage = "unverified"
+        else:
+            for quote in quotes.values():
+                quote["trade_at"] = index["trade_at"]
     data = {
         "updated_at": now, "source": source, "coverage": coverage,
         "count": len(quotes), "quotes": quotes,

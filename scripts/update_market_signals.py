@@ -13,6 +13,7 @@ from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 from update_quotes import download_json, entries, finite_float
+import breadth_model as bm
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "data" / "market_signals.json"
@@ -157,45 +158,70 @@ def exchange_index_breadth():
 
 
 def breadth():
-    components, issues = [], []
+    """Three subdimensions: stock MA60 trend 40%, sector trend 35%, five-day breadth 25%."""
+    history_path = ROOT / "data" / "breadth_history.json"
+    hist, issues = bm.read_history(history_path)
     try:
         q = json.loads((ROOT/"data"/"quotes.json").read_text(encoding="utf-8"))
-        quotes = q.get("quotes") or {}
-        if q.get("coverage") != "full" or len(quotes) < 3500:
-            raise ValueError("A股全市场行情不完整")
-        changes = [float(v["change"]) for v in quotes.values()
-                   if isinstance(v, dict) and v.get("change") is not None]
-        if len(changes) < 3500:
-            raise ValueError("可统计涨跌股票不足3500只")
-        ratio = sum(v > 0 for v in changes)/len(changes)
-        components.append({"name": "全A上涨家数比例", "ratio": round(ratio, 4),
-                           "sample": len(changes), "weight": .60})
-    except Exception as exc:
-        issues.append("全A个股行情不可用: "+str(exc))
-        try:
-            stats = exchange_index_breadth()
-            components.append({"name": "沪深A指数上涨家数代理（不含北交所）",
-                               "ratio": round(stats["rising"]/stats["sample"], 4),
-                               "sample": stats["sample"], "weight": .60})
-        except Exception as fallback_exc:
-            issues.append("沪深市场指数广度代理: "+str(fallback_exc))
+    except (OSError,ValueError) as exc:
+        q = {}
+        issues.append("A股收盘快照读取失败："+str(exc))
+    # The exchange index's actual trade_at is authoritative; a generated_at may be a holiday.
+    market_date = str((q.get("index") or {}).get("trade_at") or "")[:10]
+    if not bm._valid_trade_date(market_date):
+        issues.append("指数交易日未知，历史数据暂停追加")
+    snapshot = bm.get_industries(download_json, entries)
+    issues.extend(snapshot.get("issues", []))
+    stats = None
     try:
-        stats = industry_breadth()
-        ratio = stats["rising"]/stats["sample"]
-        components.append({"name": "上涨行业板块比例", "ratio": round(ratio, 4),
-                           "sample": stats["sample"], "weight": .40})
+        stats = exchange_index_breadth()
     except Exception as exc:
-        issues.append("行业扩散: "+str(exc))
-    coverage = sum(c["weight"] for c in components)
-    if coverage < .40:
-        return {"score": None, "coverage": round(coverage*100),
-                "components": components, "issues": issues}
-    score = half(5 * sum(c["ratio"]*c["weight"] for c in components) / coverage)
-    # Advance/decline is a one-session snapshot, NOT a persistent trend.
-    return {"score": score, "coverage": round(coverage*100),
-            "components": components, "issues": issues,
-            "asof": json.loads((ROOT/"data"/"quotes.json").read_text(encoding="utf-8")).get("updated_at"),
-            "method": "可用项按原预设权重归一：全市场/沪深A指数上涨家数代理60% + 上涨行业板块比例40%（未获取的数据不计分）；仅为单日广度，须结合趋势复核"}
+        issues.append("沪深A指数涨跌家数暂不可用："+str(exc))
+    if bm._valid_trade_date(market_date):
+        if stats is not None:
+            bm.update_participation(hist, market_date, stats["rising"]/stats["sample"],
+                                    stats["sample"], "沪深A指数涨跌家数（不含北交所）")
+        if not bm.update_stocks(hist, market_date, q.get("quotes") or {}, q.get("coverage")):
+            issues.append("全市场个股日线缺少完整行情，60日趋势数据等待积累")
+        if not bm.update_industries(hist, market_date, snapshot):
+            issues.append("当前行业来源的日涨跌数据未能写入历史记录")
+    # Only store public market aggregates/prices; no personal holdings.
+    history_path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = history_path.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(hist,ensure_ascii=False,separators=(",",":")),encoding="utf-8")
+    os.replace(tmp,history_path)
+
+    current_stock_count = len(q.get("quotes") or {}) if q.get("coverage")=="full" else 0
+    components = [
+        bm.stock_trend(hist, market_date, current_stock_count),
+        bm.industry_trend(hist, market_date, snapshot),
+        bm.participation(hist, market_date),
+    ]
+    issues.extend([c["issue"] for c in components if c.get("issue")])
+    score,coverage = bm.combine(components)
+    spot = {}
+    if stats is not None:
+        spot["rising_stock_ratio"] = round(stats["rising"]/stats["sample"], 4)
+        spot["stock_count"] = stats["sample"]
+        spot["stock_source"] = "沪深A指数（未含北交所）"
+    if snapshot.get("sectors"):
+        prices=[v["change_pct"] for v in snapshot["sectors"].values()]
+        spot["rising_industry_ratio"] = round(sum(p>0 for p in prices)/len(prices),4)
+        spot["industry_count"] = len(prices)
+        spot["industry_source"] = snapshot.get("taxonomy")
+        spot["industry_url"] = snapshot.get("url")
+    return {
+        "score":score,"coverage":coverage,
+        "asof":market_date if score is not None else None,
+        "components":components,
+        "spot":spot,
+        "issues":issues,
+        "source_taxonomy":snapshot.get("taxonomy"),
+        "history_days":{"stock":len(hist.get("stock_dates") or []),
+                        "participation":len(hist.get("participation") or []),
+                        "industries":len(((hist.get("industries") or {}).get(snapshot.get("provider")) or {}).get("dates") or [])},
+        "method":"个股MA60趋势40%＋同源行业趋势35%＋近5交易日上涨家数参与度25%；仅对有效历史计算，缺失权重不计入覆盖率"
+    }
 
 
 def turnover_activity(series, label, coverage, issues):
@@ -269,8 +295,8 @@ def main():
         except Exception as exc:
             blocks[name] = {"score": None, "coverage": 0, "issues": [str(exc)]}
         print(f"{name}: {blocks[name].get('score')} /5, coverage {blocks[name].get('coverage')}%", flush=True)
-    data = {"version": 2, "updated_at": now,
-            "source": "东方财富公开网页接口（非官方保证、接口可能变化）",
+    data = {"version": 3, "updated_at": now,
+            "source": "公开网页行情（指数/量能：东方财富；行业：东方财富主源，新浪独立备用），来源均可能变化",
             "indices_policy": [{"code": code, "name": name, "weight": weight}
                                for code, name, _, weight in INDICES],
             **blocks}
