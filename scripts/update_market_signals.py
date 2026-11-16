@@ -118,6 +118,39 @@ def industry_breadth():
     return {"rising": sum(v > 0 for v in seen.values()), "sample": len(seen)}
 
 
+def exchange_index_breadth():
+    """Fallback to SSE composite + SZSE A-share index index constituent counts.
+
+    It excludes Beijing and should be labeled an exchange-index proxy, not 'all A'.
+    """
+    obj = download_json("https://push2.eastmoney.com/api/qt/ulist.np/get", {
+        "fltt": 2, "invt": 2,
+        "secids": "1.000001,0.399107",
+        "fields": "f12,f14,f104,f105,f106,f124",
+    })
+    rows = entries(obj)
+    matched = {str(x.get("f12")): x for x in rows}
+    up, down, sample = 0, 0, 0
+    for code in ("000001", "399107"):
+        x = matched.get(code)
+        if not x:
+            raise ValueError("上证综指或深证A指缺失")
+        pos, neg = finite_float(x.get("f104")), finite_float(x.get("f105"))
+        flat = finite_float(x.get("f106"))
+        if pos is None or neg is None or pos < 0 or neg < 0:
+            raise ValueError(f"{code}涨跌家数字段缺失")
+        flat = max(0, flat or 0)
+        subtotal = pos + neg + flat
+        if subtotal < 1000:
+            raise ValueError(f"{code}成分涨跌家数不完整({subtotal})")
+        up += pos
+        down += neg
+        sample += subtotal
+    if sample < 3500:
+        raise ValueError(f"沪深市场样本量不足({sample})")
+    return {"rising": int(up), "falling": int(down), "sample": int(sample)}
+
+
 def breadth():
     components, issues = [], []
     try:
@@ -133,7 +166,14 @@ def breadth():
         components.append({"name": "全A上涨家数比例", "ratio": round(ratio, 4),
                            "sample": len(changes), "weight": .60})
     except Exception as exc:
-        issues.append("个股涨跌广度: "+str(exc))
+        issues.append("全A个股行情不可用: "+str(exc))
+        try:
+            stats = exchange_index_breadth()
+            components.append({"name": "沪深A指数上涨家数代理（不含北交所）",
+                               "ratio": round(stats["rising"]/stats["sample"], 4),
+                               "sample": stats["sample"], "weight": .60})
+        except Exception as fallback_exc:
+            issues.append("沪深市场指数广度代理: "+str(fallback_exc))
     try:
         stats = industry_breadth()
         ratio = stats["rising"]/stats["sample"]
@@ -157,7 +197,11 @@ def liquidity():
     """Turnover is liquidity/activity, explicitly NOT fund net inflows."""
     try:
         sh = kline("1.000001", 90)
-        sz = kline("0.399001", 90)
+        try:
+            sz = kline("0.399107", 90)  # SZSE A-share index includes all SZ A stocks
+            if len(sz) < 65: raise ValueError("深证A指历史不足65条")
+        except Exception:
+            sz = kline("0.399106", 90)  # SZSE composite backup, includes B shares
         sh_map = {x["date"]: x["amount"] for x in sh if x["amount"] and x["amount"] > 0}
         sz_map = {x["date"]: x["amount"] for x in sz if x["amount"] and x["amount"] > 0}
         dates = sorted(set(sh_map) & set(sz_map))
@@ -175,7 +219,7 @@ def liquidity():
                 "turnover20_yuan": round(recent20, 0),
                 "turnover20_vs_previous20": round(ratio, 3),
                 "turnover60_percentile": round(rank, 3),
-                "method": "仅成交活跃度代理评分：近60日成交分位55% + 20日量能变化45%；不等于融资/ETF净流入，无法据此判断资金净流向",
+                "method": "沪综指+深证A指（失败时深证综指）历史成交额代理：近60日成交分位55% + 20日量能变化45%；不等于ETF/融资净流入",
                 "issues": []}
     except Exception as exc:
         return {"score": None, "coverage": 0, "issues": [str(exc)]}
