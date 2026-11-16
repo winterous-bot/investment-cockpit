@@ -6,6 +6,7 @@ No holdings/watchlist/user private data are sent to the provider.
 """
 from __future__ import annotations
 import json
+import http.client
 import math
 import os
 import random
@@ -55,7 +56,7 @@ def download_json(url: str, params: dict, retries: int = 3):
             if start >= 0 and end > start:
                 return json.loads(raw[start:end+1])
             raise ValueError("Provider did not return JSON")
-        except (ValueError, urllib.error.HTTPError, urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
+        except (ValueError, urllib.error.HTTPError, urllib.error.URLError, TimeoutError, json.JSONDecodeError, ConnectionError, OSError, http.client.HTTPException) as exc:
             last_error = exc
             time.sleep(0.8 * (attempt + 1))
     raise RuntimeError(f"Provider request failed after retries: {last_error}")
