@@ -33,28 +33,52 @@ jobs:
         id: refresh
         continue-on-error: true
         env:
-          TUSHARE_TOKEN: \${{ secrets.TUSHARE_TOKEN }}
+          TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
         run: python scripts/tushare_5000.py
-      - name: Commit only aggregate scores and API health (no paid raw archive)
+      - name: Commit only validated aggregate scores and API health
         if: always()
+        env:
+          REFRESH_OUTCOME: ${{ steps.refresh.outcome }}
         run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add data/market_signals.json
+          set -euo pipefail
           if [ -f data/tushare_5000_health.json ]; then
             python -m json.tool data/tushare_5000_health.json > /dev/null
-            git add data/tushare_5000_health.json
+            cp data/tushare_5000_health.json /tmp/tushare_health.json
           fi
-          if ! git diff --cached --quiet; then
-            git commit -m 'data: publish verified Tushare 5000 aggregated market indicators'
-            for n in 1 2 3; do
-              git pull --rebase origin main
-              if git push origin HEAD:main; then exit 0; fi
-              sleep $((2*n))
-            done
-            echo "Failed to publish verified market aggregates" >&2
-            exit 1
+          if [ "$REFRESH_OUTCOME" = "success" ]; then
+            python -m json.tool data/market_signals.json > /dev/null
+            cp data/market_signals.json /tmp/tushare_scores.json
           fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for n in 1 2 3 4; do
+            git fetch origin main
+            git reset --hard origin/main
+            if [ -f /tmp/tushare_health.json ]; then cp /tmp/tushare_health.json data/tushare_5000_health.json; fi
+            if [ -f /tmp/tushare_scores.json ]; then
+              python - <<'PY'
+          import json
+          from pathlib import Path
+          new=json.loads(Path("/tmp/tushare_scores.json").read_text(encoding="utf-8"))
+          old=json.loads(Path("data/market_signals.json").read_text(encoding="utf-8"))
+          new_day=str((new.get("breadth") or {}).get("asof") or "")
+          old_day=str((old.get("breadth") or {}).get("asof") or "")
+          if new_day>=old_day:
+              Path("data/market_signals.json").write_text(
+                  json.dumps(new,ensure_ascii=False,separators=(",",":")),encoding="utf-8")
+          else:
+              print("Newer market scores found upstream; preserving newer date.")
+          PY
+            fi
+            git add data/market_signals.json
+            if [ -f data/tushare_5000_health.json ]; then git add data/tushare_5000_health.json; fi
+            if git diff --cached --quiet; then echo "No new aggregate score/health change"; exit 0; fi
+            git commit -m 'data: publish Tushare 5000 validated aggregate indicators'
+            if git push origin HEAD:main; then exit 0; fi
+            sleep $((2*n))
+          done
+          echo "Unable to safely publish API health after 4 retries" >&2
+          exit 1
       - name: Fail if any mandatory API or quality test failed
         if: steps.refresh.outcome == 'failure'
         run: |
