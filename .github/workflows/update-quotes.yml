@@ -5,6 +5,7 @@ on:
     paths:
       - 'scripts/update_quotes.py'
       - 'scripts/update_market_signals.py'
+      - 'scripts/update_tushare_incremental.py'
       - 'scripts/breadth_model.py'
       - 'tests/**'
       - '.github/workflows/update-quotes.yml'
@@ -34,6 +35,10 @@ jobs:
         run: python -m unittest discover -s tests
       - name: Fetch A-share close snapshots
         run: python scripts/update_quotes.py
+      - name: Append verified Tushare daily close to public breadth history
+        env:
+          TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
+        run: python scripts/update_tushare_incremental.py
       - name: Calculate multi-horizon market breadth, sector-fallback and liquidity indicators
         run: python scripts/update_market_signals.py
       - name: Commit fresh public data (never upload private portfolio)
