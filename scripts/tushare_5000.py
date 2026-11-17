@@ -430,8 +430,11 @@ def run():
         if liquidity.get("score") is None:
             health["warnings"].append("Tushare交易活跃度数据未齐全，保留此前流动性分数")
             liquidity=saved.get("liquidity",liquidity)
-        health["access_verified"]=True
+        health["access_verified"]=all(api.status[name].get("state")=="ok" for name in API_LIST)
+        health["scoring_ready"]=True
         health["breadth_coverage"]=bm.combine([adjusted,industry,participation])[1]
+        if not health["access_verified"]:
+            health["warnings"].append("部分可选接口或指数子项未达完整标准，请查看每项状态")
         health["api"]=api.status
         health["api_calls"]=api.counts
         health["market_date"]=date_fmt(asof)
@@ -448,10 +451,11 @@ def run():
         print("FAIL: Tushare5000 integrity or permission check: "+str(exc),flush=True)
         return 1
     atomic(BASE/"tushare_5000_health.json",health)
-    print("PASS: Tushare5000 permissions validated; broad scores updated; "
+    print(("PASS: all eight APIs verified. " if health["access_verified"] else "PARTIAL: inspect API health. ")+
+          "Tushare5000 aggregate scores updated; "
           f"SW industry {industry['sample']}/{industry['sector_count']}, "
           f"adjusted stocks {adjusted['sample']}; asof {date_fmt(asof)}.",flush=True)
-    return 0
+    return 0 if health["access_verified"] else 2
 
 
 if __name__=="__main__":
