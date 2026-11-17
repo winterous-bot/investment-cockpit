@@ -1,0 +1,49 @@
+name: Tushare 历史行情首次回补
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/backfill_tushare.py'
+      - '.github/workflows/backfill-tushare.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: a-share-quotes
+  cancel-in-progress: false
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run offline model tests (no real tokens)
+        run: python -m unittest discover -s tests -v
+      - name: Backfill 100 historical A-share trading days
+        env:
+          TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
+        run: |
+          if [ -z "$TUSHARE_TOKEN" ]; then
+            echo "TUSHARE_TOKEN GitHub Actions Secret is missing"
+            exit 1
+          fi
+          python scripts/backfill_tushare.py --days 100
+      - name: Validate and commit only public market history
+        run: |
+          python -m json.tool data/breadth_history.json > /dev/null
+          python -m json.tool data/market_signals.json > /dev/null
+          python -m json.tool data/backfill_status.json > /dev/null
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/breadth_history.json data/market_signals.json data/backfill_status.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'data: initialize A-share trend breadth from Tushare daily'
+            git push
+          fi
