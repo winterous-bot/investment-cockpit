@@ -69,7 +69,12 @@ def tushare_daily(token: str, day: date, *, request=None):
     if not isinstance(payload, dict) or payload.get("code") != 0:
         raise TushareError("Tushare daily 返回权限、限流或其他接口错误")
     data = payload.get("data") or {}
+    if not data:
+        # Holidays can return code=0 but no data table: not an API failure.
+        return {"day":day.isoformat(),"prices":{},"sample":0,"measured":0,"up_ratio":None}
     fields, rows = data.get("fields") or [], data.get("items") or []
+    if not rows:
+        return {"day":day.isoformat(),"prices":{},"sample":0,"measured":0,"up_ratio":None}
     keys = {name: i for i, name in enumerate(fields)}
     required = {"ts_code", "trade_date", "close"}
     if not required.issubset(keys):
