@@ -48,5 +48,14 @@ jobs:
           git add data/quotes.json data/market_signals.json data/breadth_history.json
           if ! git diff --cached --quiet; then
             git commit -m 'data: update A-share quotes'
-            git push
+            # A separate Tushare workflow may publish verified scores between
+            # checkout and this push. Rebase against main without overwriting
+            # the newer upstream market_signals.json on conflict.
+            for n in 1 2 3; do
+              git pull --rebase -X ours origin main
+              if git push origin HEAD:main; then exit 0; fi
+              sleep $((2*n))
+            done
+            echo "Failed to publish public quote update after 3 retries" >&2
+            exit 1
           fi
