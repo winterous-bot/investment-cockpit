@@ -117,6 +117,35 @@ class Tushare:
         raise SafeAPIError(f"{name} {last}")
 
 
+def probe_all_api_permissions(api,asof):
+    """Eight independent calls; never let one failed API mask the others."""
+    lookback=(datetime.strptime(asof,"%Y%m%d").date()-timedelta(days=12)).strftime("%Y%m%d")
+    probes={
+        "trade_cal":({"exchange":"SSE","start_date":lookback,"end_date":asof},
+                     "cal_date,is_open"),
+        "stock_basic":({"list_status":"L"},"ts_code,list_status"),
+        "index_classify":({"level":"L1","src":"SW2021"},
+                          "index_code,industry_name,level"),
+        "sw_daily":({"trade_date":asof},"ts_code,trade_date,close"),
+        "adj_factor":({"trade_date":asof},"ts_code,trade_date,adj_factor"),
+        "index_daily":({"ts_code":"000300.SH","start_date":lookback,"end_date":asof},
+                       "ts_code,trade_date,close"),
+        "daily_basic":({"trade_date":asof},"ts_code,trade_date,turnover_rate"),
+        "daily":({"trade_date":asof},"ts_code,trade_date,close"),
+    }
+    for name,(params,fields) in probes.items():
+        try:
+            rows=api.ask(name,params,fields,retry=1)
+            if len(rows)==0:
+                api.status[name].update({"state":"partial","reason":"API有权限但当前查询无有效数据"})
+            else:
+                api.status[name].update({"state":"ok","probe_rows":len(rows)})
+        except SafeAPIError:
+            # The client recorded a sanitized numeric error; do not expose full response.
+            pass
+    return all(api.status[name]["state"]=="ok" for name in probes)
+
+
 def latest_dates(api,asof,days=150):
     x=api.ask("trade_cal",{"exchange":"SSE","start_date":iso(asof-timedelta(days=250)),
                              "end_date":iso(asof),"is_open":"1"},
@@ -396,6 +425,13 @@ def run():
         "asof":date_fmt(asof),"access_verified":False,"source":"Tushare Pro",
         "raw_paid_data_committed":False,"api":api.status,"warnings":[]}
     saved=load_json(BASE/"market_signals.json",{})
+    if not probe_all_api_permissions(api,asof):
+        health["warnings"].append("八接口独立权限探测未全部通过，停止付费历史批量回补；原有有效评分不变")
+        health["api"]=api.status
+        health["api_calls"]=api.counts
+        atomic(BASE/"tushare_5000_health.json",health)
+        print("FAIL: Eight-endpoint access probe incomplete; check health JSON.",flush=True)
+        return 1
     try:
         valid_dates=latest_dates(api,day)
         if asof not in valid_dates:
