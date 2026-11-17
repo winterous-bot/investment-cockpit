@@ -23,6 +23,7 @@
  return d;
 }
     let signalCache=null;
+    let tushareHealth=null;
   let signalError='自动数据尚未下载';
   const SIGNAL_KEYS=['technical','breadth','liquidity'];
   const half=n=>Math.max(0,Math.min(5,Math.round(Number(n)*2)/2));
@@ -45,6 +46,10 @@
         throw new Error('自动指标版本或结构不匹配');
       signalCache=payload;
       signalError='';
+      try{
+        const h=await fetch('./data/tushare_5000_health.json?v='+Date.now(),{cache:'no-store'});
+        tushareHealth=h.ok?await h.json():null;
+      }catch(_){tushareHealth=null;}
       return true;
     }catch(e){signalError=String(e.message||e);return false;}
   }
@@ -144,6 +149,28 @@
     ${spot?`<div class="muted-note">当日辅助参考（不代替60日趋势）：${spot}</div>`:''}
     ${b.source_taxonomy?`<div class="muted-note">行业分类：${esc(b.source_taxonomy)}，不同供应商不拼接历史。</div>`:''}</div>`;
 }
+  function renderTushareHealth(){
+    if(!tushareHealth?.api)return '<div class="muted-note">Tushare 5000积分接口健康报告尚未发布；目前仍可使用原有市场指标。</div>';
+    const labels={trade_cal:'交易日历',stock_basic:'股票基础资料',
+      index_classify:'申万行业分类',sw_daily:'申万行业日线',
+      adj_factor:'复权因子',index_daily:'宽基指数日线',
+      daily_basic:'每日基本指标',daily:'A股日线'};
+    const items=Object.keys(labels).map(key=>{
+      const entry=tushareHealth.api[key]||{},good=entry.state==='ok';
+      const status=good?'通过':entry.state==='partial'?'数据不完整':entry.state==='not_checked'?'未检验':'失败';
+      const details=entry.valid_pct!=null?(' · 行业覆盖'+entry.valid_pct+'%'):
+          entry.verified_ma60!=null?(' · 有效MA60股票'+entry.verified_ma60):
+          entry.verified_indices!=null?(' · 宽基'+entry.verified_indices+'只'):
+          entry.sh_sz_listed!=null?(' · 股票'+entry.sh_sz_listed+'只'):
+          entry.sample!=null?(' · 样本'+entry.sample):'';
+      return '<div class="diag-history-item"><span>'+esc(labels[key])+'</span>'+
+         '<span class="mini">'+esc(status+details)+'</span></div>';
+    }).join('');
+    return '<div class="diag-breakdown" style="margin-top:12px"><b>5000积分接口健康检查（'+
+      esc(tushareHealth.asof||'无日期')+'）</b>'+items+
+      '<div class="muted-note">仅记录已验证的权限状态、日期和样本量，不包含Token或原始付费历史。</div></div>';
+  }
+
   function renderDiagnostic(){
  const d=ensure().draft,result=calculate(d);
  const allIndex=signalCache?.technical?.indices||[];
@@ -167,11 +194,12 @@
  }).join('');
  const checks=[['price','价格低点趋稳 / 不再持续创新低'],['momentum','短期均线或MACD下跌动能修复'],['breadth','市场广度或资金参与有所改善']].map(([k,t])=>`<label class="diag-check"><input id="diagBottom${k[0].toUpperCase()+k.slice(1)}" type="checkbox" ${d.bottoms[k]?'checked':''}>${esc(t)}</label>`).join('');
  const history=ensure().history.slice(-6).reverse().map(h=>`<div class="diag-history-item"><div><b>${esc(h.applied?'已应用':'仅记录')} · ${esc(STAGES[h.stage]||'未知')}</b><div class="mini">${dateBeijing(h.at)} · 加权均值 ${h.score??'—'}/${h.scoringVersion===2?5:100} · 证据覆盖 ${h.coverage}%</div></div><span class="pill">${esc(RISK[h.risk]||'正常')}</span></div>`).join('');
- return `<div class="intro-top"><div><div class="eyebrow">MARKET REGIME DIAGNOSTICS / V1.5</div><h1 class="page-title">市场阶段诊断</h1><div class="subtle">四宽基趋势 × 三维广度 × 真实覆盖率 × 人工确认</div></div></div>
+ return `<div class="intro-top"><div><div class="eyebrow">MARKET REGIME DIAGNOSTICS / V1.7</div><h1 class="page-title">市场阶段诊断</h1><div class="subtle">四宽基趋势 × 三维广度 × 真实覆盖率 × 人工确认</div></div></div>
    <section class="panel" style="margin-top:14px">${statusHTML(result,d)}<div class="divider"></div><div class="row-between"><span class="mini">当前实际应用阶段</span><b>${esc(regimeName(state.regime))}</b></div><div class="muted-note" style="margin-top:8px">本模型用于未来1—3个月的风险预算；历史广度需累计5/60/80个交易日后才能参与评分。成交额不代表资金净流入。</div></section>
    <div class="section-heading"><h2>一、自动指标与来源</h2><span class="pill">公开行情</span></div>
    <section class="panel"><div class="muted-note">${esc(idxText)}</div><div class="muted-note" style="margin-top:9px">数据源：${esc(signalCache?.source||signalError)}。最近生成时间：${esc(signalCache?.updated_at||'—')}。</div>
    <button class="button secondary block" style="margin-top:12px" data-action="diag-refresh-data">重新读取自动市场指标</button>
+   ${renderTushareHealth()}
    <div class="muted-note" style="margin-top:8px">重新读取的是GitHub上最新发布的行情指标，不会主动爬取实时市场数据。每个维度都有独立的人工覆盖选项；自动结果超过8天不再使用。</div></section>
    <div class="section-heading"><h2>二、六维评分</h2><span class="mini">满分5分，每0.5分一档 · 权重100%</span></div>
    <section class="panel"><div class="diag-scores-tip">评分口径：0—0.5明显不利；1—1.5偏不利；2—2.5中性；3—3.5偏支持；4—5强支持。自动指标若缺失请人工判断；输入变化后点「预览诊断」更新结论。</div>${dimensionFields}</section>
@@ -215,7 +243,7 @@
     return html.includes(marker)?html.replace(marker,entryCard()+marker):entryCard()+html;
   };
   const baseSettings=renderSettings;
-  renderSettings=function(){return baseSettings().replace('版本 1.2','版本 1.5 · 多时段市场广度与有效证据覆盖').replace('<div class="section-heading"><h2>产品边界</h2></div>',entryCard()+'<div class="section-heading"><h2>产品边界</h2></div>');};
+  renderSettings=function(){return baseSettings().replace('版本 1.2','版本 1.7 · Tushare统一日线与行业复权验证').replace('<div class="section-heading"><h2>产品边界</h2></div>',entryCard()+'<div class="section-heading"><h2>产品边界</h2></div>');};
   const baseAlerts=computeAlerts;
   computeAlerts=function(p){
     const a=baseAlerts(p),d=ensure().draft;
@@ -249,7 +277,7 @@
       toast(action==='diag-apply'?'阶段已确认，风控预算已更新':action==='diag-save'?'诊断记录已保存（未改变市场阶段）':'诊断结果已重新计算（尚未应用）');
     }catch(e){toast('无法保存诊断：'+e.message);}
   };
-  window.NorthstarDiagnostic={FACTORS,calculate,freshTechnical,recentSignal,version:'1.5'};
+  window.NorthstarDiagnostic={FACTORS,calculate,freshTechnical,recentSignal,version:'1.7'};
   document.addEventListener('change',event=>{
     const match=/^diagManual([012])$/.exec(event.target?.id||'');
     if(!match)return;
