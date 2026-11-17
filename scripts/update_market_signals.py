@@ -167,9 +167,13 @@ def breadth():
         q = {}
         issues.append("A股收盘快照读取失败："+str(exc))
     # The exchange index's actual trade_at is authoritative; a generated_at may be a holiday.
-    market_date = str((q.get("index") or {}).get("trade_at") or "")[:10]
+    quote_trade_date = str((q.get("index") or {}).get("trade_at") or "")[:10]
+    historic_trade_date = (hist.get("stock_dates") or [None])[-1]
+    # The independent Tushare archive is authoritative when the web quote index
+    # is unavailable/stale. Never turn a snapshot creation time into a trading day.
+    market_date = historic_trade_date or quote_trade_date
     if not bm._valid_trade_date(market_date):
-        issues.append("指数交易日未知，历史数据暂停追加")
+        issues.append("没有可信的最近交易日，历史数据暂停追加")
     snapshot = bm.get_industries(download_json, entries)
     issues.extend(snapshot.get("issues", []))
     stats = None
@@ -178,20 +182,27 @@ def breadth():
     except Exception as exc:
         issues.append("沪深A指数涨跌家数暂不可用："+str(exc))
     if bm._valid_trade_date(market_date):
-        if stats is not None:
+        # Do not append raw public webpage quotes onto Tushare history when its
+        # index timestamp is missing or out of sync with the saved trading day.
+        if stats is not None and quote_trade_date==market_date and market_date not in {x.get("date") for x in hist.get("participation", [])}:
             bm.update_participation(hist, market_date, stats["rising"]/stats["sample"],
                                     stats["sample"], "沪深A指数涨跌家数（不含北交所）")
-        if not bm.update_stocks(hist, market_date, q.get("quotes") or {}, q.get("coverage")):
-            issues.append("全市场个股日线缺少完整行情，60日趋势数据等待积累")
-        if not bm.update_industries(hist, market_date, snapshot):
-            issues.append("当前行业来源的日涨跌数据未能写入历史记录")
+        if q.get("coverage")=="full" and quote_trade_date==market_date and historic_trade_date!=market_date:
+            bm.update_stocks(hist, market_date, q.get("quotes") or {}, "full")
+        elif (hist.get("stock_dates") or [None])[-1]!=market_date:
+            issues.append("本日全市场行情源未验证，等待Tushare增量日线补充")
+        if quote_trade_date==market_date and snapshot.get("sectors"):
+            if not bm.update_industries(hist, market_date, snapshot):
+                issues.append("行业行情未能写入相同交易日的历史")
+        elif snapshot.get("sectors"):
+            issues.append("行业数据缺少与当前交易日匹配的时间戳，本次不追加历史")
     # Only store public market aggregates/prices; no personal holdings.
     history_path.parent.mkdir(parents=True, exist_ok=True)
     tmp = history_path.with_suffix(".json.tmp")
     tmp.write_text(json.dumps(hist,ensure_ascii=False,separators=(",",":")),encoding="utf-8")
     os.replace(tmp,history_path)
 
-    current_stock_count = len(q.get("quotes") or {}) if q.get("coverage")=="full" else 0
+    current_stock_count = sum(1 for prices in (hist.get("stock_prices") or {}).values() if prices and prices[-1] is not None) if (hist.get("stock_dates") or [None])[-1] == market_date else 0
     components = [
         bm.stock_trend(hist, market_date, current_stock_count),
         bm.industry_trend(hist, market_date, snapshot),
