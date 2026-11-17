@@ -1,0 +1,62 @@
+name: Tushare 5000积分统一市场数据验证与更新
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/tushare_5000.py'
+      - '.github/workflows/tushare-5000.yml'
+  schedule:
+    # 12:25 UTC = Beijing 20:25, Mon-Fri. SW and index daily usually finish after afternoon.
+    - cron: '25 12 * * 1-5'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: a-share-quotes
+  cancel-in-progress: false
+jobs:
+  paid-market:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout current branch
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Offline parser, model and security regression tests
+        run: python -m unittest discover -s tests -v
+      - name: Verify each 5000-point API and refresh derived market scores
+        id: refresh
+        continue-on-error: true
+        env:
+          TUSHARE_TOKEN: \${{ secrets.TUSHARE_TOKEN }}
+        run: python scripts/tushare_5000.py
+      - name: Commit only aggregate scores and API health (no paid raw archive)
+        if: always()
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/market_signals.json
+          if [ -f data/tushare_5000_health.json ]; then
+            python -m json.tool data/tushare_5000_health.json > /dev/null
+            git add data/tushare_5000_health.json
+          fi
+          if ! git diff --cached --quiet; then
+            git commit -m 'data: publish verified Tushare 5000 aggregated market indicators'
+            for n in 1 2 3; do
+              git pull --rebase origin main
+              if git push origin HEAD:main; then exit 0; fi
+              sleep $((2*n))
+            done
+            echo "Failed to publish verified market aggregates" >&2
+            exit 1
+          fi
+      - name: Fail if any mandatory API or quality test failed
+        if: steps.refresh.outcome == 'failure'
+        run: |
+          echo "Tushare5000 validation failed. Check data/tushare_5000_health.json and step output."
+          exit 1
