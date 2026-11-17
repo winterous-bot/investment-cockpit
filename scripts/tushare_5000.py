@@ -11,6 +11,7 @@ import argparse
 import json
 import math
 import os
+import re
 import statistics
 import sys
 import time
@@ -97,7 +98,10 @@ class Tushare:
                     payload=json.loads(response.read(4500000).decode("utf-8"))
                 if not isinstance(payload,dict) or payload.get("code")!=0:
                     code=payload.get("code") if isinstance(payload,dict) else "invalid"
-                    raise SafeAPIError(f"{name} API返回非零状态码 {str(code)[:16]}（权限/频率/接口需核查）")
+                    raw_msg=str(payload.get("msg") or "") if isinstance(payload,dict) else ""
+                    safe_msg=raw_msg.replace(self.token,"[MASKED]")
+                    safe_msg=re.sub(r"[0-9a-fA-F]{28,}","[MASKED]",safe_msg)[:100]
+                    raise SafeAPIError(f"{name} API状态码 {str(code)[:16]}："+safe_msg)
                 rows=(payload.get("data") or {}).get("items") or []
                 header=(payload.get("data") or {}).get("fields") or []
                 if not isinstance(rows,list) or not isinstance(header,list):
