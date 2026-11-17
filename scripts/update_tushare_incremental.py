@@ -38,30 +38,41 @@ def append_increment(token, fetch=tushare_daily, end=None, history_file=HISTORY_
     if not current:
         print("WARN no seeded history; initial 100-day backfill required first.")
         return {"updated":False,"reason":"history_missing"}
-    for d in latest_candidates(end or safe_end_date()):
+    candidates=[d for d in reversed(latest_candidates(end or safe_end_date()))
+                if d.isoformat()>current]
+    if not candidates:
+        print(f"INFO Already up-to-date through {current}.")
+        return {"updated":False,"reason":"up_to_date","asof":current}
+    latest_added=None
+    added_count=0
+    for d in candidates:
         asof=d.isoformat()
-        if asof<=current:
-            break
         try:
             row=fetch(token,d)
         except TushareError as error:
-            print(f"WARN Tushare {asof}: {error}")
-            continue
+            print(f"WARN Tushare {asof}: {error}. Stop to prevent gaps in MA60 history.")
+            break
         if row["sample"]<MIN_SAMPLE:
-            print(f"INFO {asof}: {row['sample']} daily rows; likely holiday or data not published")
-            continue
+            if row["sample"]==0:
+                print(f"INFO {asof}: no close yet / exchange holiday.")
+                continue
+            print(f"WARN {asof}: partial trading-day data ({row['sample']} stocks); stop.")
+            break
         if row["up_ratio"] is None:
-            print(f"WARN {asof}: market breadth percentage missing, no update")
-            continue
-        # The most recent valid session is enough for normal one-day increments.
-        hist_before_dates=len(hist["stock_dates"])
-        bm.update_stocks(hist,asof,row["prices"],"full")
+            print(f"WARN {asof}: missing breadth count; stop to preserve sequential history.")
+            break
+        if not bm.update_stocks(hist,asof,row["prices"],"full"):
+            print(f"WARN {asof}: invalid record; stop without advancing later dates.")
+            break
         bm.update_participation(hist,asof,row["up_ratio"],row["measured"],
                                 "Tushare Pro daily (SH/SZ A)")
+        latest_added=asof
+        added_count+=1
+        print(f"OK Tushare daily increment: {asof}, {row['sample']} stocks.")
+    if added_count:
         save_atomic(Path(history_file),hist)
-        print(f"OK Tushare daily increment: {asof}, {row['sample']} securities, "+
-              f"archive days {hist_before_dates} -> {len(hist['stock_dates'])}.")
-        return {"updated":True,"asof":asof,"sample":row["sample"]}
+        print(f"OK Persisted {added_count} sessions, latest {latest_added}.")
+        return {"updated":True,"asof":latest_added,"sessions":added_count}
     print(f"INFO No newer Tushare daily close found (saved through {current}).")
     return {"updated":False,"reason":"no_newer_trade_date","asof":current}
 
