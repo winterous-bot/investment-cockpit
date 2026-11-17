@@ -171,7 +171,7 @@ def breadth():
     historic_trade_date = (hist.get("stock_dates") or [None])[-1]
     # The independent Tushare archive is authoritative when the web quote index
     # is unavailable/stale. Never turn a snapshot creation time into a trading day.
-    market_date = max(filter(None,[quote_trade_date,historic_trade_date]),default="")
+    market_date = historic_trade_date or quote_trade_date
     if not bm._valid_trade_date(market_date):
         issues.append("没有可信的最近交易日，历史数据暂停追加")
     snapshot = bm.get_industries(download_json, entries)
@@ -187,7 +187,7 @@ def breadth():
         if stats is not None and quote_trade_date==market_date and market_date not in {x.get("date") for x in hist.get("participation", [])}:
             bm.update_participation(hist, market_date, stats["rising"]/stats["sample"],
                                     stats["sample"], "沪深A指数涨跌家数（不含北交所）")
-        if q.get("coverage")=="full" and quote_trade_date==market_date:
+        if q.get("coverage")=="full" and quote_trade_date==market_date and historic_trade_date!=market_date:
             bm.update_stocks(hist, market_date, q.get("quotes") or {}, "full")
         elif (hist.get("stock_dates") or [None])[-1]!=market_date:
             issues.append("本日全市场行情源未验证，等待Tushare增量日线补充")
