@@ -33,7 +33,8 @@ class TushareDailyTests(unittest.TestCase):
                      ["920001.BJ","20261116",12,10,20]]
         }})
     def test_parses_sh_sz_excludes_bj(self):
-        rec=backfill.tushare_daily("DUMMY_NOT_REAL",date(2026,11,16),request=self.fake_request)
+        with patch.object(backfill,"MIN_SAMPLE",2):
+            rec=backfill.tushare_daily("DUMMY_NOT_REAL",date(2026,11,16),request=self.fake_request)
         self.assertEqual(rec["sample"],2)
         self.assertEqual(rec["measured"],2)
         self.assertAlmostEqual(rec["up_ratio"],.5)
