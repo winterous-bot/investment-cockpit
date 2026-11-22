@@ -95,12 +95,14 @@ def summarize(xs):
         row = xs[i]
         previous = xs[i-1]
         close, close_prior = row.get("benchmark"), previous.get("benchmark")
-        if close is None or close_prior is None or close_prior <= 0:
+        dr = row.get("benchmark_return")
+        if dr is None and close is not None and close_prior is not None and close_prior > 0:
+            dr = close / close_prior - 1
+        if dr is None:
             missing += 1; continue
         s = xs[i-2]["state"]
         # The new position becomes tradable after the following close. Unknown holds cash.
         pos = TARGET.get(s, 0.)
-        dr = close/close_prior-1
         trade = abs(pos-last_pos)
         strategy *= 1 + pos*dr - .001*trade
         benchmark *= 1 + dr
