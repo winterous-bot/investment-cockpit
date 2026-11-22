@@ -237,6 +237,7 @@ def build_year(year,api):
                     "leaders":leaders,"drawdown120":round(dd,5) if dd is not None else None,
                     "prior_decline":prior_decline,"repair_count":repair_count,
                     "benchmark":round(benchmark[i],9) if benchmark[i] is not None else None,
+                    "benchmark_return":round(benchmark[i]/benchmark[i-1]-1,9) if i>=1 and benchmark[i] is not None and benchmark[i-1] is not None and benchmark[i-1]>0 else None,
                     "stock_samples":stock_n[i],"sector_samples":sector_n[i],
                     "historical_taxonomy_backcast":dt(d)<"2021-12-13"})
     # Year-level results contain only daily aggregate features; never raw stock prices.
