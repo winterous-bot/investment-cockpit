@@ -46,14 +46,14 @@ def classify_candidate(row):
     down = row.get("down_votes",0) >= 3
     broad = b >= .60 and p >= .55 and industry >= .55
     weak = b <= .40 and p < .45 and industry < .45
-    if (t <= -55 and down and weak) or (t <= -25 and down and weak and row.get("drawdown120",0) <= -.12):
+    if (t <= -55 and down and weak) or (t <= -25 and down and weak and (row.get("drawdown120") or 0) <= -.12):
         return "bear"
     if t >= 55 and up and broad and a5 >= .52:
         return "bull"
-    if (row.get("prior_decline") and row.get("repair_count",0) >= 2
+    if (row.get("prior_decline") and (row.get("repair_count") or 0) >= 2
             and t > -55 and b < .60):
         return "bottoming"
-    if (row.get("leaders",0) >= 3 and b >= .40 and t >= -25 and not broad):
+    if ((row.get("leaders") or 0) >= 3 and b >= .40 and t >= -25 and not broad):
         return "structural"
     return "range"
 
