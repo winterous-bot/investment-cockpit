@@ -1,0 +1,40 @@
+name: Recover V2.0d computed report
+on:
+  push:
+    branches: [research/v2d-risk-budget-20261125]
+    paths: [".github/workflows/v2d-recover-report.yml"]
+permissions:
+  actions: read
+  contents: write
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: research/v2d-risk-budget-20261125
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          name: v2d-research-report
+          run-id: 45626872780
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: research/v2d/results
+      - name: Validate and print computed report
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          x=json.loads(Path("research/v2d/results/study_report.json").read_text())
+          assert x["version"]=="V2.0d-research-2026-11-25"
+          print(json.dumps({"stress":{h:{k:v[k] for k in ("2022_plus","2024_plus")} for h,v in x["stress"].items()},"stage_evolution":x["stage_evolution"]},ensure_ascii=False))
+          PY
+      - name: Publish recovered artifact without force push
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add research/v2d/results/study_report.json
+          git diff --cached --quiet || git commit -m 'research(v2d): recover computed report from run 45626872780'
+          git pull --rebase origin research/v2d-risk-budget-20261125
+          git push origin HEAD:research/v2d-risk-budget-20261125
