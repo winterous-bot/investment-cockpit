@@ -1,0 +1,44 @@
+name: V2.0d risk budget research
+on:
+  push:
+    branches: [research/v2d-risk-budget-20261125]
+    paths:
+      - ".github/workflows/v2d-risk-budget.yml"
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: write
+jobs:
+  study:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run all regression tests
+        run: python -m unittest discover -s tests -v
+      - name: Reuse available historical aggregates
+        uses: actions/download-artifact@v4
+        with:
+          name: v2c-reusable-breadth-aggregates
+          run-id: 45623689730
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: ${{ runner.temp }}/v2d-shards
+      - name: Historical stress and regime validation
+        env:
+          TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
+        run: python research/v2d/study.py --shards "${{ runner.temp }}/v2d-shards" --output research/v2d/results/study_report.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v2d-research-report
+          path: research/v2d/results/study_report.json
+      - name: Publish aggregate research summary
+        if: github.ref == 'refs/heads/research/v2d-risk-budget-20261125'
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add research/v2d/results/study_report.json
+          git diff --cached --quiet || git commit -m 'research(v2d): publish risk budget study summary'
+          git push origin HEAD:research/v2d-risk-budget-20261125
