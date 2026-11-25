@@ -29,11 +29,15 @@
  async function refresh(){
   if(loading)return;const t=epoch;loading=true;
   try{
-   if(!key)key=await readKey();
+   if(!key){const saved=await readKey();if(t!==epoch)return;key=saved;}
    if(t!==epoch)return;
    if(!key){setStatus('首次使用：请配置独立雷达密钥。');return;}
    setStatus('正在读取最新加密快照…');
-   const response=await fetch('./data/industry_radar.enc.json?ts='+Date.now(),{cache:'no-store'});
+   const urls=['https://raw.githubusercontent.com/winterous-bot/investment-cockpit/main/data/industry_radar.enc.json','./data/industry_radar.enc.json'];
+   // Pages builds are not necessarily triggered by GITHUB_TOKEN pushes; use raw ciphertext first.
+   let response=null,lastError=null;
+   for(const u of urls){try{const c=new AbortController(),timer=setTimeout(()=>c.abort(),7000);let r;try{r=await fetch(u+'?ts='+Date.now(),{cache:'no-store',signal:c.signal})}finally{clearTimeout(timer)}if(r.ok){response=r;break}if(!response||r.status!==404)response=r;}catch(e){lastError=e}}
+   if(!response)throw Error('无法连接雷达数据源，请稍后刷新');
    if(response.status===404){setStatus('尚无已发布快照。请先配置GitHub Secret并运行更新任务。');return;}
    if(!response.ok)throw Error('HTTP '+response.status);
    const x=await response.json();
@@ -48,14 +52,14 @@
    setStatus('行情日期 '+dateText(asof)+' · 北京时间'+(dateText(asof)!==today?' · 非今日行情，请核对交易日':''));
    showFrame();
   }catch(e){if(t===epoch)setStatus((plain?'已保留 '+dateText(asof)+' 快照；':'')+e.message)}
-  finally{loading=false;}
+  finally{loading=false;if(t!==epoch&&key&&byId('radarRoot'))refresh();}
  }
  function setup(){
   const root=byId('radarRoot');if(!root)return;
   const inp=byId('radarKeyInput');
   byId('radarGenerate').onclick=()=>{if(key&&!confirm('已配置密钥。更换需同步修改GitHub Secret，确定生成新密钥？'))return;inp.value=Array.from(crypto.getRandomValues(new Uint8Array(32)),x=>x.toString(16).padStart(2,'0')).join('');inp.type='text';inp.select();setStatus('请复制新密钥并保存到密码管理器，再配置GitHub Secret及本机密钥。')};
   byId('radarCopy').onclick=async()=>{if(!inp.value)return;try{await navigator.clipboard.writeText(inp.value);setStatus('密钥已复制，请仅粘贴至GitHub Secret。')}catch{inp.type='text';inp.select();setStatus('请长按选择并复制密钥。')}};
-  byId('radarSave').onclick=async()=>{try{const v=await importKey(inp.value.trim());await storeKey(v);key=v;epoch++;plain=null;asof=null;byId('radarFrame').hidden=true;inp.value='';inp.type='password';setStatus('已保存本机密钥；读取最新快照。');refresh()}catch(e){setStatus(e.message)}};
+  byId('radarSave').onclick=async()=>{try{const v=await importKey(inp.value.trim());await storeKey(v);key=v;epoch++;plain=null;asof=null;byId('radarFrame').srcdoc='';byId('radarFrame').hidden=true;inp.value='';inp.type='password';setStatus('已保存本机密钥；读取最新快照。');refresh()}catch(e){setStatus(e.message)}};
   byId('radarClear').onclick=async()=>{if(!confirm('仅删除本机雷达密钥，不影响持仓和后台任务？'))return;try{await storeKey(null);key=null;plain=null;asof=null;epoch++;inp.value='';byId('radarFrame').srcdoc='';byId('radarFrame').hidden=true;setStatus('已删除本机雷达密钥。')}catch(e){setStatus(e.message)}};
   byId('radarReload').onclick=refresh;showFrame();refresh();
  }
