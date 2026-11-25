@@ -1,0 +1,30 @@
+name: Industry radar V1.0 prototype
+on:
+  push:
+    branches: [research/industry-radar-v1]
+    paths: [".github/workflows/industry-radar.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  radar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Regression tests
+        run: python -m unittest discover -s tests -v
+      - name: Build industry radar and historical validation
+        env:
+          TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
+        run: python radar/build.py --output "${{ runner.temp }}/industry-radar"
+      - name: Upload derived research outputs (no raw data)
+        uses: actions/upload-artifact@v4
+        with:
+          name: industry-radar-v1
+          path: ${{ runner.temp }}/industry-radar
+          retention-days: 3
+          if-no-files-found: error
