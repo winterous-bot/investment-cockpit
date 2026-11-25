@@ -57,7 +57,7 @@ def features(days,idx,C,shards):
         for H,(md,ad) in HORIZONS.items():
             if i+H<len(C) and (z:=window(C,i+H,H+1)):
                 mdd=drawdown(z); adverse=max(0.,1-min(z)/z[0])
-                y[H]={"event":int(mdd>md or adverse>ad),"mdd":mdd,"adverse":adverse,"ret":z[-1]/z[0]-1}
+                y[H]={"event":int(mdd>md or adverse>ad),"mdd":mdd,"adverse":adverse,"ret":z[-1]/z[0]-1,"end_date":days[i+H]}
         week=date.fromisoformat(d).isocalendar()[:2]
         weekly=i+1<len(days) and date.fromisoformat(days[i+1]).isocalendar()[:2]!=week
         out.append({"i":i,"date":d,"x":x,"y":y,"weekly":weekly})
@@ -103,8 +103,8 @@ def compare(rows,H,fields,first_year):
     # Purge overlapping labels at annual cut. Require 80 training weeks.
     pred=[]
     for year in sorted({int(r["date"][:4]) for r in rows if int(r["date"][:4])>=first_year}):
-        cut=next(r["i"] for r in rows if r["date"][:4]==str(year))
-        train=[r for r in rows if r["i"]+H<cut and all(group(r["x"][f],GROUPS[f]) is not None for f in fields)]
+        cut=f"{year}-01-01"
+        train=[r for r in rows if r["y"][H]["end_date"]<cut and all(group(r["x"][f],GROUPS[f]) is not None for f in fields)]
         test=[r for r in rows if r["date"][:4]==str(year) and all(group(r["x"][f],GROUPS[f]) is not None for f in fields)]
         if len(train)<80 or not test:continue
         score,base=fit(train,H,fields)
