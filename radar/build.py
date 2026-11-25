@@ -22,7 +22,7 @@ def calendar(api,end):
 def get_classification(api,level):
     a=api.ask("index_classify",{"level":level,"src":"SW2021"},"index_code,industry_name,level,is_pub,parent_code")
     result={code(r["index_code"]):str(r["industry_name"]) for r in a if code(r.get("index_code")) and str(r.get("is_pub","1")) not in ("0","False") and r.get("level")==level}
-    if not (29<=len(result)<=31 if level=="L1" else 110<=len(result)<=134):raise RuntimeError("unexpected SW2021 classification coverage "+level+":"+str(len(result)))
+    if not (len(result)==31 if level=="L1" else 110<=len(result)<=134):raise RuntimeError("unexpected SW2021 classification coverage "+level+":"+str(len(result)))
     return result
 def get_series(api,endpoint,k,days,fields):
     a=api.ask(endpoint,{"ts_code":k,"start_date":days[0],"end_date":days[-1]},fields)
@@ -40,7 +40,7 @@ def benchmark(api,days):
     return b
 def historical(api,days,classes):
     prices={};amount={}
-    for k in {k for d in classes.values() for k in d}:
+    for k in sorted({k for d in classes.values() for k in d}):
         rows=get_series(api,"sw_daily",k,days,"ts_code,trade_date,close,amount")
         prices[k]=[num(x.get("close")) for x in rows]
         amount[k]=[num(x.get("amount")) for x in rows]
@@ -92,14 +92,17 @@ def members_and_breadth(api,classes,dates):
             if pair[0] not in classes["L1"] or pair[1] not in classes["L2"]:continue
             if k in membership and membership[k]!=pair:ambiguous.add(k)
             membership[k]=pair;names[k]=str(x.get("name") or k)
-    if issues or len(membership)<3500:
-        return {},{"status":"incomplete","members":len(membership),"failed_L1":issues,"reason":"成分覆盖不足，不输出广度或个股排名"}
+    listed=api.ask("stock_basic",{"list_status":"L"},"ts_code,list_date")
+    listed={str(x["ts_code"]) for x in listed if str(x.get("ts_code","")).endswith((".SH",".SZ")) and str(x.get("list_date") or "99999999")<=first}
+    membership={k:v for k,v in membership.items() if k in listed}
+    if issues or len(listed)<4500 or len(membership)<max(3500,.85*len(listed)):
+        return {},{"status":"incomplete","members":len(membership),"listed_eligible":len(listed),"failed_L1":issues,"reason":"成分覆盖不足，不输出广度或个股排名"}
     for k in ambiguous:membership.pop(k,None)
     daily=[]
     for day in dates:
         a=api.ask("daily",{"trade_date":day},"ts_code,pct_chg,amount")
         x={str(r["ts_code"]):(num(r.get("pct_chg")),num(r.get("amount"))) for r in a if str(r.get("ts_code","")).endswith((".SH",".SZ"))}
-        if len(x)<3500:return {},{"status":"incomplete","members":len(membership),"reason":"个股日线覆盖不足"}
+        if len(x)<max(3500,.9*len(listed)):return {},{"status":"incomplete","members":len(membership),"reason":"个股日线覆盖不足"}
         daily.append(x)
     aggregate=defaultdict(list);totals=defaultdict(int)
     for k,pair in membership.items():
@@ -112,7 +115,7 @@ def members_and_breadth(api,classes,dates):
     for k,a in aggregate.items():
         if len(a)<5 or len(a)/totals[k]<.8:continue
         res[k]={"n":len(a),"total":totals[k],"rising5":sum(x["r5"]>0 for x in a)/len(a),"leaders":sorted(a,key=lambda x:(-x["r5"],x["code"]))[:5]}
-    return res,{"status":"ok","members":len(membership),"ambiguous_excluded":len(ambiguous),"sectors":len(res),"method":"沪深有效成分，连续5日有效交易，日涨跌幅复合；成分须在观察期起点已纳入"}
+    return res,{"status":"ok","members":len(membership),"listed_eligible":len(listed),"ambiguous_excluded":len(ambiguous),"sectors":len(res),"method":"沪深有效成分，连续5日有效交易，日涨跌幅复合；成分须在观察期起点已纳入"}
 def render_html(out,path):
     def esc(x):return html.escape(str(x))
     def p(x):return "—" if x is None else f"{x*100:+.2f}%"
@@ -137,7 +140,8 @@ def main():
     hist={level:run_level(days,{k:prices[k] for k in cl},{k:shares[k] for k in cl},bench) for level,cl in classes.items()}
     latest=next((i for i in range(len(days)-1,max(30,len(days)-8),-1) if all(hist[l][i] and sum(x["stage"]!="证据不足" for x in hist[l][i].values())>=.9*len(classes[l]) for l in classes)),None)
     if latest is None:raise RuntimeError("no recent fully covered sector snapshot")
-    breadth,health=members_and_breadth(api,classes,days[latest-4:latest+1])
+    try:breadth,health=members_and_breadth(api,classes,days[latest-4:latest+1])
+    except SafeAPIError:breadth,health={},{"status":"incomplete","reason":"成分或个股数据接口调用失败"}
     out={"version":"industry-radar-v1.0","asof":days[latest],"requested_end":end,"taxonomy":"SW2021","breadth_health":health,"levels":{}}
     report={"asof":days[latest],"history_start":"20220101","coverage":{},"backtest":{},"breadth_health":health,
       "notes":["Index-only historical validation; no historical constituents used.","SW2021 published taxonomy and available histories may have retrospective classification/coverage changes.","Weekly overlapping observations are not independent; no costs, no tradable portfolio result.","Compare startup with equal count top 5d sectors on same signal dates; entry next close.","Breadth is current-only and not included in frozen stage classifier.","No Tushare raw rows/series or tokens committed. Personal research output; no Pages deployment."]}
