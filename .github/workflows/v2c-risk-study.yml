@@ -1,0 +1,53 @@
+name: V2.0c downside risk study (research only)
+on:
+  push:
+    branches: [research/v2c-downside-risk-20261125]
+    paths: [".github/workflows/v2c-risk-study.yml"]
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: write
+jobs:
+  risk-study:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run regression tests
+        run: python -m unittest discover -s tests -v
+      - name: Reuse available historical breadth aggregates
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          pattern: v2-aggregates-*
+          merge-multiple: true
+          run-id: 45016779352
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: ${{ runner.temp }}/v2c-shards
+      - name: Research downside outcomes
+        env:
+          TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
+        run: python research/v2c/risk_study.py --shards "${{ runner.temp }}/v2c-shards" --output research/v2c/results/risk_report.json
+      - name: Retain available aggregate shards temporarily for research
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v2c-reusable-breadth-aggregates
+          path: ${{ runner.temp }}/v2c-shards/year_*.json
+          if-no-files-found: ignore
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v2c-downside-risk-report
+          path: research/v2c/results/risk_report.json
+      - name: Publish only aggregate evaluation results to research branch
+        if: github.ref == 'refs/heads/research/v2c-downside-risk-20261125'
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add research/v2c/results/risk_report.json
+          git diff --cached --quiet || git commit -m 'research(v2c): publish downside risk evaluation summary'
+          git push origin HEAD:research/v2c-downside-risk-20261125
