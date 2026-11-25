@@ -49,11 +49,14 @@ def features(days,idx,sec,shards):
     min_ind=max(25,math.ceil(.85*len(sec)))
     for i,d in enumerate(days):
         weights=active(d)
-        if i==0: C[i]=1.
+        if i==0:
+            if all(idx[k][i] is not None for k in weights): C[i]=1.
         else:
             use=active(days[i-1]) # newly launched index contributes only after first published close
-            if C[i-1] is not None and all(idx[k][i] is not None and idx[k][i-1] is not None for k in use):
-                C[i]=C[i-1]*(1+sum(w*(idx[k][i]/idx[k][i-1]-1) for k,w in use.items())/sum(use.values()))
+            if all(idx[k][i] is not None for k in use):
+                if C[i-1] is None: C[i]=1. # restart after explicit missing session; never bridge gap
+                elif all(idx[k][i-1] is not None for k in use):
+                    C[i]=C[i-1]*(1+sum(w*(idx[k][i]/idx[k][i-1]-1) for k,w in use.items())/sum(use.values()))
         tv={}
         for k in weights:
             hist=window(idx[k],i,250)
@@ -215,11 +218,12 @@ def evaluate(days,idx,sec,C,rows,signals_by_mode):
         weekly=[i for i in positions if rows[i]["week_end"]]
         report["observations"][name]={"days":len(positions),"weeks":len(weekly),"shard_days":sum(rows[i]["shard"] for i in positions),
                 "valid_candidate_days":sum(rows[i]["candidate"]!="unknown" for i in positions),
-                "known_breadth_days":sum(rows[i]["B"] is not None for i in positions)}
+                "known_breadth_days":sum(rows[i]["B"] is not None for i in positions),
+                "weekly_common":sum(all(v[i]["state"]!="unknown" for v in signals_by_mode.values()) for i in weekly)}
         eps=risk_episodes(days,C,lo,hi)
         for mode,ss in signals_by_mode.items():
             sub=report["models"].setdefault(mode,{}).setdefault(name,{})
-            state_entries=[i for i in positions if i>0 and ss[i]["state"]!="unknown" and ss[i]["state"]!=ss[i-1]["state"]]
+            state_entries=[i for i in positions if i>0 and ss[i]["state"]!="unknown" and ss[i].get("confirmed",ss[i]["state"])!=ss[i-1].get("confirmed",ss[i-1]["state"])]
             permission_entries=[i for i in positions if i>0 and ss[i]["high"] and not ss[i-1]["high"]]
             # Distinguish real confirmed-state changes from re-appearing valid observations.
             known=[ss[i].get("confirmed",ss[i]["state"]) for i in positions]
@@ -232,7 +236,8 @@ def evaluate(days,idx,sec,C,rows,signals_by_mode):
                 # A split must contain both signal and full outcome horizon.
                 eligible=lambda i: i+H<len(days) and days[i+H]<=hi
                 sub[str(H)]={}
-                for sample,indices in (("weekly",weekly),("stage_entries",state_entries),("high_permission_entries",permission_entries)):
+                common=[i for i in weekly if all(v[i]["state"]!="unknown" for v in signals_by_mode.values())]
+                for sample,indices in (("weekly",weekly),("weekly_common",common),("stage_entries",state_entries),("high_permission_entries",permission_entries)):
                     sub[str(H)][sample]=metrics([(ss[i],objectives[H][i]) for i in indices if eligible(i)])
             # Only evaluate independent major-risk events with adequate prediction
             # evidence throughout peak-to-breach; report excluded, and early/same-day.
