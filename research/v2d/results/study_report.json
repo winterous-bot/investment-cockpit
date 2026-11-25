@@ -1,0 +1,2883 @@
+{
+  "version": "V2.0d-research-2026-11-25",
+  "end": "2026-11-20",
+  "breadth_years": {
+    "2024": 242,
+    "2025": 243,
+    "2019": 244,
+    "2020": 243,
+    "2022": 242,
+    "2023": 242,
+    "2021": 243,
+    "2026": 213
+  },
+  "stress": {
+    "60": {
+      "H": 60,
+      "calibration": [
+        {
+          "year": "2020",
+          "train_n": 191,
+          "bucket_n": [
+            71,
+            75,
+            45
+          ],
+          "pooled": 0.2,
+          "levels": [
+            0.2,
+            0.2,
+            0.2
+          ]
+        },
+        {
+          "year": "2021",
+          "train_n": 242,
+          "bucket_n": [
+            80,
+            101,
+            61
+          ],
+          "pooled": 0.2,
+          "levels": [
+            0.2,
+            0.2,
+            0.2
+          ]
+        },
+        {
+          "year": "2022",
+          "train_n": 295,
+          "bucket_n": [
+            107,
+            124,
+            64
+          ],
+          "pooled": 0.2,
+          "levels": [
+            0.2,
+            0.2,
+            0.2
+          ]
+        },
+        {
+          "year": "2023",
+          "train_n": 345,
+          "bucket_n": [
+            124,
+            144,
+            77
+          ],
+          "pooled": 0.2,
+          "levels": [
+            0.2,
+            0.2,
+            0.2
+          ]
+        },
+        {
+          "year": "2024",
+          "train_n": 395,
+          "bucket_n": [
+            158,
+            154,
+            83
+          ],
+          "pooled": 0.2,
+          "levels": [
+            0.2,
+            0.2,
+            0.2
+          ]
+        },
+        {
+          "year": "2025",
+          "train_n": 446,
+          "bucket_n": [
+            168,
+            170,
+            108
+          ],
+          "pooled": 0.2,
+          "levels": [
+            0.2,
+            0.2,
+            0.2
+          ]
+        },
+        {
+          "year": "2026",
+          "train_n": 498,
+          "bucket_n": [
+            185,
+            178,
+            135
+          ],
+          "pooled": 0.2,
+          "levels": [
+            0.2,
+            0.2,
+            0.2
+          ]
+        }
+      ],
+      "all": {
+        "n": 339,
+        "fixed": {
+          "shock_mean": 0.2,
+          "shock_max": 0.2,
+          "path_breach": {
+            "n": 339,
+            "events": 17,
+            "rate": 0.0501
+          },
+          "entry_loss_breach": {
+            "n": 339,
+            "events": 13,
+            "rate": 0.0383
+          },
+          "relative_stock_cap_vs_fixed": 1.0
+        },
+        "pooled": {
+          "shock_mean": 0.2,
+          "shock_max": 0.2,
+          "path_breach": {
+            "n": 339,
+            "events": 17,
+            "rate": 0.0501
+          },
+          "entry_loss_breach": {
+            "n": 339,
+            "events": 13,
+            "rate": 0.0383
+          },
+          "relative_stock_cap_vs_fixed": 1.0
+        },
+        "dynamic": {
+          "shock_mean": 0.2,
+          "shock_max": 0.2,
+          "path_breach": {
+            "n": 339,
+            "events": 17,
+            "rate": 0.0501
+          },
+          "entry_loss_breach": {
+            "n": 339,
+            "events": 13,
+            "rate": 0.0383
+          },
+          "relative_stock_cap_vs_fixed": 1.0
+        }
+      },
+      "2022_plus": {
+        "n": 235,
+        "fixed": {
+          "shock_mean": 0.2,
+          "shock_max": 0.2,
+          "path_breach": {
+            "n": 235,
+            "events": 17,
+            "rate": 0.0723
+          },
+          "entry_loss_breach": {
+            "n": 235,
+            "events": 13,
+            "rate": 0.0553
+          },
+          "relative_stock_cap_vs_fixed": 1.0
+        },
+        "pooled": {
+          "shock_mean": 0.2,
+          "shock_max": 0.2,
+          "path_breach": {
+            "n": 235,
+            "events": 17,
+            "rate": 0.0723
+          },
+          "entry_loss_breach": {
+            "n": 235,
+            "events": 13,
+            "rate": 0.0553
+          },
+          "relative_stock_cap_vs_fixed": 1.0
+        },
+        "dynamic": {
+          "shock_mean": 0.2,
+          "shock_max": 0.2,
+          "path_breach": {
+            "n": 235,
+            "events": 17,
+            "rate": 0.0723
+          },
+          "entry_loss_breach": {
+            "n": 235,
+            "events": 13,
+            "rate": 0.0553
+          },
+          "relative_stock_cap_vs_fixed": 1.0
+        }
+      },
+      "2024_plus": {
+        "n": 135,
+        "fixed": {
+          "shock_mean": 0.2,
+          "shock_max": 0.2,
+          "path_breach": {
+            "n": 135,
+            "events": 3,
+            "rate": 0.0222
+          },
+          "entry_loss_breach": {
+            "n": 135,
+            "events": 0,
+            "rate": 0.0
+          },
+          "relative_stock_cap_vs_fixed": 1.0
+        },
+        "pooled": {
+          "shock_mean": 0.2,
+          "shock_max": 0.2,
+          "path_breach": {
+            "n": 135,
+            "events": 3,
+            "rate": 0.0222
+          },
+          "entry_loss_breach": {
+            "n": 135,
+            "events": 0,
+            "rate": 0.0
+          },
+          "relative_stock_cap_vs_fixed": 1.0
+        },
+        "dynamic": {
+          "shock_mean": 0.2,
+          "shock_max": 0.2,
+          "path_breach": {
+            "n": 135,
+            "events": 3,
+            "rate": 0.0222
+          },
+          "entry_loss_breach": {
+            "n": 135,
+            "events": 0,
+            "rate": 0.0
+          },
+          "relative_stock_cap_vs_fixed": 1.0
+        }
+      },
+      "yearly": {
+        "2020": {
+          "n": 52,
+          "fixed": {
+            "shock_mean": 0.2,
+            "shock_max": 0.2,
+            "path_breach": {
+              "n": 52,
+              "events": 0,
+              "rate": 0.0
+            },
+            "entry_loss_breach": {
+              "n": 52,
+              "events": 0,
+              "rate": 0.0
+            },
+            "relative_stock_cap_vs_fixed": 1.0
+          },
+          "pooled": {
+            "shock_mean": 0.2,
+            "shock_max": 0.2,
+            "path_breach": {
+              "n": 52,
+              "events": 0,
+              "rate": 0.0
+            },
+            "entry_loss_breach": {
+              "n": 52,
+              "events": 0,
+              "rate": 0.0
+            },
+            "relative_stock_cap_vs_fixed": 1.0
+          },
+          "dynamic": {
+            "shock_mean": 0.2,
+            "shock_max": 0.2,
+            "path_breach": {
+              "n": 52,
+              "events": 0,
+              "rate": 0.0
+            },
+            "entry_loss_breach": {
+              "n": 52,
+              "events": 0,
+              "rate": 0.0
+            },
+            "relative_stock_cap_vs_fixed": 1.0
+          }
+        },
+        "2021": {
+          "n": 52,
+          "fixed": {
+            "shock_mean": 0.2,
+            "shock_max": 0.2,
+            "path_breach": {
+              "n": 52,
+              "events": 0,
+              "rate": 0.0
+            },
+            "entry_loss_breach": {
+              "n": 52,
+              "events": 0,
+              "rate": 0.0
+            },
+            "relative_stock_cap_vs_fixed": 1.0
+          },
+          "pooled": {
+            "shock_mean": 0.2,
+            "shock_max": 0.2,
+            "path_breach": {
+              "n": 52,
+              "events": 0,
+              "rate": 0.0
+            },
+            "entry_loss_breach": {
+              "n": 52,
+              "events": 0,
+              "rate": 0.0
+            },
+            "relative_stock_cap_vs_fixed": 1.0
+          },
+          "dynamic": {
+            "shock_mean": 0.2,
+            "shock_max": 0.2,
+            "path_breach": {
+              "n": 52,
+              "events": 0,
+              "rate": 0.0
+            },
+            "entry_loss_breach": {
+              "n": 52,
+              "events": 0,
+              "rate": 0.0
+            },
+            "relative_stock_cap_vs_fixed": 1.0
+          }
+        },
+        "2022": {
+          "n": 50,
+          "fixed": {
+            "shock_mean": 0.2,
+            "shock_max": 0.2,
+            "path_breach": {
+              "n": 50,
+              "events": 6,
+              "rate": 0.12
+            },
+            "entry_loss_breach": {
+              "n": 50,
+              "events": 6,
+              "rate": 0.12
+            },
+            "relative_stock_cap_vs_fixed": 1.0
+          },
+          "pooled": {
+            "shock_mean": 0.2,
+            "shock_max": 0.2,
+            "path_breach": {
+              "n": 50,
+              "events": 6,
+              "rate": 0.12
+            },
+            "entry_loss_breach": {
+              "n": 50,
+              "events": 6,
+              "rate": 0.12
+            },
+            "relative_stock_cap_vs_fixed": 1.0
+          },
+          "dynamic": {
+            "shock_mean": 0.2,
+            "shock_max": 0.2,
+            "path_breach": {
+              "n": 50,
+              "events": 6,
+              "rate": 0.12
+            },
+            "entry_loss_breach": {
+              "n": 50,
+              "events": 6,
+              "rate": 0.12
+            },
+            "relative_stock_cap_vs_fixed": 1.0
+          }
+        },
+        "2023": {
+          "n": 50,
+          "fixed": {
+            "shock_mean": 0.2,
+            "shock_max": 0.2,
+            "path_breach": {
+              "n": 50,
+              "events": 8,
+              "rate": 0.16
+            },
+            "entry_loss_breach": {
+              "n": 50,
+              "events": 7,
+              "rate": 0.14
+            },
+            "relative_stock_cap_vs_fixed": 1.0
+          },
+          "pooled": {
+            "shock_mean": 0.2,
+            "shock_max": 0.2,
+            "path_breach": {
+              "n": 50,
+              "events": 8,
+              "rate": 0.16
+            },
+            "entry_loss_breach": {
+              "n": 50,
+              "events": 7,
+              "rate": 0.14
+            },
+            "relative_stock_cap_vs_fixed": 1.0
+          },
+          "dynamic": {
+            "shock_mean": 0.2,
+            "shock_max": 0.2,
+            "path_breach": {
+              "n": 50,
+              "events": 8,
+              "rate": 0.16
+            },
+            "entry_loss_breach": {
+              "n": 50,
+              "events": 7,
+              "rate": 0.14
+            },
+            "relative_stock_cap_vs_fixed": 1.0
+          }
+        },
+        "2024": {
+          "n": 51,
+          "fixed": {
+            "shock_mean": 0.2,
+            "shock_max": 0.2,
+            "path_breach": {
+              "n": 51,
+              "events": 0,
+              "rate": 0.0
+            },
+            "entry_loss_breach": {
+              "n": 51,
+              "events": 0,
+              "rate": 0.0
+            },
+            "relative_stock_cap_vs_fixed": 1.0
+          },
+          "pooled": {
+            "shock_mean": 0.2,
+            "shock_max": 0.2,
+            "path_breach": {
+              "n": 51,
+              "events": 0,
+              "rate": 0.0
+            },
+            "entry_loss_breach": {
+              "n": 51,
+              "events": 0,
+              "rate": 0.0
+            },
+            "relative_stock_cap_vs_fixed": 1.0
+          },
+          "dynamic": {
+            "shock_mean": 0.2,
+            "shock_max": 0.2,
+            "path_breach": {
+              "n": 51,
+              "events": 0,
+              "rate": 0.0
+            },
+            "entry_loss_breach": {
+              "n": 51,
+              "events": 0,
+              "rate": 0.0
+            },
+            "relative_stock_cap_vs_fixed": 1.0
+          }
+        },
+        "2025": {
+          "n": 53,
+          "fixed": {
+            "shock_mean": 0.2,
+            "shock_max": 0.2,
+            "path_breach": {
+              "n": 53,
+              "events": 0,
+              "rate": 0.0
+            },
+            "entry_loss_breach": {
+              "n": 53,
+              "events": 0,
+              "rate": 0.0
+            },
+            "relative_stock_cap_vs_fixed": 1.0
+          },
+          "pooled": {
+            "shock_mean": 0.2,
+            "shock_max": 0.2,
+            "path_breach": {
+              "n": 53,
+              "events": 0,
+              "rate": 0.0
+            },
+            "entry_loss_breach": {
+              "n": 53,
+              "events": 0,
+              "rate": 0.0
+            },
+            "relative_stock_cap_vs_fixed": 1.0
+          },
+          "dynamic": {
+            "shock_mean": 0.2,
+            "shock_max": 0.2,
+            "path_breach": {
+              "n": 53,
+              "events": 0,
+              "rate": 0.0
+            },
+            "entry_loss_breach": {
+              "n": 53,
+              "events": 0,
+              "rate": 0.0
+            },
+            "relative_stock_cap_vs_fixed": 1.0
+          }
+        },
+        "2026": {
+          "n": 31,
+          "fixed": {
+            "shock_mean": 0.2,
+            "shock_max": 0.2,
+            "path_breach": {
+              "n": 31,
+              "events": 3,
+              "rate": 0.0968
+            },
+            "entry_loss_breach": {
+              "n": 31,
+              "events": 0,
+              "rate": 0.0
+            },
+            "relative_stock_cap_vs_fixed": 1.0
+          },
+          "pooled": {
+            "shock_mean": 0.2,
+            "shock_max": 0.2,
+            "path_breach": {
+              "n": 31,
+              "events": 3,
+              "rate": 0.0968
+            },
+            "entry_loss_breach": {
+              "n": 31,
+              "events": 0,
+              "rate": 0.0
+            },
+            "relative_stock_cap_vs_fixed": 1.0
+          },
+          "dynamic": {
+            "shock_mean": 0.2,
+            "shock_max": 0.2,
+            "path_breach": {
+              "n": 31,
+              "events": 3,
+              "rate": 0.0968
+            },
+            "entry_loss_breach": {
+              "n": 31,
+              "events": 0,
+              "rate": 0.0
+            },
+            "relative_stock_cap_vs_fixed": 1.0
+          }
+        }
+      },
+      "volatility_groups": {
+        "0": {
+          "n": 110,
+          "fixed": {
+            "shock_mean": 0.2,
+            "shock_max": 0.2,
+            "path_breach": {
+              "n": 110,
+              "events": 6,
+              "rate": 0.0545
+            },
+            "entry_loss_breach": {
+              "n": 110,
+              "events": 5,
+              "rate": 0.0455
+            },
+            "relative_stock_cap_vs_fixed": 1.0
+          },
+          "pooled": {
+            "shock_mean": 0.2,
+            "shock_max": 0.2,
+            "path_breach": {
+              "n": 110,
+              "events": 6,
+              "rate": 0.0545
+            },
+            "entry_loss_breach": {
+              "n": 110,
+              "events": 5,
+              "rate": 0.0455
+            },
+            "relative_stock_cap_vs_fixed": 1.0
+          },
+          "dynamic": {
+            "shock_mean": 0.2,
+            "shock_max": 0.2,
+            "path_breach": {
+              "n": 110,
+              "events": 6,
+              "rate": 0.0545
+            },
+            "entry_loss_breach": {
+              "n": 110,
+              "events": 5,
+              "rate": 0.0455
+            },
+            "relative_stock_cap_vs_fixed": 1.0
+          }
+        },
+        "1": {
+          "n": 113,
+          "fixed": {
+            "shock_mean": 0.2,
+            "shock_max": 0.2,
+            "path_breach": {
+              "n": 113,
+              "events": 7,
+              "rate": 0.0619
+            },
+            "entry_loss_breach": {
+              "n": 113,
+              "events": 7,
+              "rate": 0.0619
+            },
+            "relative_stock_cap_vs_fixed": 1.0
+          },
+          "pooled": {
+            "shock_mean": 0.2,
+            "shock_max": 0.2,
+            "path_breach": {
+              "n": 113,
+              "events": 7,
+              "rate": 0.0619
+            },
+            "entry_loss_breach": {
+              "n": 113,
+              "events": 7,
+              "rate": 0.0619
+            },
+            "relative_stock_cap_vs_fixed": 1.0
+          },
+          "dynamic": {
+            "shock_mean": 0.2,
+            "shock_max": 0.2,
+            "path_breach": {
+              "n": 113,
+              "events": 7,
+              "rate": 0.0619
+            },
+            "entry_loss_breach": {
+              "n": 113,
+              "events": 7,
+              "rate": 0.0619
+            },
+            "relative_stock_cap_vs_fixed": 1.0
+          }
+        },
+        "2": {
+          "n": 116,
+          "fixed": {
+            "shock_mean": 0.2,
+            "shock_max": 0.2,
+            "path_breach": {
+              "n": 116,
+              "events": 4,
+              "rate": 0.0345
+            },
+            "entry_loss_breach": {
+              "n": 116,
+              "events": 1,
+              "rate": 0.0086
+            },
+            "relative_stock_cap_vs_fixed": 1.0
+          },
+          "pooled": {
+            "shock_mean": 0.2,
+            "shock_max": 0.2,
+            "path_breach": {
+              "n": 116,
+              "events": 4,
+              "rate": 0.0345
+            },
+            "entry_loss_breach": {
+              "n": 116,
+              "events": 1,
+              "rate": 0.0086
+            },
+            "relative_stock_cap_vs_fixed": 1.0
+          },
+          "dynamic": {
+            "shock_mean": 0.2,
+            "shock_max": 0.2,
+            "path_breach": {
+              "n": 116,
+              "events": 4,
+              "rate": 0.0345
+            },
+            "entry_loss_breach": {
+              "n": 116,
+              "events": 1,
+              "rate": 0.0086
+            },
+            "relative_stock_cap_vs_fixed": 1.0
+          }
+        }
+      }
+    },
+    "120": {
+      "H": 120,
+      "calibration": [
+        {
+          "year": "2020",
+          "train_n": 178,
+          "bucket_n": [
+            71,
+            62,
+            45
+          ],
+          "pooled": 0.232361,
+          "levels": [
+            0.2,
+            0.28143,
+            0.28143
+          ]
+        },
+        {
+          "year": "2021",
+          "train_n": 229,
+          "bucket_n": [
+            80,
+            93,
+            56
+          ],
+          "pooled": 0.220616,
+          "levels": [
+            0.2,
+            0.246448,
+            0.246448
+          ]
+        },
+        {
+          "year": "2022",
+          "train_n": 281,
+          "bucket_n": [
+            100,
+            117,
+            64
+          ],
+          "pooled": 0.217772,
+          "levels": [
+            0.2,
+            0.233063,
+            0.233063
+          ]
+        },
+        {
+          "year": "2023",
+          "train_n": 332,
+          "bucket_n": [
+            120,
+            135,
+            77
+          ],
+          "pooled": 0.233423,
+          "levels": [
+            0.234865,
+            0.235721,
+            0.235721
+          ]
+        },
+        {
+          "year": "2024",
+          "train_n": 382,
+          "bucket_n": [
+            153,
+            146,
+            83
+          ],
+          "pooled": 0.227399,
+          "levels": [
+            0.22932,
+            0.235721,
+            0.235721
+          ]
+        },
+        {
+          "year": "2025",
+          "train_n": 433,
+          "bucket_n": [
+            168,
+            165,
+            100
+          ],
+          "pooled": 0.235721,
+          "levels": [
+            0.233423,
+            0.239748,
+            0.239748
+          ]
+        },
+        {
+          "year": "2026",
+          "train_n": 485,
+          "bucket_n": [
+            178,
+            177,
+            130
+          ],
+          "pooled": 0.232816,
+          "levels": [
+            0.232361,
+            0.239748,
+            0.239748
+          ]
+        }
+      ],
+      "all": {
+        "n": 327,
+        "fixed": {
+          "shock_mean": 0.2,
+          "shock_max": 0.2,
+          "path_breach": {
+            "n": 327,
+            "events": 48,
+            "rate": 0.1468
+          },
+          "entry_loss_breach": {
+            "n": 327,
+            "events": 42,
+            "rate": 0.1284
+          },
+          "relative_stock_cap_vs_fixed": 1.0
+        },
+        "pooled": {
+          "shock_mean": 0.228222,
+          "shock_max": 0.235721,
+          "path_breach": {
+            "n": 327,
+            "events": 37,
+            "rate": 0.1131
+          },
+          "entry_loss_breach": {
+            "n": 327,
+            "events": 24,
+            "rate": 0.0734
+          },
+          "relative_stock_cap_vs_fixed": 0.877077
+        },
+        "dynamic": {
+          "shock_mean": 0.236609,
+          "shock_max": 0.28143,
+          "path_breach": {
+            "n": 327,
+            "events": 36,
+            "rate": 0.1101
+          },
+          "entry_loss_breach": {
+            "n": 327,
+            "events": 21,
+            "rate": 0.0642
+          },
+          "relative_stock_cap_vs_fixed": 0.852597
+        }
+      },
+      "2022_plus": {
+        "n": 223,
+        "fixed": {
+          "shock_mean": 0.2,
+          "shock_max": 0.2,
+          "path_breach": {
+            "n": 223,
+            "events": 36,
+            "rate": 0.1614
+          },
+          "entry_loss_breach": {
+            "n": 223,
+            "events": 31,
+            "rate": 0.139
+          },
+          "relative_stock_cap_vs_fixed": 1.0
+        },
+        "pooled": {
+          "shock_mean": 0.22903,
+          "shock_max": 0.235721,
+          "path_breach": {
+            "n": 223,
+            "events": 27,
+            "rate": 0.1211
+          },
+          "entry_loss_breach": {
+            "n": 223,
+            "events": 14,
+            "rate": 0.0628
+          },
+          "relative_stock_cap_vs_fixed": 0.874017
+        },
+        "dynamic": {
+          "shock_mean": 0.233763,
+          "shock_max": 0.239748,
+          "path_breach": {
+            "n": 223,
+            "events": 25,
+            "rate": 0.1121
+          },
+          "entry_loss_breach": {
+            "n": 223,
+            "events": 10,
+            "rate": 0.0448
+          },
+          "relative_stock_cap_vs_fixed": 0.856942
+        }
+      },
+      "2024_plus": {
+        "n": 123,
+        "fixed": {
+          "shock_mean": 0.2,
+          "shock_max": 0.2,
+          "path_breach": {
+            "n": 123,
+            "events": 6,
+            "rate": 0.0488
+          },
+          "entry_loss_breach": {
+            "n": 123,
+            "events": 4,
+            "rate": 0.0325
+          },
+          "relative_stock_cap_vs_fixed": 1.0
+        },
+        "pooled": {
+          "shock_mean": 0.231821,
+          "shock_max": 0.235721,
+          "path_breach": {
+            "n": 123,
+            "events": 5,
+            "rate": 0.0407
+          },
+          "entry_loss_breach": {
+            "n": 123,
+            "events": 3,
+            "rate": 0.0244
+          },
+          "relative_stock_cap_vs_fixed": 0.862972
+        },
+        "dynamic": {
+          "shock_mean": 0.236996,
+          "shock_max": 0.239748,
+          "path_breach": {
+            "n": 123,
+            "events": 4,
+            "rate": 0.0325
+          },
+          "entry_loss_breach": {
+            "n": 123,
+            "events": 3,
+            "rate": 0.0244
+          },
+          "relative_stock_cap_vs_fixed": 0.844005
+        }
+      },
+      "yearly": {
+        "2020": {
+          "n": 52,
+          "fixed": {
+            "shock_mean": 0.2,
+            "shock_max": 0.2,
+            "path_breach": {
+              "n": 52,
+              "events": 0,
+              "rate": 0.0
+            },
+            "entry_loss_breach": {
+              "n": 52,
+              "events": 0,
+              "rate": 0.0
+            },
+            "relative_stock_cap_vs_fixed": 1.0
+          },
+          "pooled": {
+            "shock_mean": 0.232361,
+            "shock_max": 0.232361,
+            "path_breach": {
+              "n": 52,
+              "events": 0,
+              "rate": 0.0
+            },
+            "entry_loss_breach": {
+              "n": 52,
+              "events": 0,
+              "rate": 0.0
+            },
+            "relative_stock_cap_vs_fixed": 0.860729
+          },
+          "dynamic": {
+            "shock_mean": 0.26577,
+            "shock_max": 0.28143,
+            "path_breach": {
+              "n": 52,
+              "events": 0,
+              "rate": 0.0
+            },
+            "entry_loss_breach": {
+              "n": 52,
+              "events": 0,
+              "rate": 0.0
+            },
+            "relative_stock_cap_vs_fixed": 0.766299
+          }
+        },
+        "2021": {
+          "n": 52,
+          "fixed": {
+            "shock_mean": 0.2,
+            "shock_max": 0.2,
+            "path_breach": {
+              "n": 52,
+              "events": 12,
+              "rate": 0.2308
+            },
+            "entry_loss_breach": {
+              "n": 52,
+              "events": 11,
+              "rate": 0.2115
+            },
+            "relative_stock_cap_vs_fixed": 1.0
+          },
+          "pooled": {
+            "shock_mean": 0.220616,
+            "shock_max": 0.220616,
+            "path_breach": {
+              "n": 52,
+              "events": 10,
+              "rate": 0.1923
+            },
+            "entry_loss_breach": {
+              "n": 52,
+              "events": 10,
+              "rate": 0.1923
+            },
+            "relative_stock_cap_vs_fixed": 0.906551
+          },
+          "dynamic": {
+            "shock_mean": 0.219651,
+            "shock_max": 0.246448,
+            "path_breach": {
+              "n": 52,
+              "events": 11,
+              "rate": 0.2115
+            },
+            "entry_loss_breach": {
+              "n": 52,
+              "events": 11,
+              "rate": 0.2115
+            },
+            "relative_stock_cap_vs_fixed": 0.920263
+          }
+        },
+        "2022": {
+          "n": 50,
+          "fixed": {
+            "shock_mean": 0.2,
+            "shock_max": 0.2,
+            "path_breach": {
+              "n": 50,
+              "events": 8,
+              "rate": 0.16
+            },
+            "entry_loss_breach": {
+              "n": 50,
+              "events": 8,
+              "rate": 0.16
+            },
+            "relative_stock_cap_vs_fixed": 1.0
+          },
+          "pooled": {
+            "shock_mean": 0.217772,
+            "shock_max": 0.217772,
+            "path_breach": {
+              "n": 50,
+              "events": 8,
+              "rate": 0.16
+            },
+            "entry_loss_breach": {
+              "n": 50,
+              "events": 6,
+              "rate": 0.12
+            },
+            "relative_stock_cap_vs_fixed": 0.918392
+          },
+          "dynamic": {
+            "shock_mean": 0.224466,
+            "shock_max": 0.233063,
+            "path_breach": {
+              "n": 50,
+              "events": 7,
+              "rate": 0.14
+            },
+            "entry_loss_breach": {
+              "n": 50,
+              "events": 3,
+              "rate": 0.06
+            },
+            "relative_stock_cap_vs_fixed": 0.895023
+          }
+        },
+        "2023": {
+          "n": 50,
+          "fixed": {
+            "shock_mean": 0.2,
+            "shock_max": 0.2,
+            "path_breach": {
+              "n": 50,
+              "events": 22,
+              "rate": 0.44
+            },
+            "entry_loss_breach": {
+              "n": 50,
+              "events": 19,
+              "rate": 0.38
+            },
+            "relative_stock_cap_vs_fixed": 1.0
+          },
+          "pooled": {
+            "shock_mean": 0.233423,
+            "shock_max": 0.233423,
+            "path_breach": {
+              "n": 50,
+              "events": 14,
+              "rate": 0.28
+            },
+            "entry_loss_breach": {
+              "n": 50,
+              "events": 5,
+              "rate": 0.1
+            },
+            "relative_stock_cap_vs_fixed": 0.856813
+          },
+          "dynamic": {
+            "shock_mean": 0.235105,
+            "shock_max": 0.235721,
+            "path_breach": {
+              "n": 50,
+              "events": 14,
+              "rate": 0.28
+            },
+            "entry_loss_breach": {
+              "n": 50,
+              "events": 4,
+              "rate": 0.08
+            },
+            "relative_stock_cap_vs_fixed": 0.850687
+          }
+        },
+        "2024": {
+          "n": 51,
+          "fixed": {
+            "shock_mean": 0.2,
+            "shock_max": 0.2,
+            "path_breach": {
+              "n": 51,
+              "events": 0,
+              "rate": 0.0
+            },
+            "entry_loss_breach": {
+              "n": 51,
+              "events": 0,
+              "rate": 0.0
+            },
+            "relative_stock_cap_vs_fixed": 1.0
+          },
+          "pooled": {
+            "shock_mean": 0.227399,
+            "shock_max": 0.227399,
+            "path_breach": {
+              "n": 51,
+              "events": 0,
+              "rate": 0.0
+            },
+            "entry_loss_breach": {
+              "n": 51,
+              "events": 0,
+              "rate": 0.0
+            },
+            "relative_stock_cap_vs_fixed": 0.879513
+          },
+          "dynamic": {
+            "shock_mean": 0.235344,
+            "shock_max": 0.235721,
+            "path_breach": {
+              "n": 51,
+              "events": 0,
+              "rate": 0.0
+            },
+            "entry_loss_breach": {
+              "n": 51,
+              "events": 0,
+              "rate": 0.0
+            },
+            "relative_stock_cap_vs_fixed": 0.849855
+          }
+        },
+        "2025": {
+          "n": 53,
+          "fixed": {
+            "shock_mean": 0.2,
+            "shock_max": 0.2,
+            "path_breach": {
+              "n": 53,
+              "events": 0,
+              "rate": 0.0
+            },
+            "entry_loss_breach": {
+              "n": 53,
+              "events": 0,
+              "rate": 0.0
+            },
+            "relative_stock_cap_vs_fixed": 1.0
+          },
+          "pooled": {
+            "shock_mean": 0.235721,
+            "shock_max": 0.235721,
+            "path_breach": {
+              "n": 53,
+              "events": 0,
+              "rate": 0.0
+            },
+            "entry_loss_breach": {
+              "n": 53,
+              "events": 0,
+              "rate": 0.0
+            },
+            "relative_stock_cap_vs_fixed": 0.848462
+          },
+          "dynamic": {
+            "shock_mean": 0.2376,
+            "shock_max": 0.239748,
+            "path_breach": {
+              "n": 53,
+              "events": 0,
+              "rate": 0.0
+            },
+            "entry_loss_breach": {
+              "n": 53,
+              "events": 0,
+              "rate": 0.0
+            },
+            "relative_stock_cap_vs_fixed": 0.841887
+          }
+        },
+        "2026": {
+          "n": 19,
+          "fixed": {
+            "shock_mean": 0.2,
+            "shock_max": 0.2,
+            "path_breach": {
+              "n": 19,
+              "events": 6,
+              "rate": 0.3158
+            },
+            "entry_loss_breach": {
+              "n": 19,
+              "events": 4,
+              "rate": 0.2105
+            },
+            "relative_stock_cap_vs_fixed": 1.0
+          },
+          "pooled": {
+            "shock_mean": 0.232816,
+            "shock_max": 0.232816,
+            "path_breach": {
+              "n": 19,
+              "events": 5,
+              "rate": 0.2632
+            },
+            "entry_loss_breach": {
+              "n": 19,
+              "events": 3,
+              "rate": 0.1579
+            },
+            "relative_stock_cap_vs_fixed": 0.859046
+          },
+          "dynamic": {
+            "shock_mean": 0.239748,
+            "shock_max": 0.239748,
+            "path_breach": {
+              "n": 19,
+              "events": 4,
+              "rate": 0.2105
+            },
+            "entry_loss_breach": {
+              "n": 19,
+              "events": 3,
+              "rate": 0.1579
+            },
+            "relative_stock_cap_vs_fixed": 0.83421
+          }
+        }
+      },
+      "volatility_groups": {
+        "0": {
+          "n": 110,
+          "fixed": {
+            "shock_mean": 0.2,
+            "shock_max": 0.2,
+            "path_breach": {
+              "n": 110,
+              "events": 23,
+              "rate": 0.2091
+            },
+            "entry_loss_breach": {
+              "n": 110,
+              "events": 20,
+              "rate": 0.1818
+            },
+            "relative_stock_cap_vs_fixed": 1.0
+          },
+          "pooled": {
+            "shock_mean": 0.228196,
+            "shock_max": 0.235721,
+            "path_breach": {
+              "n": 110,
+              "events": 15,
+              "rate": 0.1364
+            },
+            "entry_loss_breach": {
+              "n": 110,
+              "events": 12,
+              "rate": 0.1091
+            },
+            "relative_stock_cap_vs_fixed": 0.877264
+          },
+          "dynamic": {
+            "shock_mean": 0.217679,
+            "shock_max": 0.234865,
+            "path_breach": {
+              "n": 110,
+              "events": 16,
+              "rate": 0.1455
+            },
+            "entry_loss_breach": {
+              "n": 110,
+              "events": 13,
+              "rate": 0.1182
+            },
+            "relative_stock_cap_vs_fixed": 0.9245
+          }
+        },
+        "1": {
+          "n": 113,
+          "fixed": {
+            "shock_mean": 0.2,
+            "shock_max": 0.2,
+            "path_breach": {
+              "n": 113,
+              "events": 20,
+              "rate": 0.177
+            },
+            "entry_loss_breach": {
+              "n": 113,
+              "events": 19,
+              "rate": 0.1681
+            },
+            "relative_stock_cap_vs_fixed": 1.0
+          },
+          "pooled": {
+            "shock_mean": 0.228127,
+            "shock_max": 0.235721,
+            "path_breach": {
+              "n": 113,
+              "events": 18,
+              "rate": 0.1593
+            },
+            "entry_loss_breach": {
+              "n": 113,
+              "events": 10,
+              "rate": 0.0885
+            },
+            "relative_stock_cap_vs_fixed": 0.877453
+          },
+          "dynamic": {
+            "shock_mean": 0.248438,
+            "shock_max": 0.28143,
+            "path_breach": {
+              "n": 113,
+              "events": 17,
+              "rate": 0.1504
+            },
+            "entry_loss_breach": {
+              "n": 113,
+              "events": 7,
+              "rate": 0.0619
+            },
+            "relative_stock_cap_vs_fixed": 0.809185
+          }
+        },
+        "2": {
+          "n": 104,
+          "fixed": {
+            "shock_mean": 0.2,
+            "shock_max": 0.2,
+            "path_breach": {
+              "n": 104,
+              "events": 5,
+              "rate": 0.0481
+            },
+            "entry_loss_breach": {
+              "n": 104,
+              "events": 3,
+              "rate": 0.0288
+            },
+            "relative_stock_cap_vs_fixed": 1.0
+          },
+          "pooled": {
+            "shock_mean": 0.228353,
+            "shock_max": 0.235721,
+            "path_breach": {
+              "n": 104,
+              "events": 4,
+              "rate": 0.0385
+            },
+            "entry_loss_breach": {
+              "n": 104,
+              "events": 2,
+              "rate": 0.0192
+            },
+            "relative_stock_cap_vs_fixed": 0.876472
+          },
+          "dynamic": {
+            "shock_mean": 0.243777,
+            "shock_max": 0.28143,
+            "path_breach": {
+              "n": 104,
+              "events": 3,
+              "rate": 0.0288
+            },
+            "entry_loss_breach": {
+              "n": 104,
+              "events": 1,
+              "rate": 0.0096
+            },
+            "relative_stock_cap_vs_fixed": 0.823716
+          }
+        }
+      }
+    }
+  },
+  "stage_evolution": {
+    "all": {
+      "stage": {
+        "60": {
+          "n": 397,
+          "agreement": {
+            "n": 397,
+            "events": 147,
+            "rate": 0.3703
+          },
+          "confusion": {
+            "bull": {
+              "bull": 23,
+              "structural": 8,
+              "range": 2,
+              "bottoming": 5,
+              "bear": 0
+            },
+            "structural": {
+              "bull": 6,
+              "structural": 46,
+              "range": 0,
+              "bottoming": 0,
+              "bear": 0
+            },
+            "range": {
+              "bull": 30,
+              "structural": 87,
+              "range": 45,
+              "bottoming": 7,
+              "bear": 4
+            },
+            "bottoming": {
+              "bull": 4,
+              "structural": 24,
+              "range": 18,
+              "bottoming": 2,
+              "bear": 2
+            },
+            "bear": {
+              "bull": 0,
+              "structural": 7,
+              "range": 46,
+              "bottoming": 0,
+              "bear": 31
+            }
+          }
+        },
+        "120": {
+          "n": 397,
+          "agreement": {
+            "n": 397,
+            "events": 113,
+            "rate": 0.2846
+          },
+          "confusion": {
+            "bull": {
+              "bull": 13,
+              "structural": 14,
+              "range": 5,
+              "bottoming": 6,
+              "bear": 0
+            },
+            "structural": {
+              "bull": 11,
+              "structural": 38,
+              "range": 1,
+              "bottoming": 2,
+              "bear": 0
+            },
+            "range": {
+              "bull": 31,
+              "structural": 87,
+              "range": 47,
+              "bottoming": 7,
+              "bear": 1
+            },
+            "bottoming": {
+              "bull": 6,
+              "structural": 17,
+              "range": 26,
+              "bottoming": 0,
+              "bear": 1
+            },
+            "bear": {
+              "bull": 1,
+              "structural": 17,
+              "range": 51,
+              "bottoming": 0,
+              "bear": 15
+            }
+          }
+        }
+      },
+      "direction": {
+        "20": {
+          "n": 396,
+          "threshold": 0.03,
+          "bins": [
+            {
+              "group": 0,
+              "n": 110,
+              "median_return": 0.008507,
+              "up": {
+                "n": 110,
+                "events": 39,
+                "rate": 0.3545
+              },
+              "down": {
+                "n": 110,
+                "events": 33,
+                "rate": 0.3
+              },
+              "positive": {
+                "n": 110,
+                "events": 61,
+                "rate": 0.5545
+              }
+            },
+            {
+              "group": 1,
+              "n": 67,
+              "median_return": 0.002544,
+              "up": {
+                "n": 67,
+                "events": 22,
+                "rate": 0.3284
+              },
+              "down": {
+                "n": 67,
+                "events": 20,
+                "rate": 0.2985
+              },
+              "positive": {
+                "n": 67,
+                "events": 35,
+                "rate": 0.5224
+              }
+            },
+            {
+              "group": 2,
+              "n": 41,
+              "median_return": -0.006199,
+              "up": {
+                "n": 41,
+                "events": 7,
+                "rate": 0.1707
+              },
+              "down": {
+                "n": 41,
+                "events": 9,
+                "rate": 0.2195
+              },
+              "positive": {
+                "n": 41,
+                "events": 19,
+                "rate": 0.4634
+              }
+            },
+            {
+              "group": 3,
+              "n": 67,
+              "median_return": -0.010854,
+              "up": {
+                "n": 67,
+                "events": 13,
+                "rate": 0.194
+              },
+              "down": {
+                "n": 67,
+                "events": 18,
+                "rate": 0.2687
+              },
+              "positive": {
+                "n": 67,
+                "events": 31,
+                "rate": 0.4627
+              }
+            },
+            {
+              "group": 4,
+              "n": 111,
+              "median_return": 0.003347,
+              "up": {
+                "n": 111,
+                "events": 36,
+                "rate": 0.3243
+              },
+              "down": {
+                "n": 111,
+                "events": 23,
+                "rate": 0.2072
+              },
+              "positive": {
+                "n": 111,
+                "events": 63,
+                "rate": 0.5676
+              }
+            }
+          ],
+          "transitions": {
+            "0": {
+              "bull->range": 3,
+              "structural->range": 9,
+              "range->range": 20,
+              "range->bear": 10,
+              "range->structural": 11,
+              "range->bottoming": 2,
+              "structural->structural": 28,
+              "structural->bull": 2,
+              "bull->structural": 6,
+              "bull->bull": 2,
+              "structural->bear": 3,
+              "bear->bear": 9,
+              "bear->range": 2,
+              "structural->bottoming": 2,
+              "range->bull": 1
+            },
+            "1": {
+              "bull->structural": 5,
+              "range->bottoming": 2,
+              "structural->bottoming": 1,
+              "bottoming->structural": 1,
+              "structural->structural": 19,
+              "bear->bear": 4,
+              "bear->structural": 6,
+              "structural->bull": 3,
+              "structural->range": 3,
+              "structural->bear": 2,
+              "bear->range": 4,
+              "range->range": 5,
+              "range->bear": 4,
+              "range->structural": 3,
+              "bull->range": 3,
+              "bull->bull": 2
+            },
+            "2": {
+              "range->range": 8,
+              "bear->range": 1,
+              "range->structural": 4,
+              "structural->range": 3,
+              "structural->structural": 11,
+              "range->bull": 2,
+              "structural->bull": 2,
+              "bear->bear": 1,
+              "bull->structural": 3,
+              "bottoming->bottoming": 1,
+              "bottoming->structural": 2,
+              "bull->range": 2,
+              "bull->bull": 1
+            },
+            "3": {
+              "bull->bull": 17,
+              "bull->structural": 1,
+              "range->structural": 6,
+              "structural->bull": 4,
+              "structural->structural": 12,
+              "bear->bear": 1,
+              "bear->structural": 1,
+              "bull->range": 2,
+              "structural->bottoming": 1,
+              "structural->range": 10,
+              "range->range": 8,
+              "bear->range": 1,
+              "range->bull": 1,
+              "bull->bear": 1,
+              "structural->bear": 1
+            },
+            "4": {
+              "range->bull": 3,
+              "bottoming->bull": 3,
+              "bull->bull": 11,
+              "range->bear": 3,
+              "range->range": 10,
+              "bear->range": 1,
+              "structural->range": 6,
+              "bottoming->bottoming": 3,
+              "bottoming->structural": 5,
+              "bottoming->range": 1,
+              "bull->range": 2,
+              "structural->structural": 34,
+              "structural->bull": 15,
+              "structural->bear": 1,
+              "bear->structural": 2,
+              "range->structural": 9,
+              "bull->structural": 2
+            }
+          }
+        },
+        "60": {
+          "n": 386,
+          "threshold": 0.05,
+          "bins": [
+            {
+              "group": 0,
+              "n": 106,
+              "median_return": 0.011175,
+              "up": {
+                "n": 106,
+                "events": 32,
+                "rate": 0.3019
+              },
+              "down": {
+                "n": 106,
+                "events": 20,
+                "rate": 0.1887
+              },
+              "positive": {
+                "n": 106,
+                "events": 60,
+                "rate": 0.566
+              }
+            },
+            {
+              "group": 1,
+              "n": 65,
+              "median_return": 0.011201,
+              "up": {
+                "n": 65,
+                "events": 23,
+                "rate": 0.3538
+              },
+              "down": {
+                "n": 65,
+                "events": 10,
+                "rate": 0.1538
+              },
+              "positive": {
+                "n": 65,
+                "events": 39,
+                "rate": 0.6
+              }
+            },
+            {
+              "group": 2,
+              "n": 41,
+              "median_return": 0.023388,
+              "up": {
+                "n": 41,
+                "events": 15,
+                "rate": 0.3659
+              },
+              "down": {
+                "n": 41,
+                "events": 9,
+                "rate": 0.2195
+              },
+              "positive": {
+                "n": 41,
+                "events": 25,
+                "rate": 0.6098
+              }
+            },
+            {
+              "group": 3,
+              "n": 65,
+              "median_return": -0.01484,
+              "up": {
+                "n": 65,
+                "events": 15,
+                "rate": 0.2308
+              },
+              "down": {
+                "n": 65,
+                "events": 23,
+                "rate": 0.3538
+              },
+              "positive": {
+                "n": 65,
+                "events": 28,
+                "rate": 0.4308
+              }
+            },
+            {
+              "group": 4,
+              "n": 109,
+              "median_return": -0.00636,
+              "up": {
+                "n": 109,
+                "events": 23,
+                "rate": 0.211
+              },
+              "down": {
+                "n": 109,
+                "events": 28,
+                "rate": 0.2569
+              },
+              "positive": {
+                "n": 109,
+                "events": 49,
+                "rate": 0.4495
+              }
+            }
+          ],
+          "transitions": {
+            "0": {
+              "bull->range": 3,
+              "structural->range": 8,
+              "range->structural": 20,
+              "range->bottoming": 1,
+              "structural->bull": 7,
+              "range->bull": 8,
+              "structural->structural": 24,
+              "bull->structural": 6,
+              "structural->bear": 5,
+              "range->bear": 6,
+              "bear->structural": 6,
+              "bear->bull": 2,
+              "bull->bear": 1,
+              "range->range": 8,
+              "bull->bull": 1
+            },
+            "1": {
+              "bull->range": 3,
+              "range->structural": 7,
+              "structural->range": 11,
+              "bottoming->bottoming": 1,
+              "range->bull": 2,
+              "structural->structural": 16,
+              "bull->structural": 7,
+              "bear->bull": 10,
+              "bear->structural": 1,
+              "range->range": 4,
+              "range->bottoming": 1,
+              "bear->range": 1,
+              "bear->bear": 1
+            },
+            "2": {
+              "range->bottoming": 2,
+              "bear->structural": 2,
+              "range->structural": 1,
+              "structural->range": 2,
+              "structural->structural": 11,
+              "structural->bull": 1,
+              "range->bull": 4,
+              "structural->bear": 1,
+              "bull->bear": 2,
+              "bottoming->structural": 1,
+              "bottoming->range": 2,
+              "range->range": 5,
+              "range->bear": 2,
+              "structural->bottoming": 1,
+              "bull->structural": 3,
+              "bull->bull": 1
+            },
+            "3": {
+              "bull->range": 8,
+              "bull->bear": 5,
+              "range->structural": 3,
+              "structural->structural": 14,
+              "range->bull": 4,
+              "structural->bull": 2,
+              "bull->structural": 7,
+              "structural->range": 6,
+              "structural->bear": 4,
+              "bear->structural": 3,
+              "range->range": 6,
+              "range->bear": 2,
+              "bull->bull": 1
+            },
+            "4": {
+              "range->bull": 2,
+              "bottoming->bull": 1,
+              "bottoming->structural": 5,
+              "bull->range": 3,
+              "range->bottoming": 6,
+              "range->range": 7,
+              "bear->bottoming": 1,
+              "structural->range": 20,
+              "bottoming->range": 6,
+              "range->structural": 6,
+              "bull->structural": 6,
+              "structural->bull": 8,
+              "bull->bull": 4,
+              "structural->structural": 20,
+              "structural->bear": 8,
+              "bear->bull": 1,
+              "bear->structural": 1,
+              "range->bear": 2,
+              "bull->bear": 1,
+              "bull->bottoming": 1
+            }
+          }
+        }
+      }
+    },
+    "2022_plus": {
+      "stage": {
+        "60": {
+          "n": 249,
+          "agreement": {
+            "n": 249,
+            "events": 82,
+            "rate": 0.3293
+          },
+          "confusion": {
+            "bull": {
+              "bull": 10,
+              "structural": 7,
+              "range": 2,
+              "bottoming": 2,
+              "bear": 0
+            },
+            "structural": {
+              "bull": 6,
+              "structural": 13,
+              "range": 0,
+              "bottoming": 0,
+              "bear": 0
+            },
+            "range": {
+              "bull": 19,
+              "structural": 44,
+              "range": 27,
+              "bottoming": 5,
+              "bear": 4
+            },
+            "bottoming": {
+              "bull": 1,
+              "structural": 14,
+              "range": 14,
+              "bottoming": 1,
+              "bear": 0
+            },
+            "bear": {
+              "bull": 0,
+              "structural": 7,
+              "range": 42,
+              "bottoming": 0,
+              "bear": 31
+            }
+          }
+        },
+        "120": {
+          "n": 249,
+          "agreement": {
+            "n": 249,
+            "events": 64,
+            "rate": 0.257
+          },
+          "confusion": {
+            "bull": {
+              "bull": 4,
+              "structural": 10,
+              "range": 3,
+              "bottoming": 4,
+              "bear": 0
+            },
+            "structural": {
+              "bull": 8,
+              "structural": 8,
+              "range": 1,
+              "bottoming": 2,
+              "bear": 0
+            },
+            "range": {
+              "bull": 17,
+              "structural": 43,
+              "range": 37,
+              "bottoming": 1,
+              "bear": 1
+            },
+            "bottoming": {
+              "bull": 2,
+              "structural": 4,
+              "range": 23,
+              "bottoming": 0,
+              "bear": 1
+            },
+            "bear": {
+              "bull": 0,
+              "structural": 14,
+              "range": 51,
+              "bottoming": 0,
+              "bear": 15
+            }
+          }
+        }
+      },
+      "direction": {
+        "20": {
+          "n": 245,
+          "threshold": 0.03,
+          "bins": [
+            {
+              "group": 0,
+              "n": 71,
+              "median_return": -0.012125,
+              "up": {
+                "n": 71,
+                "events": 25,
+                "rate": 0.3521
+              },
+              "down": {
+                "n": 71,
+                "events": 30,
+                "rate": 0.4225
+              },
+              "positive": {
+                "n": 71,
+                "events": 33,
+                "rate": 0.4648
+              }
+            },
+            {
+              "group": 1,
+              "n": 46,
+              "median_return": -0.006512,
+              "up": {
+                "n": 46,
+                "events": 13,
+                "rate": 0.2826
+              },
+              "down": {
+                "n": 46,
+                "events": 16,
+                "rate": 0.3478
+              },
+              "positive": {
+                "n": 46,
+                "events": 22,
+                "rate": 0.4783
+              }
+            },
+            {
+              "group": 2,
+              "n": 22,
+              "median_return": -0.010932,
+              "up": {
+                "n": 22,
+                "events": 3,
+                "rate": 0.1364
+              },
+              "down": {
+                "n": 22,
+                "events": 6,
+                "rate": 0.2727
+              },
+              "positive": {
+                "n": 22,
+                "events": 9,
+                "rate": 0.4091
+              }
+            },
+            {
+              "group": 3,
+              "n": 41,
+              "median_return": -0.01476,
+              "up": {
+                "n": 41,
+                "events": 8,
+                "rate": 0.1951
+              },
+              "down": {
+                "n": 41,
+                "events": 12,
+                "rate": 0.2927
+              },
+              "positive": {
+                "n": 41,
+                "events": 19,
+                "rate": 0.4634
+              }
+            },
+            {
+              "group": 4,
+              "n": 65,
+              "median_return": 0.002299,
+              "up": {
+                "n": 65,
+                "events": 18,
+                "rate": 0.2769
+              },
+              "down": {
+                "n": 65,
+                "events": 14,
+                "rate": 0.2154
+              },
+              "positive": {
+                "n": 65,
+                "events": 34,
+                "rate": 0.5231
+              }
+            }
+          ],
+          "transitions": {
+            "0": {
+              "structural->structural": 11,
+              "structural->range": 7,
+              "range->structural": 5,
+              "structural->bear": 3,
+              "range->bear": 9,
+              "bear->bear": 9,
+              "bear->range": 2,
+              "bull->structural": 3,
+              "bull->range": 1,
+              "range->range": 15,
+              "structural->bottoming": 2,
+              "range->bottoming": 1,
+              "bull->bull": 1,
+              "range->bull": 1,
+              "structural->bull": 1
+            },
+            "1": {
+              "bear->bear": 4,
+              "bear->structural": 6,
+              "structural->bull": 3,
+              "structural->range": 3,
+              "structural->bear": 2,
+              "bear->range": 4,
+              "structural->structural": 5,
+              "range->range": 5,
+              "range->bear": 4,
+              "range->structural": 3,
+              "bull->range": 3,
+              "bull->bull": 2,
+              "bull->structural": 2
+            },
+            "2": {
+              "bear->bear": 1,
+              "bull->structural": 3,
+              "range->range": 7,
+              "bottoming->bottoming": 1,
+              "bottoming->structural": 2,
+              "structural->structural": 1,
+              "structural->bull": 1,
+              "bull->range": 2,
+              "range->bull": 1,
+              "range->structural": 2,
+              "bull->bull": 1
+            },
+            "3": {
+              "bear->bear": 1,
+              "bear->structural": 1,
+              "bull->range": 2,
+              "structural->bottoming": 1,
+              "structural->range": 10,
+              "range->range": 8,
+              "range->structural": 3,
+              "bear->range": 1,
+              "bull->bull": 10,
+              "structural->bull": 1,
+              "range->bull": 1,
+              "bull->bear": 1,
+              "structural->bear": 1
+            },
+            "4": {
+              "structural->bear": 1,
+              "bear->structural": 2,
+              "structural->structural": 15,
+              "structural->bull": 13,
+              "range->range": 9,
+              "range->structural": 9,
+              "bottoming->bottoming": 2,
+              "bottoming->structural": 3,
+              "structural->range": 4,
+              "bull->range": 1,
+              "bull->bull": 2,
+              "bull->structural": 2,
+              "range->bear": 2
+            }
+          }
+        },
+        "60": {
+          "n": 235,
+          "threshold": 0.05,
+          "bins": [
+            {
+              "group": 0,
+              "n": 67,
+              "median_return": -0.009457,
+              "up": {
+                "n": 67,
+                "events": 16,
+                "rate": 0.2388
+              },
+              "down": {
+                "n": 67,
+                "events": 18,
+                "rate": 0.2687
+              },
+              "positive": {
+                "n": 67,
+                "events": 30,
+                "rate": 0.4478
+              }
+            },
+            {
+              "group": 1,
+              "n": 44,
+              "median_return": 0.018801,
+              "up": {
+                "n": 44,
+                "events": 20,
+                "rate": 0.4545
+              },
+              "down": {
+                "n": 44,
+                "events": 9,
+                "rate": 0.2045
+              },
+              "positive": {
+                "n": 44,
+                "events": 28,
+                "rate": 0.6364
+              }
+            },
+            {
+              "group": 2,
+              "n": 22,
+              "median_return": -0.025155,
+              "up": {
+                "n": 22,
+                "events": 8,
+                "rate": 0.3636
+              },
+              "down": {
+                "n": 22,
+                "events": 8,
+                "rate": 0.3636
+              },
+              "positive": {
+                "n": 22,
+                "events": 10,
+                "rate": 0.4545
+              }
+            },
+            {
+              "group": 3,
+              "n": 39,
+              "median_return": -0.037209,
+              "up": {
+                "n": 39,
+                "events": 9,
+                "rate": 0.2308
+              },
+              "down": {
+                "n": 39,
+                "events": 15,
+                "rate": 0.3846
+              },
+              "positive": {
+                "n": 39,
+                "events": 15,
+                "rate": 0.3846
+              }
+            },
+            {
+              "group": 4,
+              "n": 63,
+              "median_return": -0.016519,
+              "up": {
+                "n": 63,
+                "events": 13,
+                "rate": 0.2063
+              },
+              "down": {
+                "n": 63,
+                "events": 20,
+                "rate": 0.3175
+              },
+              "positive": {
+                "n": 63,
+                "events": 25,
+                "rate": 0.3968
+              }
+            }
+          ],
+          "transitions": {
+            "0": {
+              "structural->bear": 5,
+              "range->bear": 6,
+              "bear->structural": 6,
+              "bear->bull": 2,
+              "bull->bear": 1,
+              "bull->range": 1,
+              "range->structural": 13,
+              "structural->structural": 8,
+              "structural->range": 7,
+              "range->range": 8,
+              "range->bull": 3,
+              "bull->structural": 2,
+              "bull->bull": 1,
+              "structural->bull": 4
+            },
+            "1": {
+              "bear->bull": 10,
+              "bear->structural": 1,
+              "structural->range": 10,
+              "structural->structural": 2,
+              "range->range": 4,
+              "range->structural": 6,
+              "range->bottoming": 1,
+              "bull->structural": 5,
+              "bull->range": 2,
+              "range->bull": 1,
+              "bear->range": 1,
+              "bear->bear": 1
+            },
+            "2": {
+              "bear->structural": 1,
+              "bull->bear": 2,
+              "range->bottoming": 1,
+              "bottoming->structural": 1,
+              "bottoming->range": 2,
+              "structural->range": 1,
+              "range->range": 5,
+              "range->bear": 2,
+              "structural->bottoming": 1,
+              "bull->structural": 3,
+              "range->bull": 2,
+              "bull->bull": 1
+            },
+            "3": {
+              "bear->structural": 3,
+              "bull->range": 6,
+              "structural->structural": 2,
+              "structural->range": 5,
+              "range->range": 6,
+              "range->bear": 2,
+              "range->structural": 1,
+              "structural->bear": 3,
+              "bull->bear": 2,
+              "range->bull": 3,
+              "bull->structural": 4,
+              "structural->bull": 1,
+              "bull->bull": 1
+            },
+            "4": {
+              "structural->range": 17,
+              "bear->bull": 1,
+              "bear->structural": 1,
+              "structural->bear": 5,
+              "range->bottoming": 5,
+              "structural->structural": 7,
+              "bottoming->structural": 4,
+              "range->range": 6,
+              "range->bear": 2,
+              "range->structural": 4,
+              "bull->bear": 1,
+              "structural->bull": 4,
+              "bull->bottoming": 1,
+              "bottoming->range": 1,
+              "range->bull": 1,
+              "bull->bull": 2,
+              "bull->structural": 1
+            }
+          }
+        }
+      }
+    },
+    "2024_plus": {
+      "stage": {
+        "60": {
+          "n": 149,
+          "agreement": {
+            "n": 149,
+            "events": 51,
+            "rate": 0.3423
+          },
+          "confusion": {
+            "bull": {
+              "bull": 10,
+              "structural": 7,
+              "range": 2,
+              "bottoming": 0,
+              "bear": 0
+            },
+            "structural": {
+              "bull": 6,
+              "structural": 8,
+              "range": 0,
+              "bottoming": 0,
+              "bear": 0
+            },
+            "range": {
+              "bull": 15,
+              "structural": 25,
+              "range": 17,
+              "bottoming": 0,
+              "bear": 4
+            },
+            "bottoming": {
+              "bull": 1,
+              "structural": 11,
+              "range": 7,
+              "bottoming": 1,
+              "bear": 0
+            },
+            "bear": {
+              "bull": 0,
+              "structural": 3,
+              "range": 17,
+              "bottoming": 0,
+              "bear": 15
+            }
+          }
+        },
+        "120": {
+          "n": 149,
+          "agreement": {
+            "n": 149,
+            "events": 28,
+            "rate": 0.1879
+          },
+          "confusion": {
+            "bull": {
+              "bull": 4,
+              "structural": 8,
+              "range": 3,
+              "bottoming": 4,
+              "bear": 0
+            },
+            "structural": {
+              "bull": 8,
+              "structural": 5,
+              "range": 1,
+              "bottoming": 0,
+              "bear": 0
+            },
+            "range": {
+              "bull": 17,
+              "structural": 32,
+              "range": 10,
+              "bottoming": 1,
+              "bear": 1
+            },
+            "bottoming": {
+              "bull": 2,
+              "structural": 3,
+              "range": 15,
+              "bottoming": 0,
+              "bear": 0
+            },
+            "bear": {
+              "bull": 0,
+              "structural": 3,
+              "range": 23,
+              "bottoming": 0,
+              "bear": 9
+            }
+          }
+        }
+      },
+      "direction": {
+        "20": {
+          "n": 145,
+          "threshold": 0.03,
+          "bins": [
+            {
+              "group": 0,
+              "n": 37,
+              "median_return": 0.024325,
+              "up": {
+                "n": 37,
+                "events": 18,
+                "rate": 0.4865
+              },
+              "down": {
+                "n": 37,
+                "events": 14,
+                "rate": 0.3784
+              },
+              "positive": {
+                "n": 37,
+                "events": 22,
+                "rate": 0.5946
+              }
+            },
+            {
+              "group": 1,
+              "n": 31,
+              "median_return": -0.006195,
+              "up": {
+                "n": 31,
+                "events": 9,
+                "rate": 0.2903
+              },
+              "down": {
+                "n": 31,
+                "events": 12,
+                "rate": 0.3871
+              },
+              "positive": {
+                "n": 31,
+                "events": 15,
+                "rate": 0.4839
+              }
+            },
+            {
+              "group": 2,
+              "n": 9,
+              "median_return": -0.022876,
+              "up": {
+                "n": 9,
+                "events": 3,
+                "rate": 0.3333
+              },
+              "down": {
+                "n": 9,
+                "events": 3,
+                "rate": 0.3333
+              },
+              "positive": {
+                "n": 9,
+                "events": 4,
+                "rate": 0.4444
+              }
+            },
+            {
+              "group": 3,
+              "n": 27,
+              "median_return": 0.004579,
+              "up": {
+                "n": 27,
+                "events": 7,
+                "rate": 0.2593
+              },
+              "down": {
+                "n": 27,
+                "events": 9,
+                "rate": 0.3333
+              },
+              "positive": {
+                "n": 27,
+                "events": 14,
+                "rate": 0.5185
+              }
+            },
+            {
+              "group": 4,
+              "n": 41,
+              "median_return": 0.007257,
+              "up": {
+                "n": 41,
+                "events": 15,
+                "rate": 0.3659
+              },
+              "down": {
+                "n": 41,
+                "events": 8,
+                "rate": 0.1951
+              },
+              "positive": {
+                "n": 41,
+                "events": 26,
+                "rate": 0.6341
+              }
+            }
+          ],
+          "transitions": {
+            "0": {
+              "range->bear": 5,
+              "structural->range": 4,
+              "range->range": 9,
+              "range->bottoming": 1,
+              "range->structural": 3,
+              "bull->bull": 1,
+              "bull->structural": 2,
+              "structural->structural": 6,
+              "range->bull": 1,
+              "structural->bull": 1,
+              "structural->bear": 1,
+              "bear->bear": 3
+            },
+            "1": {
+              "range->bear": 4,
+              "range->structural": 3,
+              "bear->structural": 5,
+              "structural->bull": 1,
+              "bear->bear": 3,
+              "bear->range": 3,
+              "bull->range": 3,
+              "bull->bull": 2,
+              "bull->structural": 2,
+              "structural->structural": 4,
+              "structural->bear": 1
+            },
+            "2": {
+              "structural->bull": 1,
+              "bull->range": 2,
+              "range->bull": 1,
+              "range->structural": 2,
+              "bull->bull": 1,
+              "bull->structural": 2
+            },
+            "3": {
+              "structural->range": 8,
+              "bull->range": 1,
+              "bear->range": 1,
+              "range->structural": 2,
+              "bull->bull": 10,
+              "range->range": 1,
+              "structural->bull": 1,
+              "range->bull": 1,
+              "bull->bear": 1,
+              "structural->bear": 1
+            },
+            "4": {
+              "range->structural": 5,
+              "structural->structural": 12,
+              "structural->bull": 10,
+              "bull->range": 1,
+              "bull->bull": 2,
+              "range->range": 3,
+              "bottoming->structural": 1,
+              "structural->range": 3,
+              "bull->structural": 2,
+              "range->bear": 2
+            }
+          }
+        },
+        "60": {
+          "n": 135,
+          "threshold": 0.05,
+          "bins": [
+            {
+              "group": 0,
+              "n": 33,
+              "median_return": 0.017716,
+              "up": {
+                "n": 33,
+                "events": 12,
+                "rate": 0.3636
+              },
+              "down": {
+                "n": 33,
+                "events": 9,
+                "rate": 0.2727
+              },
+              "positive": {
+                "n": 33,
+                "events": 19,
+                "rate": 0.5758
+              }
+            },
+            {
+              "group": 1,
+              "n": 29,
+              "median_return": 0.07087,
+              "up": {
+                "n": 29,
+                "events": 16,
+                "rate": 0.5517
+              },
+              "down": {
+                "n": 29,
+                "events": 4,
+                "rate": 0.1379
+              },
+              "positive": {
+                "n": 29,
+                "events": 24,
+                "rate": 0.8276
+              }
+            },
+            {
+              "group": 2,
+              "n": 9,
+              "median_return": 0.052984,
+              "up": {
+                "n": 9,
+                "events": 5,
+                "rate": 0.5556
+              },
+              "down": {
+                "n": 9,
+                "events": 2,
+                "rate": 0.2222
+              },
+              "positive": {
+                "n": 9,
+                "events": 7,
+                "rate": 0.7778
+              }
+            },
+            {
+              "group": 3,
+              "n": 25,
+              "median_return": -0.003906,
+              "up": {
+                "n": 25,
+                "events": 7,
+                "rate": 0.28
+              },
+              "down": {
+                "n": 25,
+                "events": 8,
+                "rate": 0.32
+              },
+              "positive": {
+                "n": 25,
+                "events": 12,
+                "rate": 0.48
+              }
+            },
+            {
+              "group": 4,
+              "n": 39,
+              "median_return": -0.00628,
+              "up": {
+                "n": 39,
+                "events": 9,
+                "rate": 0.2308
+              },
+              "down": {
+                "n": 39,
+                "events": 10,
+                "rate": 0.2564
+              },
+              "positive": {
+                "n": 39,
+                "events": 17,
+                "rate": 0.4359
+              }
+            }
+          ],
+          "transitions": {
+            "0": {
+              "range->structural": 5,
+              "structural->range": 2,
+              "range->bear": 4,
+              "range->range": 6,
+              "structural->structural": 6,
+              "range->bull": 3,
+              "bull->structural": 2,
+              "bull->bull": 1,
+              "structural->bull": 4
+            },
+            "1": {
+              "range->structural": 5,
+              "bear->bull": 8,
+              "structural->range": 4,
+              "range->bottoming": 1,
+              "bull->structural": 5,
+              "bull->range": 2,
+              "range->bull": 1,
+              "structural->structural": 1,
+              "bear->range": 1,
+              "bear->bear": 1
+            },
+            "2": {
+              "structural->bottoming": 1,
+              "bull->structural": 3,
+              "range->bull": 2,
+              "bull->bull": 1,
+              "bull->bear": 1,
+              "range->bear": 1
+            },
+            "3": {
+              "structural->bear": 3,
+              "bull->bear": 2,
+              "bear->structural": 1,
+              "range->bull": 3,
+              "bull->range": 5,
+              "bull->structural": 4,
+              "structural->range": 3,
+              "structural->structural": 1,
+              "structural->bull": 1,
+              "bull->bull": 1,
+              "range->range": 1
+            },
+            "4": {
+              "range->structural": 3,
+              "structural->range": 12,
+              "structural->bear": 3,
+              "bull->bear": 1,
+              "structural->bull": 4,
+              "bull->bottoming": 1,
+              "range->range": 3,
+              "bottoming->range": 1,
+              "range->bull": 1,
+              "bull->bull": 2,
+              "structural->structural": 6,
+              "bull->structural": 1,
+              "range->bear": 1
+            }
+          }
+        }
+      }
+    }
+  },
+  "notes": [
+    "Research only; no account data or live permissions.",
+    "Stress q90 of realized maximum drawdown, not forecast of portfolio loss or confidence guarantee.",
+    "Annual expanding estimates only use matured training windows; fixed 20% floor; monotone volatility bins.",
+    "Weekly observations overlap. 2024+ already inspected in prior research, not blind holdout.",
+    "Category shocks and collateral assumptions are policy scenarios, not historical beta estimates.",
+    "Trailing reference label is not independent expert truth. D thresholds from V2.0c; future return thresholds exploratory.",
+    "SW2021 pre-Dec2021 backcast. Missing breadth artifacts excluded. No production changes."
+  ]
+}
