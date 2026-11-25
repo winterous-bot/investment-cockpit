@@ -3,7 +3,7 @@
 from __future__ import annotations
 import argparse,os,sys,math,json,statistics
 from pathlib import Path
-from datetime import datetime,date
+from datetime import datetime,date,timedelta
 from zoneinfo import ZoneInfo
 from collections import defaultdict,Counter
 from build import Tushare,SafeAPIError,num,code,calendar,get_classification,historical,benchmark,run_level,backtest
@@ -81,16 +81,26 @@ def study(days,series,bench,hist):
     return result
 def main():
     from view_v11 import render
-    p=argparse.ArgumentParser();p.add_argument("--output",required=True);p.add_argument("--end");a=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument("--output",required=True);p.add_argument("--end");p.add_argument("--daily",action="store_true");a=p.parse_args()
     end=a.end or datetime.now(ZoneInfo("Asia/Shanghai")).strftime("%Y%m%d")
-    api=Tushare(os.environ.get("TUSHARE_TOKEN"));days=calendar(api,end)
+    api=Tushare(os.environ.get("TUSHARE_TOKEN"))
+    if a.daily:
+        start=(datetime.strptime(end,"%Y%m%d").date()-timedelta(days=150)).strftime("%Y%m%d")
+        raw=api.ask("trade_cal",{"exchange":"SSE","start_date":start,"end_date":end,"is_open":"1"},"cal_date,is_open")
+        days=sorted({str(x["cal_date"]) for x in raw if str(x.get("is_open"))=="1"})
+        if not days or days[-1]!=end:
+            print("No trading session on requested date; preserve prior snapshot.");return
+        if len(days)<55:raise RuntimeError("insufficient trading calendar")
+    else:days=calendar(api,end)
     classes={l:get_classification(api,l) for l in ("L1","L2")}
     prices,shares=historical(api,days,classes);bench=benchmark(api,days)
     hist={l:run_level(days,{k:prices[k] for k in cl},{k:shares[k] for k in cl},bench) for l,cl in classes.items()}
     i=next((i for i in range(len(days)-1,max(30,len(days)-8),-1) if all(hist[l][i] and sum(x["stage"]!="证据不足" for x in hist[l][i].values())>=.9*len(classes[l]) for l in classes)),None)
     if i is None:raise RuntimeError("no recent complete snapshot")
+    if a.daily and i!=len(days)-1:raise RuntimeError("latest session not complete; preserve prior snapshot")
     try:b,h=breadth(api,classes,days,hist,i)
     except SafeAPIError:b,h={},{"status":"incomplete","reason":"成分或个股接口失败"}
+    if a.daily and (h.get("status")!="ok" or len(b)<math.ceil(.9*sum(len(x) for x in classes.values()))):raise RuntimeError("daily breadth coverage insufficient; preserve prior snapshot")
     out={"version":"industry-radar-v1.1","asof":days[i],"requested_end":end,"breadth_health":h,"levels":{}}
     report={"version":out["version"],"asof":days[i],"breadth_health":{k:v for k,v in h.items() if k!="window"},"levels":{},"validation":{},
             "notes":["Frozen V1.1 observation thresholds; exploratory historical evidence only; 2024+ not blind.",
@@ -111,11 +121,13 @@ def main():
              "rank_leap_top":[short(x) for x in sorted([x for x in data if x["rank_move"] is not None],key=lambda x:-x["rank_move"])[:5]],
              "early":[short(x) for x in data if "量价前兆" in x["flags"]],
              "breadth_covered":sum(x["breadth"] is not None for x in data)}
-        report["validation"][l]=study(days,{k:prices[k] for k in cl},bench,hist[l])
+        if not a.daily:report["validation"][l]=study(days,{k:prices[k] for k in cl},bench,hist[l])
     p=Path(a.output);p.mkdir(parents=True,exist_ok=True)
     (p/"radar_snapshot.json").write_text(json.dumps(out,ensure_ascii=False),encoding="utf-8")
-    (p/"validation.json").write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding="utf-8")
+    if not a.daily:(p/"validation.json").write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding="utf-8")
     render(out,p/"radar.html")
     # Public log: coverage and historical aggregate only; do not print stock or industry derived rankings.
+    if a.daily:
+        print(json.dumps({"asof":out["asof"],"valid_levels":{l:len(x) for l,x in out["levels"].items()},"breadth_sectors":len(b)}));return
     print(json.dumps({**report,"levels":{l:{k:v for k,v in x.items() if k not in ("attention_top","rank_leap_top","early")} for l,x in report["levels"].items()}},ensure_ascii=False))
 if __name__=="__main__":main()
