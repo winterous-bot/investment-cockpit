@@ -17,10 +17,11 @@ on:
   pull_request:
     branches: [main]
     paths: ['radar/**','industry-radar.js','radar-view.js','radar-ui.css','tests/test_radar_view.cjs','tests/test_radar_fixed_key.cjs','index.html','sw.js','snapshot-store.js','tests/test_snapshot_store.cjs','.github/workflows/industry-radar-daily.yml']
-  schedule:
-    # Beijing 18:15, 19:15, 20:15, 21:10; retry only if current snapshot is not authenticated.
-    - cron: '15 10,11,12 * * 1-5'
-    - cron: '10 13 * * 1-5'
+  workflow_call:
+    inputs:
+      target_day:
+        required: true
+        type: string
   workflow_dispatch:
 permissions:
   contents: read
@@ -49,7 +50,7 @@ jobs:
   refresh:
     # Explicit recovery commits on main can refresh without a manual UI dispatch.
     # Ordinary pushes and pull requests still run tests only.
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && contains(github.event.head_commit.message, '[radar-refresh]')))
+    if: github.ref == 'refs/heads/main' && (inputs.target_day != '' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && contains(github.event.head_commit.message, '[radar-refresh]')))
     needs: test
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -83,15 +84,16 @@ jobs:
         env:
           RADAR_KEY: ${{ secrets.RADAR_KEY }}
           EVENT_NAME: ${{ github.event_name }}
+          TARGET_DAY: ${{ inputs.target_day }}
         run: |
           git fetch origin main
           node --input-type=module - <<'JS'
           import {appendFileSync} from 'node:fs';
           import {execFileSync} from 'node:child_process';
           let skip=false;
-          if(process.env.EVENT_NAME==='schedule'){
+          if(process.env.EVENT_NAME==='schedule'||process.env.TARGET_DAY){
             try{
-              const today=new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Shanghai',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()).replaceAll('-','');
+              const today=process.env.TARGET_DAY||new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Shanghai',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()).replaceAll('-','');
               const s=JSON.parse(execFileSync('git',['show','origin/main:data/industry_radar.enc.json'],{maxBuffer:10000000,stdio:['ignore','pipe','ignore']}));
               if(s.version===1&&s.asof===today){
                 const key=await crypto.subtle.importKey('raw',Buffer.from(process.env.RADAR_KEY,'hex'),'AES-GCM',false,['decrypt']);
@@ -108,7 +110,11 @@ jobs:
         if: steps.gate.outputs.skip != 'true'
         env:
           TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
-        run: python radar/build_v11.py --daily --output "${{ runner.temp }}/radar-daily"
+          TARGET_DAY: ${{ inputs.target_day }}
+        run: |
+          args=()
+          if [ -n "$TARGET_DAY" ]; then [[ "$TARGET_DAY" =~ ^[0-9]{8}$ ]] || exit 1; args+=(--end "$TARGET_DAY"); fi
+          python radar/build_v11.py --daily --output "$RUNNER_TEMP/radar-daily" "${args[@]}"
       - name: Encrypt locally and publish only authenticated ciphertext
         if: steps.gate.outputs.skip != 'true'
         env:

@@ -6,9 +6,11 @@ on:
   pull_request:
     branches: [main]
     paths: ['growth/**','growth.html','growth-*.js','growth-ui.css','radar-ui.css','index.html','industry-radar.js','sw.js','snapshot-store.js','tests/test_snapshot_store.cjs','tests/test_growth*','.github/workflows/growth-production.yml']
-  schedule:
-    # Beijing 18:45 and 20:45; authenticated same-day snapshot skips retry.
-    - cron: '45 10,12 * * 1-5'
+  workflow_call:
+    inputs:
+      target_day:
+        required: true
+        type: string
   workflow_dispatch:
 permissions:
   contents: read
@@ -63,10 +65,12 @@ jobs:
           EVENT: ${{ github.event_name }}
           REF: ${{ github.ref }}
           FORCE_REFRESH: ${{ github.event_name == 'push' && contains(github.event.head_commit.message, '[growth-refresh]') }}
+          TARGET_DAY: ${{ inputs.target_day }}
         run: |
           set -euo pipefail
           [[ "$RADAR_KEY" =~ ^[0-9a-fA-F]{64}$ ]] && [ -n "$TUSHARE_TOKEN" ] || { echo "Existing secrets required"; exit 1; }
           day=$(TZ=Asia/Shanghai date +%Y%m%d)
+          if [ -n "$TARGET_DAY" ]; then [[ "$TARGET_DAY" =~ ^[0-9]{8}$ ]] || exit 1; day="$TARGET_DAY"; EVENT=coordinated; fi
           echo "day=$day" >> "$GITHUB_OUTPUT"
           git fetch origin main
           if [ "$REF" != refs/heads/main ]; then
@@ -74,7 +78,7 @@ jobs:
           elif [ "$EVENT" = push ] && [ "$FORCE_REFRESH" != true ]; then
             if git cat-file -e origin/main:data/growth.enc.json 2>/dev/null; then echo "mode=skip" >> "$GITHUB_OUTPUT"; else echo "mode=bootstrap" >> "$GITHUB_OUTPUT"; fi
           else
-            if [ "$EVENT" = schedule ] && git show origin/main:data/growth.enc.json > "$RUNNER_TEMP/growth-current.json" 2>/dev/null && node growth/seal_production.mjs --verify "$RUNNER_TEMP/growth-current.json" "$day" 2>/dev/null; then
+            if { [ "$EVENT" = schedule ] || [ "$EVENT" = coordinated ]; } && git show origin/main:data/growth.enc.json > "$RUNNER_TEMP/growth-current.json" 2>/dev/null && node growth/seal_production.mjs --verify "$RUNNER_TEMP/growth-current.json" "$day" 2>/dev/null; then
               echo "mode=skip" >> "$GITHUB_OUTPUT"
             else
               OPEN=$(python - "$day" <<'PY'

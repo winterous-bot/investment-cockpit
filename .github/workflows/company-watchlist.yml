@@ -15,9 +15,11 @@ on:
         description: 'Paste encrypted request only for sync (never paste a secret)'
         type: string
         required: false
-  schedule:
-    # Beijing 21:30 on trading weekdays.
-    - cron: '30 13 * * 1-5'
+  workflow_call:
+    inputs:
+      target_day:
+        required: true
+        type: string
 permissions:
   contents: write
 concurrency:
@@ -47,8 +49,10 @@ jobs:
           WATCHLIST_MODE: ${{ inputs.mode || 'refresh' }}
           WATCHLIST_REQUEST: ${{ inputs.encrypted_request }}
           EVENT: ${{ github.event_name }}
+          TARGET_DAY: ${{ inputs.target_day }}
         run: |
           set -euo pipefail
+          if [ -n "$TARGET_DAY" ]; then [[ "$TARGET_DAY" =~ ^[0-9]{8}$ ]] || exit 1; EVENT=coordinated; export WATCHLIST_MODE=refresh; fi
           # One-time, idempotent initialization on release. Never reset an existing pool.
           if [ "$EVENT" = push ]; then
             if [ -e data/watchlist.enc.json ]; then
@@ -60,6 +64,10 @@ jobs:
           fi
           if [ "$EVENT" = schedule ] && [ ! -f data/watchlist.enc.json ]; then echo "run=no" >> "$GITHUB_OUTPUT"; exit 0; fi
           day=$(TZ=Asia/Shanghai date +%Y%m%d)
+          if [ "$EVENT" = coordinated ]; then
+            day="$TARGET_DAY"
+            if node scripts/research-health.mjs "$day" --ready watchlist; then echo "run=no" >> "$GITHUB_OUTPUT"; exit 0; fi
+          fi
           if [ "$EVENT" = schedule ]; then
             OPEN=$(python - "$day" <<'PY'
           import sys,os
@@ -75,7 +83,7 @@ jobs:
             if [ "$OPEN" != 1 ]; then echo "run=no" >> "$GITHUB_OUTPUT"; exit 0; fi
           fi
           # Manual sync before close uses the previous completed date.
-          if [ "$EVENT" != schedule ] && [ "$(TZ=Asia/Shanghai date +%H%M)" -lt 1845 ]; then day=$(TZ=Asia/Shanghai date -d yesterday +%Y%m%d); fi
+          if [ "$EVENT" != schedule ] && [ "$EVENT" != coordinated ] && [ "$(TZ=Asia/Shanghai date +%H%M)" -lt 1845 ]; then day=$(TZ=Asia/Shanghai date -d yesterday +%Y%m%d); fi
           mkdir -p "$RUNNER_TEMP/watchlist"
           node company/watchlist_seal.mjs prepare data "$RUNNER_TEMP/watchlist"
           echo "run=yes" >> "$GITHUB_OUTPUT"
