@@ -1,7 +1,7 @@
 name: Industry radar daily refresh
 on:
   push:
-    branches: [main, release/radar-first-v12]
+    branches: [main, release/radar-earlier-refresh]
     paths:
       - 'radar/**'
       - 'industry-radar.js'
@@ -16,6 +16,8 @@ on:
     branches: [main]
     paths: ['radar/**','industry-radar.js','radar-view.js','radar-ui.css','tests/test_radar_view.cjs','tests/test_radar_fixed_key.cjs','index.html','sw.js','.github/workflows/industry-radar-daily.yml']
   schedule:
+    # Beijing 18:15, 19:15, 20:15, 21:10; retry only if current snapshot is not authenticated.
+    - cron: '15 10,11,12 * * 1-5'
     - cron: '10 13 * * 1-5'
   workflow_dispatch:
 permissions:
@@ -70,11 +72,39 @@ jobs:
           if not os.environ.get("TUSHARE_TOKEN"):
               raise SystemExit("TUSHARE_TOKEN missing.")
           PY
+      - name: Skip scheduled retry if today's authenticated snapshot exists
+        id: gate
+        env:
+          RADAR_KEY: ${{ secrets.RADAR_KEY }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          git fetch origin main
+          node --input-type=module - <<'JS'
+          import {appendFileSync} from 'node:fs';
+          import {execFileSync} from 'node:child_process';
+          let skip=false;
+          if(process.env.EVENT_NAME==='schedule'){
+            try{
+              const today=new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Shanghai',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()).replaceAll('-','');
+              const s=JSON.parse(execFileSync('git',['show','origin/main:data/industry_radar.enc.json'],{maxBuffer:10000000,stdio:['ignore','pipe','ignore']}));
+              if(s.version===1&&s.asof===today){
+                const key=await crypto.subtle.importKey('raw',Buffer.from(process.env.RADAR_KEY,'hex'),'AES-GCM',false,['decrypt']);
+                const plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:Buffer.from(s.iv,'base64'),additionalData:new TextEncoder().encode('northstar-radar-v1:'+s.asof),tagLength:128},key,Buffer.from(s.ciphertext,'base64'));
+                const m=new TextDecoder().decode(plain).match(/<script type="application\/json" id="data">([\s\S]*?)<\/script>/);
+                skip=!!m&&JSON.parse(m[1]).asof===today;
+              }
+            }catch{ /* Missing/stale/unverifiable snapshot: retry. */ }
+          }
+          appendFileSync(process.env.GITHUB_OUTPUT,'skip='+skip+'\n');
+          console.log(skip?'Today already published and authenticated; skip paid data scan.':'No verified current snapshot or manual refresh; proceed.');
+          JS
       - name: Scan latest trading session (no historical retest)
+        if: steps.gate.outputs.skip != 'true'
         env:
           TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
         run: python radar/build_v11.py --daily --output "${{ runner.temp }}/radar-daily"
       - name: Encrypt locally and publish only authenticated ciphertext
+        if: steps.gate.outputs.skip != 'true'
         env:
           RADAR_KEY: ${{ secrets.RADAR_KEY }}
         run: |
