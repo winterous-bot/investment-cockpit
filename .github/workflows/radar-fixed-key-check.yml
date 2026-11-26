@@ -1,0 +1,43 @@
+name: Radar fixed key compatibility check
+on:
+  push:
+    branches: [release/radar-fixed-key-v13]
+    paths: ['.github/workflows/radar-fixed-key-check.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Browser syntax and snapshot compatibility
+        run: |
+          node --check industry-radar.js
+          node --check sw.js
+          node tests/test_radar_view.cjs
+          node radar/encrypt.mjs --test
+      - name: Verify latest ciphertext against current RADAR_KEY without downloading market data
+        env:
+          RADAR_KEY: ${{ secrets.RADAR_KEY }}
+        run: |
+          git fetch origin main
+          git show origin/main:data/industry_radar.enc.json > "$RUNNER_TEMP/radar-check.json"
+          node --input-type=module - <<'JS'
+          import {readFileSync} from 'node:fs';
+          const hex=process.env.RADAR_KEY||'';
+          if(!/^[a-fA-F0-9]{64}$/.test(hex))throw Error('RADAR_KEY missing or invalid format');
+          const data=JSON.parse(readFileSync(process.env.RUNNER_TEMP+'/radar-check.json','utf8'));
+          const key=await crypto.subtle.importKey('raw',Buffer.from(hex,'hex'),'AES-GCM',false,['decrypt']);
+          let plain;
+          try{plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:Buffer.from(data.iv,'base64'),additionalData:new TextEncoder().encode('northstar-radar-v1:'+data.asof),tagLength:128},key,Buffer.from(data.ciphertext,'base64'))}
+          catch{throw Error('Current GitHub RADAR_KEY cannot authenticate the latest published snapshot')}
+          const html=new TextDecoder().decode(plain);
+          const m=html.match(/<script type="application\/json" id="data">([\s\S]*?)<\/script>/);
+          if(!m||JSON.parse(m[1]).asof!==data.asof)throw Error('Snapshot schema or date mismatch');
+          console.log('Current GitHub RADAR_KEY and latest published snapshot are compatible. Date: '+data.asof);
+          JS
