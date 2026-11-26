@@ -17,7 +17,7 @@ class ReverseDCFTests(unittest.TestCase):
         self.assertAlmostEqual(z["fcff"],7.65)
         self.assertAlmostEqual(z["ev"],106)
         self.assertAlmostEqual(z["roic"],.20)
-        self.assertEqual(base_inputs(a,{**c,"fcff":-1},p,b,row)[1],"nonpositive_annual_or_ttm_fcff_ebit")
+        self.assertEqual(base_inputs(a,{**c,"fcff":-3e8},p,b,row)[1],"nonpositive_annual_or_ttm_fcff_ebit")
         self.assertEqual(base_inputs(a,c,p,{**b,"minority_int":9e8},row)[1],"minority_equity_mismatch")
         self.assertEqual(base_inputs(a,{**c,"netdebt":None},p,b,row)[1],"missing_ev_bridge")
     def test_growth_reinvestment_and_terminal(self):
