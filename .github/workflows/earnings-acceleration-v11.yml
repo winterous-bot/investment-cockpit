@@ -18,7 +18,7 @@ jobs:
         run: |
           python -m unittest discover -s tests -v
           python -m py_compile acceleration/matching.py acceleration/matched_build.py
-          git diff 5d0abaaced657ecc7d11f5b3e35a8e17eccfc370 --exit-code -- acceleration/acceleration_model.py
+          test "$(git hash-object acceleration/acceleration_model.py)" = 5e357c09d741cb291599b6016a229d7f15f54e13
       - name: Historical matched controls, future growth and sampled price risk
         env:
           TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
