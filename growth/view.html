@@ -1,6 +1,6 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>高质量成长股扫描器 V1.4.1</title><style>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>高质量成长股扫描器 V1.4.2</title><style>
 :root{color-scheme:dark}*{box-sizing:border-box}body{background:#090f1c;color:#e6edf6;font:15px/1.5 system-ui,sans-serif;max-width:900px;margin:auto;padding:16px}h1{font-size:24px}h2{font-size:18px}.panel{background:#111e31;border:1px solid #283c55;border-radius:12px;padding:14px;margin:12px 0}.muted{font-size:12px;color:#9eb1c8}button,input,select{font:inherit;color:inherit;background:#1c3045;border:1px solid #39536a;border-radius:8px;padding:9px}button{cursor:pointer}input[type=number]{width:100%}input[type=password],input[type=search]{width:100%}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}label{display:block}.presets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:8px 0}.presets button{padding:9px 4px;font-size:13px;white-space:normal}.presets button.active{background:#81d4da;color:#0b2531;font-weight:700}.presets small{display:block;font-weight:400;font-size:11px}.valuation{background:#0d1828;border:1px solid #283c55;border-radius:10px;padding:10px;margin:10px 0}.price-line{display:flex;align-items:baseline;justify-content:space-between;gap:8px}.price-line strong{font-size:22px;color:#e6edf6}.reference{border-top:1px solid #283c55;margin-top:9px;padding-top:8px}.reference b{display:block;font-size:17px}.reference .muted{display:block}.discount{font-size:13px;margin-top:4px}.dcf{border-top:1px solid #39536a;margin-top:12px;padding-top:10px}.dcf summary{cursor:pointer;color:#81d4da}.dcf table{width:100%;border-collapse:collapse;font-size:12px;margin:8px 0}.dcf td,.dcf th{text-align:right;border-bottom:1px solid #283c55;padding:5px 3px}.dcf td:first-child,.dcf th:first-child{text-align:left}.dcf h4{margin:10px 0 4px}.stock{border-bottom:1px solid #283c55;padding:12px 0}.metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:6px}.metric b{display:block}.metric span{font-size:11px;color:#9eb1c8}strong{color:#81d4da}a{color:#81d4da}[hidden]{display:none!important}
-</style><h1>高质量成长股扫描器 V1.4.1</h1><p class="muted">独立研究原型 · 已披露财务数据 · 非买入信号</p><section class="panel" id="unlock"><label>输入现有雷达固定密钥<input type="password" id="key" autocomplete="off" spellcheck="false"></label><p class="muted">只用于本次本地解密，不保存或发送。正式工具的密钥机制未更改。</p><button id="open">解密研究报告</button><p id="error" role="status"></p></section><main hidden id="main"><section class="panel"><h2>数据覆盖</h2><div id="health"></div></section><section class="panel"><h2>筛选场景</h2><div class="presets" id="presets"></div><p class="muted" id="sceneNote"></p><div class="grid" id="filters"></div><p><label><input type="checkbox" id="value"> 同时限定正PE-TTM上限（好价格独立筛选）</label></p><button id="reset">恢复当前场景参数</button></section><section class="panel"><h2 id="count"></h2><label>搜索公司或行业<input id="query" type="search"></label><label>排序 <select id="sort"><option value="roic">ROIC从高到低</option><option value="revenue_cagr">营收CAGR从高到低</option><option value="deducted_yoy">扣非增长从高到低</option><option value="cash_conversion">现金转化从高到低</option><option value="pe">PE从低到高</option></select></label><div id="rows"></div><button id="more" hidden>显示更多</button></section></main><script type="application/json" id="cipher">__CIPHER__</script><script>
+</style><h1>高质量成长股扫描器 V1.4.2</h1><p class="muted">冻结研究模型 · 已披露财务数据 · 非买入信号</p><section class="panel" id="unlock"><label>输入现有雷达固定密钥<input type="password" id="key" autocomplete="off" spellcheck="false"></label><p class="muted">只用于本次本地解密，不保存或发送。正式工具的密钥机制未更改。</p><button id="open">解密研究报告</button><p id="error" role="status"></p></section><main hidden id="main"><section class="panel"><h2>数据覆盖</h2><div id="health"></div></section><section class="panel"><h2>筛选场景</h2><div class="presets" id="presets"></div><p class="muted" id="sceneNote"></p><div class="grid" id="filters"></div><p><label><input type="checkbox" id="value"> 同时限定正PE-TTM上限（好价格独立筛选）</label></p><button id="reset">恢复当前场景参数</button></section><section class="panel"><h2 id="count"></h2><label>搜索公司或行业<input id="query" type="search"></label><label>排序 <select id="sort"><option value="roic">ROIC从高到低</option><option value="revenue_cagr">营收CAGR从高到低</option><option value="deducted_yoy">扣非增长从高到低</option><option value="cash_conversion">现金转化从高到低</option><option value="pe">PE从低到高</option></select></label><div id="rows"></div><button id="more" hidden>显示更多</button></section></main><script type="application/json" id="cipher">__CIPHER__</script><script>
 const $=id=>document.getElementById(id), node=(tag,t,c)=>{const x=document.createElement(tag);if(t!==undefined)x.textContent=t;if(c)x.className=c;return x};let data=null,limit=50,scene="balanced";
 const fields=[['revenue_cagr','3年营收CAGR下限（%）',100],['deducted_yoy','扣非TTM增长下限（%）',100],['roic','年度ROIC下限（%）',100],['cash_conversion','经营现金流/净利润下限（%）',100],['debt_ratio','资产负债率上限（%）',100],['pe','PE-TTM上限（倍）',1]];
 const pct=x=>x==null?'—':(x*100).toFixed(1)+'%',num=x=>x==null?'—':x.toFixed(1);
@@ -30,7 +30,7 @@ function auditDetails(r){
  }
  const b=r.accounting?.roic_bridge?.at(-1);
  if(b){
-  const labels={adjusted:'自主ROIC（原模型）',vendor_roic:'供应商ROIC',no_investment_deduction:'分母不扣金融投资',beginning_capital:'采用期初投入资本',closing_capital:'采用期末投入资本',unadjusted_operating:'分子不扣非核心收益',pbt_plus_interest:'分子采用利润总额加利息',actual_tax_roic:'采用当年实际税率'};
+  const labels={adjusted:'V1.4.2分类ROIC',v141_all_investments_deducted:'V1.4.1全扣投资ROIC',vendor_roic:'供应商ROIC',no_investment_deduction:'分母不扣金融投资',beginning_capital:'采用期初投入资本',closing_capital:'采用期末投入资本',unadjusted_operating:'分子不扣非核心收益',pbt_plus_interest:'分子采用利润总额加利息',actual_tax_roic:'采用当年实际税率'};
   const grid=node('div',undefined,'grid');for(const [k,label] of Object.entries(labels)){const x=node('div',undefined,'metric');x.append(node('span',label),node('b',pct(b[k])));grid.append(x)}d.append(grid,node('p','每项均单独改变定义，只用于归因，不自动替换DCF使用的ROIC。差异超过10个百分点时提示人工复核。','muted'));
  }
  if(!d.querySelector('p'))d.append(node('p','未发现需要列示的利息或权益异常。','muted'));
@@ -47,13 +47,29 @@ function accountingDetails(r){
  const c=a.capital[a.capital.length-2];
  d.append(node('p','报告期债务代理 '+fmt(c.debt)+'，现金代理 '+fmt(c.cash)+'，识别的非经营投资 '+fmt(c.investments)+'。未分类负债 '+fmt(c.other_liab_unclassified),'muted'));
  d.append(node('p','可选报表空白项目按未披露处理，近似按0计算：利润表 '+a.optional_blank_income+' 项，资产负债表 '+a.optional_blank_balance+' 项；关键字段禁止补零。','muted'));
- const names={material_noncore_income:'非核心收益占比较高',accrual_cashflow_divergence:'现金流与独立勾稽桥差异较大',material_unclassified_liabilities:'未分类负债占比较高',negative_book_minority:'历史负少数权益（已核验）',roic_gap_material:'自主ROIC与供应商相差超过10个百分点'};
+ const names={material_noncore_income:'非核心收益占比较高',accrual_cashflow_divergence:'现金流与独立勾稽桥差异较大',material_unclassified_liabilities:'未分类负债占比较高',negative_book_minority:'历史负少数权益（已核验）',roic_gap_material:'自主ROIC与供应商相差超过10个百分点',material_unclassified_investments:'未确认用途投资超过投入资本10%，需人工核对'};
  if(a.warnings.length)d.append(node('p','需人工复核：'+a.warnings.map(v=>names[v]||v).join('；'),'muted'));
+ return d;
+}
+function classificationDetails(x){
+ const a=x.reverse_dcf?.accounting,cl=a?.investment_classification;if(!cl)return null;
+ const d=node('details');d.append(node('summary','查看投入资本分类与V1.4.1对照'));
+ const fmt=v=>v==null?'缺失':num(v/1e8)+'亿元';
+ const labels={trad_asset:'交易性金融资产',debt_invest:'债权投资',oth_debt_invest:'其他债权投资',oth_eq_invest:'其他权益工具投资',oth_illiq_fin_assets:'其他非流动金融资产',lt_eqt_invest:'长期股权投资'};
+ const cur=a.capital.at(-2);
+ for(const [k,v] of Object.entries(cur.investment_items))d.append(node('p',labels[k]+'：'+(cur.investment_blank_items.includes(k)?'未披露（近似0）':fmt(v))+' · '+(cl.deducted_fields.includes(k)?'按非经营债权代理扣除':'用途未核实，保留在资本中'),'muted'));
+ d.append(node('p','最新扣除 '+fmt(cl.latest_deducted)+'；未分类保留 '+fmt(cl.latest_retained),'muted'),
+ node('p','历史3年ROIC：旧口径 '+cl.old_roics.map(pct).join(' / ')+'；新口径 '+a.roics.map(pct).join(' / '),'muted'),
+ node('p','EV旧口径 '+num(cl.old_ev)+'亿元；新口径 '+num(a.ev)+'亿元','muted'));
+ if(cl.material)d.append(node('p','分类不确定性较大：部分年度未分类投资超过投入资本10%。结果仅供情景研究，需核实财报附注。','muted'));
+ const old=x.v141_result;
+ if(old){for(const n of [5,10]){const q=old.center?.[String(n)],v=x.reverse_dcf?.sensitivity?.find(t=>t.years===n&&t.wacc===.10&&t.terminal===.03);const f=t=>t?.status==='ok'?pct(t.growth??t.nopat_growth):(dcfReasons[t?.status]||'不适用');d.append(node('p',n+'年隐含NOPAT增速（同批原始报表）：旧 '+f(q)+' → 新 '+f(v),'muted'))}}
+ d.append(node('p','暂按账面债权投资扣除，交易性金融资产及权益类持仓并非确定的经营资产；由于分子仍剔除投资收益，保留金额是保守情景，不是精确经营ROIC。未逐股核实附注、公允价值或受限状态。','muted'));
  return d;
 }
 function reverseDCFCard(x){
  const r=x.reverse_dcf,box=node('div',undefined,'dcf');box.append(node('h3','反向DCF · 股价隐含经营预期'));
- if(!r||r.status!=='ok'){box.append(node('p',(r?.category==='model'?'财务计算完成，模型不适用：':'财务数据不足或校验失败：')+(dcfReasons[r?.reason]||(r?.reason||'模型输入不足')),'muted'));const a=accountingDetails(r);if(a)box.append(a);const au=auditDetails(r);if(au)box.append(au);return box}
+ if(!r||r.status!=='ok'){box.append(node('p',(r?.category==='model'?'财务计算完成，模型不适用：':'财务数据不足或校验失败：')+(dcfReasons[r?.reason]||(r?.reason||'模型输入不足')),'muted'));const a=accountingDetails(r);if(a)box.append(a);const au=auditDetails(r);if(au)box.append(au);const cl=classificationDetails(x);if(cl)box.append(cl);return box}
  const b=r.base,center=n=>r.sensitivity.find(v=>v.years===n&&v.wacc===.10&&v.terminal===.03);
  box.append(node('p','基准假设：WACC 10% · 永续增长3% · 历史3年中位ROIC '+pct(b.roic),'muted'));
  const g=node('div',undefined,'grid');
@@ -76,9 +92,9 @@ function reverseDCFCard(x){
   detail.append(node('h4',n+'年：假设增长率对应价格（WACC 10%，永续3%）'));
   detail.append(table(['NOPAT增长','参考价格','再投资率'],r.forward.filter(v=>v.years===n).map(v=>[pct(v.growth),v.status==='ok'&&v.price!=null?v.price.toFixed(2)+'元':(dcfReasons[v.status]||'不适用'),v.status==='ok'?pct(v.reinvestment):'—'])));
  }
- detail.append(node('p','增长期再投资率=max(增长率,0)/历史3年中位ROIC；仅接受不超过100%的再投资。终值ROIC=WACC。使用自主重构的净债务及已识别非经营投资，少数权益按账面值。FCFF为现金流量表法的近似值，受现金税、利息、租赁及未分类科目影响；并非审计后精确FCFF。','muted'),
+ detail.append(node('p','增长期再投资率=max(增长率,0)/历史3年中位ROIC；仅接受不超过100%的再投资。终值ROIC=WACC。使用自主重构的净债务及债权投资代理（未分类投资不单独计价），少数权益按账面值。FCFF为现金流量表法的近似值，受现金税、利息、租赁及未分类科目影响；并非审计后精确FCFF。','muted'),
  node('p','超过模型范围不代表股票必然高估；未来增量ROIC、利润率、融资及增长持续时间变化均可能改变结果。','muted'));
- box.append(detail);const a=accountingDetails(r);if(a)box.append(a);return box;
+ box.append(detail);const a=accountingDetails(r);if(a)box.append(a);const au=auditDetails(r);if(au)box.append(au);const cl=classificationDetails(x);if(cl)box.append(cl);return box;
 }
 function valuationCard(x){
  const v=x.valuation||{},out=node('div',undefined,'valuation'),line=node('div',undefined,'price-line');
