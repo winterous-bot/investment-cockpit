@@ -64,6 +64,7 @@ function renderPool(){
  const state=reconcile(draft,remote),codes=activeCodes();
  $('poolCount').textContent='观察池 '+codes.length+'/'+LIMIT;
  $('poolSyncState').textContent=draftError?'本机草稿无法解密，需明确采用后台清单后再编辑':state.conflict?'后台清单已经变化，本机草稿不能直接覆盖':state.synced?'已与后台清单一致':'本机有未同步修改';
+ if(state.conflict||state.synced){$('syncPanel').hidden=true;$('syncRequest').value=''}
  $('adopt').hidden=!draft&&!draftError;$('sync').disabled=!draft||state.conflict||draftError||!writeKey||editing;
  $('poolRows').replaceChildren();
  if(!codes.length)$('poolRows').append(el('p','暂无股票。请添加你希望研究的公司。','muted'));
@@ -78,7 +79,7 @@ function renderPool(){
  const removed=remote.entries.filter(x=>!codes.includes(x.code)).length;
  notice(removed?'有 '+removed+' 只股票待从后台移出；同步后生效。':'名单仅在明确提交加密同步请求后变更后台。')
 }
-async function edit(fn){if(editing)return;editing=true;try{if(!writeKey)throw Error('请先授权本地编辑');if(draftError||reconcile(draft,remote).conflict)throw Error('请先处理观察池版本冲突');await fn()}catch(e){notice(e.message)}finally{editing=false;renderPool()}}
+async function edit(fn){if(editing)return false;editing=true;let error=null;try{if(!writeKey)throw Error('请先授权本地编辑');if(draftError||reconcile(draft,remote).conflict)throw Error('请先处理观察池版本冲突');await fn()}catch(e){error=e.message}finally{editing=false;renderPool();renderSearch()}if(error)notice(error);return !error}
 function add(x){return edit(async()=>{if(!CODE.test(x.code))throw Error('仅支持沪深股票');if(activeCodes().includes(x.code)){notice('该股票已在观察池');return}await saveDraft([...activeCodes(),x.code],[...(draft?.labels||[]),{code:x.code,name:String(x.name||x.code),industry:String(x.industry||'待确认')}])})}
 function renderSearch(){
  const q=$('stockSearch').value.trim().toLowerCase();$('searchRows').replaceChildren();
@@ -88,7 +89,7 @@ function renderSearch(){
  for(const x of found){const row=el('div',undefined,'poolrow'),info=el('div');info.append(el('b',x.name+' '+x.code),el('p',x.industry,'muted'));const b=action(activeCodes().includes(x.code)?'已加入':'添加',()=>add(x));b.disabled=activeCodes().includes(x.code)||!writeKey||editing||draftError||reconcile(draft,remote).conflict;row.append(info,b);$('searchRows').append(row)}
 }
 async function loadDirectory(force=false){if(dirBusy||!remote||!key)return;dirBusy=true;try{await root.NorthstarSnapshots.load('directory',{force,decode:async q=>{const x=await decrypt(q,key,'northstar-directory-v11');if(x.version!=='company-directory-v1.1'||x.asof!==q.asof||!Array.isArray(x.stocks)||x.stocks.length<4500||x.stocks.length>7500||x.stocks.some(z=>!CODE.test(z.code)||typeof z.name!=='string'||typeof z.industry!=='string'))throw Error('名录校验失败');return x},show:x=>{dir=x.stocks;renderSearch()},notify:s=>$('directoryStatus').textContent=s})}catch(e){$('directoryStatus').textContent='名录暂不可用：'+e.message}finally{dirBusy=false}}
-async function handleHandoff(){if(!remote||!writeKey||draftError||reconcile(draft,remote).conflict)return;let x;try{x=JSON.parse(sessionStorage.getItem(HANDOFF)||'null')}catch(_){}if(!x||!CODE.test(x.code))return;if(activeCodes().includes(x.code)){sessionStorage.removeItem(HANDOFF);return}if(confirm('加入观察池：'+String(x.name||x.code)+' '+x.code+'？')){await add(x)}try{sessionStorage.removeItem(HANDOFF)}catch(_){}}
+async function handleHandoff(){if(!remote||!writeKey||draftError||reconcile(draft,remote).conflict)return;let x;try{x=JSON.parse(sessionStorage.getItem(HANDOFF)||'null')}catch(_){}if(!x||!CODE.test(x.code))return;if(activeCodes().includes(x.code)){sessionStorage.removeItem(HANDOFF);return}if(confirm('加入观察池：'+String(x.name||x.code)+' '+x.code+'？')){if(!await add(x))return}try{sessionStorage.removeItem(HANDOFF)}catch(_){}}
 async function refresh(force=false){
  if(manifestBusy||!key)return;manifestBusy=true;
  try{await root.NorthstarSnapshots.load('watchlist',{force,decode:async q=>{const x=await decrypt(q,key,'northstar-watchlist-v11');if(!validManifest(x,q))throw Error('观察池数据校验失败');return x},show:x=>{remote=x;$('initPanel').hidden=true;const z=reconcile(draft,remote);if(draft&&z.synced&&!draftError)removeDraft();renderPool();renderSearch()},notify:(s,q)=>status((q?'后台日期 '+q.asof+' · ':'')+s)})}

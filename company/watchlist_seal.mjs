@@ -40,7 +40,7 @@ export function prepare(key,prior,mode,request){
  let q;try{q=JSON.parse(request)}catch{throw Error('Invalid encrypted sync request')}
  assert(q.codec==='json','Invalid request codec');
  const p=open(key,q,requestDomain);
- assert(p?.version==='watchlist-request-v1.1'&&p.base===prior.revision&&p.asof===q.asof,'Outdated request: refresh server watchlist and prepare again');
+ assert(prior.revision!=='empty'&&p?.version==='watchlist-request-v1.1'&&p.base===prior.revision&&p.asof===q.asof,'Outdated request: refresh server watchlist and prepare again');
  return {codes:codesValid(p.codes),revision:randomBytes(16).toString('hex')}
 }
 export function assemble(key,prior,req,work,target){
@@ -48,7 +48,7 @@ export function assemble(key,prior,req,work,target){
  assert(DATE.test(result.asof)&&Array.isArray(directory)&&directory.length>=4500&&Array.isArray(result.entries)&&result.entries.length===req.codes.length);
  assert.deepEqual(result.entries.map(x=>x.code),req.codes);
  assert(!prior.asof||result.asof>=prior.asof,'Older data refused');
- const by=new Map(directory.map(x=>[x.code,x]));assert(by.size===directory.length);
+ const by=new Map(directory.map(x=>[x.code,x]));assert(by.size===directory.length&&directory.every(x=>CODE.test(x.code)&&typeof x.name==='string'&&typeof x.industry==='string'));
  const old=new Map(prior.entries.map(e=>[e.code,e]));const entries=[];
  mkdirSync(target,{recursive:true});mkdirSync(join(target,'companies'),{recursive:true});
  for(const e of result.entries){
