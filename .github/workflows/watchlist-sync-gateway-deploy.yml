@@ -1,0 +1,39 @@
+name: Deploy watchlist sync gateway (owner setup)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate local code before deployment
+        run: node tests/test_watchlist_sync.mjs
+      - name: Deploy gateway and store derived authorization secret
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          GITHUB_DISPATCH_TOKEN: ${{ secrets.WATCHLIST_DISPATCH_TOKEN }}
+          RADAR_KEY: ${{ secrets.RADAR_KEY }}
+        run: |
+          set -euo pipefail
+          node --input-type=module - <<'JS'
+          import {createHmac} from 'node:crypto';
+          import {writeFileSync} from 'node:fs';
+          const h=process.env.RADAR_KEY||'',token=process.env.GITHUB_DISPATCH_TOKEN||'';
+          if(!/^[a-f0-9]{64}$/i.test(h)||!token||!process.env.CLOUDFLARE_API_TOKEN||!process.env.CLOUDFLARE_ACCOUNT_ID)throw Error('Required owner setup secrets missing');
+          const auth=createHmac('sha256',Buffer.from(h,'hex')).update('northstar-watchlist-sync-auth-v12').digest('hex');
+          writeFileSync(process.env.RUNNER_TEMP+'/watchlist-gateway-secrets.json',JSON.stringify({SYNC_AUTH_KEY:auth,GITHUB_DISPATCH_TOKEN:token}),{mode:0o600});
+          JS
+          trap 'rm -f "$RUNNER_TEMP/watchlist-gateway-secrets.json"' EXIT
+          npx --yes wrangler@4 deploy --config worker/watchlist-wrangler.toml
+          npx --yes wrangler@4 secret bulk "$RUNNER_TEMP/watchlist-gateway-secrets.json" --config worker/watchlist-wrangler.toml
+      - name: Clean deployment secrets
+        if: always()
+        run: rm -f "$RUNNER_TEMP/watchlist-gateway-secrets.json"

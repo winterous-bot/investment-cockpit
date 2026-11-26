@@ -1,0 +1,36 @@
+import assert from 'node:assert/strict';
+import {createHmac,webcrypto} from 'node:crypto';
+import {createRequire} from 'node:module';
+import gateway,{verify,validBody,dispatch,SyncGate} from '../worker/watchlist-sync.mjs';
+globalThis.crypto=webcrypto;
+const require=createRequire(import.meta.url),client=require('../watchlist-sync.js');
+const rawKey='12'.repeat(32),secret=createHmac('sha256',Buffer.from(rawKey,'hex')).update('northstar-watchlist-sync-auth-v12').digest('hex');
+const key=await client.authKey(rawKey),origin='https://winterous-bot.github.io',url='https://investment-watchlist-sync.example.workers.dev';
+const d={type:'sync',request_id:'a'.repeat(32),encrypted_request:{version:1,codec:'json',asof:'20261126',iv:'A'.repeat(16),ciphertext:'B'.repeat(32)}};
+assert(validBody(d));assert(!validBody({...d,plaintext:'no'}));
+assert.throws(()=>client.endpoint('https://other.example.com'));
+assert.throws(()=>client.endpoint(url+'/bad'));
+const s=await client.signed(key,d);assert(await verify(secret,s.ts,s.raw,s.sig));assert(!await verify(secret,s.ts,s.raw+' ',s.sig));assert(!await verify(secret,s.ts,s.raw,s.sig,Date.now()+180000));
+assert(!await verify('ff'.repeat(32),s.ts,s.raw,s.sig));
+let dispatches=0;
+const good=async(u,o)=>{dispatches++;const v=JSON.parse(o.body);assert.equal(v.ref,'main');assert.equal(v.inputs.mode,'sync');assert.equal(v.inputs.encrypted_request,JSON.stringify(d.encrypted_request));assert.equal(v.return_run_details,true);return Response.json({workflow_run_id:123})};
+assert.deepEqual(await dispatch('fake',d,good),{state:'accepted',run_id:123});
+assert.equal((await dispatch('fake',d,async()=>new Response(null,{status:204}))).run_id,null);
+assert.equal((await dispatch('fake',d,async()=>new Response(null,{status:403}))).state,'rejected');
+const env={SYNC_AUTH_KEY:secret,GITHUB_DISPATCH_TOKEN:'fake',SYNC_GATE:{idFromName:x=>x,get:()=>({fetch:()=>Response.json({state:'accepted',run_id:123})})}};
+const req=(origin,sig=s.sig)=>new Request(url+'/v1/watchlist',{method:'POST',headers:{Origin:origin,'X-Sync-Time':s.ts,'X-Sync-Signature':sig},body:s.raw});
+assert.equal((await gateway.fetch(req('https://bad.example'),env)).status,403);
+assert.equal((await gateway.fetch(req(origin,'00'.repeat(32)),env)).status,401);
+assert.equal((await gateway.fetch(req(origin),{})).status,503);
+assert.equal((await gateway.fetch(req(origin),env)).status,200);
+const storage=new Map(),ctx={storage:{get:async k=>structuredClone(storage.get(k)),put:async(k,v)=>storage.set(k,structuredClone(v))},blockConcurrencyWhile:fn=>fn()};
+const oldFetch=globalThis.fetch;let posts=0;
+globalThis.fetch=async(u,o)=>{if(String(u).includes('/runs?'))return Response.json({workflow_runs:[]});posts++;return Response.json({workflow_run_id:456})};
+try{
+ const g=new SyncGate(ctx,env),q=()=>new Request('https://internal/sync',{method:'POST',body:JSON.stringify(d)});
+ let x=await g.fetch(q());assert.equal((await x.json()).run_id,456);
+ x=await g.fetch(q());assert.equal((await x.json()).duplicate,true);assert.equal(posts,1);
+ x=await g.fetch(new Request('https://internal/sync',{method:'POST',body:JSON.stringify({...d,request_id:'b'.repeat(32)})}));assert.equal(x.status,409);
+ assert(!JSON.stringify([...storage]).includes(d.encrypted_request.ciphertext));
+}finally{globalThis.fetch=oldFetch}
+console.log('Watchlist gateway: signature, expiry, origin, validation, idempotency, cooldown and fixed dispatch scope passed');

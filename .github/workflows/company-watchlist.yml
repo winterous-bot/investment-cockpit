@@ -82,8 +82,10 @@ jobs:
             )
             if [ "$OPEN" != 1 ]; then echo "run=no" >> "$GITHUB_OUTPUT"; exit 0; fi
           fi
-          # Manual sync before close uses the previous completed date.
-          if [ "$EVENT" != schedule ] && [ "$EVENT" != coordinated ] && [ "$(TZ=Asia/Shanghai date +%H%M)" -lt 1845 ]; then day=$(TZ=Asia/Shanghai date -d yesterday +%Y%m%d); fi
+          # Manual sync uses the last eligible exchange session, including holidays.
+          if [ "$EVENT" != schedule ] && [ "$EVENT" != coordinated ]; then
+            day=$(python scripts/research-plan.py --watchlist-sync | python -c 'import sys,json;print(json.load(sys.stdin)["target"])')
+          fi
           mkdir -p "$RUNNER_TEMP/watchlist"
           node company/watchlist_seal.mjs prepare data "$RUNNER_TEMP/watchlist"
           echo "run=yes" >> "$GITHUB_OUTPUT"

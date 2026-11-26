@@ -4,10 +4,10 @@ from zoneinfo import ZoneInfo
 import json,os,sys
 from tushare_5000 import Tushare
 
-def plan(now,rows):
+def plan(now,rows,cutoff=1815):
     today=now.strftime("%Y%m%d")
     clock=now.hour*100+now.minute
-    eligible=today if clock>=1815 else (now.date()-timedelta(days=1)).strftime("%Y%m%d")
+    eligible=today if clock>=cutoff else (now.date()-timedelta(days=1)).strftime("%Y%m%d")
     dates=sorted({str(x["cal_date"]) for x in rows if str(x.get("is_open"))=="1" and str(x["cal_date"])<=eligible})
     if not dates:raise RuntimeError("No eligible trading date")
     target=dates[-1]
@@ -18,4 +18,4 @@ if __name__=="__main__":
     now=datetime.now(ZoneInfo("Asia/Shanghai"))
     rows=Tushare(os.environ["TUSHARE_TOKEN"]).ask("trade_cal",{"exchange":"SSE","start_date":(now.date()-timedelta(days=30)).strftime("%Y%m%d"),"end_date":now.strftime("%Y%m%d")},"cal_date,is_open")
     if len({str(x["cal_date"]) for x in rows})<30:raise RuntimeError("Incomplete trading calendar")
-    print(json.dumps(plan(now,rows)))
+    print(json.dumps(plan(now,rows,1845 if '--watchlist-sync' in sys.argv else 1815)))

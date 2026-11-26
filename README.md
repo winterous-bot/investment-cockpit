@@ -271,3 +271,6 @@ python3 -m http.server 8765
 
 ## V2.2.1 research refresh reliability
 统一入口：Actions → Research refresh coordinator V2.2.1。交易日18:15雷达、18:45成长、21:30观察池（北京时间）；多次补跑，次晨07:10补偿上一有效交易日。已认证且完整快照不重复扫描。每次审计仅发布模块日期和聚合状态，失败保留旧密文，不披露持仓、代码、密钥或公司报告。手机端展开“后台更新状态”检查，手动启动需登录 GitHub；原三个模块独立 workflow_dispatch 仍可用，观察池 sync/bootstrap 保留。外部恢复可通过仅修改 .github/research-recovery.json 触发协调器，目标交易日仍由后台交易日历决定。GitHub schedule 是尽力调度，非准点 SLA。
+
+
+个股研究 V1.2 一键同步（可选网关）：[首次部署及授权说明](worker/WATCHLIST-SYNC.md)。未配置网关仍可手动同步；保留原加密草稿和密钥。
