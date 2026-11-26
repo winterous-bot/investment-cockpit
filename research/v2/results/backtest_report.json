@@ -1,0 +1,1236 @@
+{
+  "parameter_version": "V2.0a-frozen-2026-11-17",
+  "data_quality": "2021 SW2021 historical index is back-calculated; no claim of historical contemporaneous taxonomy.",
+  "temporal_split": "2024-01-01",
+  "result": {
+    "train": {
+      "n": 2187,
+      "from": "2015-01-07",
+      "to": "2023-12-29",
+      "annual_return": -0.004725,
+      "benchmark_annual": 0.001175,
+      "fixed50_annual": 0.007757,
+      "max_drawdown": -0.514751,
+      "benchmark_max_drawdown": -0.604852,
+      "fixed50_max_drawdown": -0.350748,
+      "turnover": 37.325,
+      "state_counts": {
+        "unknown": 4,
+        "structural": 244,
+        "bull": 294,
+        "range": 1043,
+        "bear": 470,
+        "bottoming": 132
+      },
+      "missing": 0
+    },
+    "time_holdout": {
+      "n": 696,
+      "from": "2024-01-04",
+      "to": "2026-11-20",
+      "annual_return": 0.010274,
+      "benchmark_annual": 0.027868,
+      "fixed50_annual": 0.021492,
+      "max_drawdown": -0.168919,
+      "benchmark_max_drawdown": -0.312734,
+      "fixed50_max_drawdown": -0.166968,
+      "turnover": 9.975,
+      "state_counts": {
+        "bear": 154,
+        "bottoming": 55,
+        "range": 374,
+        "structural": 54,
+        "bull": 59
+      },
+      "missing": 0
+    },
+    "full": {
+      "n": 2885,
+      "from": "2015-01-07",
+      "to": "2026-11-20",
+      "annual_return": -0.001216,
+      "benchmark_annual": 0.006716,
+      "fixed50_annual": 0.01063,
+      "max_drawdown": -0.535233,
+      "benchmark_max_drawdown": -0.604852,
+      "fixed50_max_drawdown": -0.350748,
+      "turnover": 47.175,
+      "state_counts": {
+        "unknown": 4,
+        "structural": 298,
+        "bull": 353,
+        "range": 1417,
+        "bear": 626,
+        "bottoming": 187
+      },
+      "missing": 0
+    }
+  },
+  "yearly": {
+    "2015": {
+      "n": 242,
+      "from": "2015-01-07",
+      "to": "2015-12-31",
+      "annual_return": 0.33211,
+      "benchmark_annual": 0.3536,
+      "fixed50_annual": 0.188915,
+      "max_drawdown": -0.477464,
+      "benchmark_max_drawdown": -0.477464,
+      "fixed50_max_drawdown": -0.267779,
+      "turnover": 1.9,
+      "state_counts": {
+        "unknown": 4,
+        "structural": 12,
+        "bull": 209,
+        "range": 17
+      },
+      "missing": 0
+    },
+    "2016": {
+      "n": 242,
+      "from": "2016-01-06",
+      "to": "2016-12-30",
+      "annual_return": -0.119398,
+      "benchmark_annual": -0.079264,
+      "fixed50_annual": -0.031885,
+      "max_drawdown": -0.158302,
+      "benchmark_max_drawdown": -0.236389,
+      "fixed50_max_drawdown": -0.123427,
+      "turnover": 4.95,
+      "state_counts": {
+        "bull": 12,
+        "range": 160,
+        "bear": 62,
+        "bottoming": 8
+      },
+      "missing": 0
+    },
+    "2017": {
+      "n": 242,
+      "from": "2017-01-05",
+      "to": "2017-12-29",
+      "annual_return": -0.020683,
+      "benchmark_annual": -0.003782,
+      "fixed50_annual": -7.6e-05,
+      "max_drawdown": -0.064341,
+      "benchmark_max_drawdown": -0.103029,
+      "fixed50_max_drawdown": -0.05262,
+      "turnover": 5.5,
+      "state_counts": {
+        "range": 140,
+        "structural": 32,
+        "bear": 11,
+        "bottoming": 46,
+        "bull": 13
+      },
+      "missing": 0
+    },
+    "2018": {
+      "n": 241,
+      "from": "2018-01-04",
+      "to": "2018-12-28",
+      "annual_return": -0.139624,
+      "benchmark_annual": -0.340459,
+      "fixed50_annual": -0.182641,
+      "max_drawdown": -0.143936,
+      "benchmark_max_drawdown": -0.360595,
+      "fixed50_max_drawdown": -0.196662,
+      "turnover": 4.075,
+      "state_counts": {
+        "range": 68,
+        "structural": 4,
+        "bear": 152,
+        "bottoming": 17
+      },
+      "missing": 0
+    },
+    "2019": {
+      "n": 242,
+      "from": "2019-01-04",
+      "to": "2019-12-31",
+      "annual_return": 0.11922,
+      "benchmark_annual": 0.332596,
+      "fixed50_annual": 0.161285,
+      "max_drawdown": -0.129907,
+      "benchmark_max_drawdown": -0.179367,
+      "fixed50_max_drawdown": -0.091936,
+      "turnover": 4.9,
+      "state_counts": {
+        "bear": 19,
+        "range": 170,
+        "bull": 28,
+        "bottoming": 25
+      },
+      "missing": 0
+    },
+    "2020": {
+      "n": 241,
+      "from": "2020-01-06",
+      "to": "2020-12-31",
+      "annual_return": 0.027507,
+      "benchmark_annual": 0.217205,
+      "fixed50_annual": 0.11169,
+      "max_drawdown": -0.115195,
+      "benchmark_max_drawdown": -0.149739,
+      "fixed50_max_drawdown": -0.076541,
+      "turnover": 6.1,
+      "state_counts": {
+        "range": 147,
+        "bull": 21,
+        "structural": 53,
+        "bear": 14,
+        "bottoming": 6
+      },
+      "missing": 0
+    },
+    "2021": {
+      "n": 241,
+      "from": "2021-01-06",
+      "to": "2021-12-31",
+      "annual_return": 0.041573,
+      "benchmark_annual": 0.064214,
+      "fixed50_annual": 0.034907,
+      "max_drawdown": -0.077141,
+      "benchmark_max_drawdown": -0.10189,
+      "fixed50_max_drawdown": -0.051894,
+      "turnover": 4.45,
+      "state_counts": {
+        "range": 111,
+        "structural": 127,
+        "bull": 3
+      },
+      "missing": 0
+    },
+    "2022": {
+      "n": 240,
+      "from": "2022-01-06",
+      "to": "2022-12-30",
+      "annual_return": -0.115338,
+      "benchmark_annual": -0.202469,
+      "fixed50_annual": -0.101802,
+      "max_drawdown": -0.117869,
+      "benchmark_max_drawdown": -0.271142,
+      "fixed50_max_drawdown": -0.144034,
+      "turnover": 4.45,
+      "state_counts": {
+        "range": 112,
+        "bear": 109,
+        "structural": 3,
+        "bottoming": 16
+      },
+      "missing": 0
+    },
+    "2023": {
+      "n": 240,
+      "from": "2023-01-05",
+      "to": "2023-12-29",
+      "annual_return": -0.040532,
+      "benchmark_annual": -0.079497,
+      "fixed50_annual": -0.038426,
+      "max_drawdown": -0.088462,
+      "benchmark_max_drawdown": -0.175185,
+      "fixed50_max_drawdown": -0.090358,
+      "turnover": 5.425,
+      "state_counts": {
+        "range": 106,
+        "bull": 6,
+        "structural": 13,
+        "bear": 101,
+        "bottoming": 14
+      },
+      "missing": 0
+    },
+    "2024": {
+      "n": 240,
+      "from": "2024-01-04",
+      "to": "2024-12-31",
+      "annual_return": 0.025487,
+      "benchmark_annual": 0.07568,
+      "fixed50_annual": 0.047371,
+      "max_drawdown": -0.075169,
+      "benchmark_max_drawdown": -0.195407,
+      "fixed50_max_drawdown": -0.102002,
+      "turnover": 3.7,
+      "state_counts": {
+        "bear": 114,
+        "bottoming": 20,
+        "range": 78,
+        "structural": 5,
+        "bull": 23
+      },
+      "missing": 0
+    },
+    "2025": {
+      "n": 241,
+      "from": "2025-01-06",
+      "to": "2025-12-31",
+      "annual_return": 0.159605,
+      "benchmark_annual": 0.357471,
+      "fixed50_annual": 0.170548,
+      "max_drawdown": -0.146745,
+      "benchmark_max_drawdown": -0.146745,
+      "fixed50_max_drawdown": -0.074947,
+      "turnover": 4.15,
+      "state_counts": {
+        "range": 135,
+        "bottoming": 35,
+        "bull": 32,
+        "structural": 39
+      },
+      "missing": 0
+    },
+    "2026": {
+      "n": 211,
+      "from": "2026-01-07",
+      "to": "2026-11-20",
+      "annual_return": -0.143738,
+      "benchmark_annual": -0.275547,
+      "fixed50_annual": -0.14199,
+      "max_drawdown": -0.155261,
+      "benchmark_max_drawdown": -0.312734,
+      "fixed50_max_drawdown": -0.166968,
+      "turnover": 3.225,
+      "state_counts": {
+        "range": 157,
+        "bull": 4,
+        "structural": 10,
+        "bear": 40
+      },
+      "missing": 0
+    }
+  },
+  "transitions": [
+    {
+      "date": "2015-01-09",
+      "state": "structural",
+      "candidate": "structural"
+    },
+    {
+      "date": "2015-01-27",
+      "state": "bull",
+      "candidate": "bull"
+    },
+    {
+      "date": "2015-02-02",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2015-03-04",
+      "state": "bull",
+      "candidate": "bull"
+    },
+    {
+      "date": "2016-01-12",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2016-01-18",
+      "state": "bear",
+      "candidate": "bear"
+    },
+    {
+      "date": "2016-03-23",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2016-05-20",
+      "state": "bear",
+      "candidate": "bear"
+    },
+    {
+      "date": "2016-06-21",
+      "state": "bottoming",
+      "candidate": "bottoming"
+    },
+    {
+      "date": "2016-07-01",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2016-08-19",
+      "state": "bull",
+      "candidate": "bull"
+    },
+    {
+      "date": "2016-08-24",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2016-11-16",
+      "state": "bull",
+      "candidate": "bull"
+    },
+    {
+      "date": "2016-11-21",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2017-03-03",
+      "state": "structural",
+      "candidate": "structural"
+    },
+    {
+      "date": "2017-03-08",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2017-04-07",
+      "state": "structural",
+      "candidate": "structural"
+    },
+    {
+      "date": "2017-04-13",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2017-05-10",
+      "state": "bear",
+      "candidate": "bear"
+    },
+    {
+      "date": "2017-05-25",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2017-06-13",
+      "state": "bottoming",
+      "candidate": "bottoming"
+    },
+    {
+      "date": "2017-07-19",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2017-07-26",
+      "state": "structural",
+      "candidate": "structural"
+    },
+    {
+      "date": "2017-08-04",
+      "state": "bottoming",
+      "candidate": "bottoming"
+    },
+    {
+      "date": "2017-09-01",
+      "state": "bull",
+      "candidate": "bull"
+    },
+    {
+      "date": "2017-09-11",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2017-10-13",
+      "state": "bull",
+      "candidate": "bull"
+    },
+    {
+      "date": "2017-10-24",
+      "state": "structural",
+      "candidate": "structural"
+    },
+    {
+      "date": "2017-11-17",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2018-01-26",
+      "state": "structural",
+      "candidate": "structural"
+    },
+    {
+      "date": "2018-02-01",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2018-03-01",
+      "state": "bear",
+      "candidate": "bear"
+    },
+    {
+      "date": "2018-03-15",
+      "state": "bottoming",
+      "candidate": "bottoming"
+    },
+    {
+      "date": "2018-03-27",
+      "state": "bear",
+      "candidate": "bear"
+    },
+    {
+      "date": "2018-04-11",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2018-04-27",
+      "state": "bear",
+      "candidate": "bear"
+    },
+    {
+      "date": "2018-05-21",
+      "state": "bottoming",
+      "candidate": "bottoming"
+    },
+    {
+      "date": "2018-06-01",
+      "state": "bear",
+      "candidate": "bear"
+    },
+    {
+      "date": "2018-11-19",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2018-12-20",
+      "state": "bear",
+      "candidate": "bear"
+    },
+    {
+      "date": "2019-01-09",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2019-02-28",
+      "state": "bull",
+      "candidate": "bull"
+    },
+    {
+      "date": "2019-03-27",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2019-04-08",
+      "state": "bull",
+      "candidate": "bull"
+    },
+    {
+      "date": "2019-04-12",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2019-06-06",
+      "state": "bear",
+      "candidate": "bear"
+    },
+    {
+      "date": "2019-06-27",
+      "state": "bottoming",
+      "candidate": "bottoming"
+    },
+    {
+      "date": "2019-07-11",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2019-08-27",
+      "state": "bottoming",
+      "candidate": "bottoming"
+    },
+    {
+      "date": "2019-09-11",
+      "state": "bull",
+      "candidate": "bull"
+    },
+    {
+      "date": "2019-09-19",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2019-11-07",
+      "state": "bottoming",
+      "candidate": "bottoming"
+    },
+    {
+      "date": "2019-11-13",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2020-01-06",
+      "state": "bull",
+      "candidate": "bull"
+    },
+    {
+      "date": "2020-01-20",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2020-02-17",
+      "state": "structural",
+      "candidate": "structural"
+    },
+    {
+      "date": "2020-03-17",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2020-04-01",
+      "state": "bear",
+      "candidate": "bear"
+    },
+    {
+      "date": "2020-04-22",
+      "state": "bottoming",
+      "candidate": "bottoming"
+    },
+    {
+      "date": "2020-04-30",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2020-05-15",
+      "state": "structural",
+      "candidate": "structural"
+    },
+    {
+      "date": "2020-05-25",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2020-07-08",
+      "state": "bull",
+      "candidate": "bull"
+    },
+    {
+      "date": "2020-07-20",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2020-08-06",
+      "state": "bull",
+      "candidate": "bull"
+    },
+    {
+      "date": "2020-08-11",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2020-09-18",
+      "state": "structural",
+      "candidate": "structural"
+    },
+    {
+      "date": "2020-09-24",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2020-11-11",
+      "state": "structural",
+      "candidate": "structural"
+    },
+    {
+      "date": "2020-12-11",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2021-01-07",
+      "state": "structural",
+      "candidate": "structural"
+    },
+    {
+      "date": "2021-02-01",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2021-02-24",
+      "state": "structural",
+      "candidate": "structural"
+    },
+    {
+      "date": "2021-03-18",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2021-04-29",
+      "state": "structural",
+      "candidate": "structural"
+    },
+    {
+      "date": "2021-06-01",
+      "state": "bull",
+      "candidate": "bull"
+    },
+    {
+      "date": "2021-06-04",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2021-07-02",
+      "state": "structural",
+      "candidate": "structural"
+    },
+    {
+      "date": "2021-07-29",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2021-08-05",
+      "state": "structural",
+      "candidate": "structural"
+    },
+    {
+      "date": "2021-09-08",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2021-09-22",
+      "state": "structural",
+      "candidate": "structural"
+    },
+    {
+      "date": "2021-10-19",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2021-11-16",
+      "state": "structural",
+      "candidate": "structural"
+    },
+    {
+      "date": "2021-12-09",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2022-01-27",
+      "state": "bear",
+      "candidate": "bear"
+    },
+    {
+      "date": "2022-02-22",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2022-02-28",
+      "state": "bear",
+      "candidate": "bear"
+    },
+    {
+      "date": "2022-03-03",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2022-03-09",
+      "state": "bear",
+      "candidate": "bear"
+    },
+    {
+      "date": "2022-06-08",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2022-08-10",
+      "state": "structural",
+      "candidate": "structural"
+    },
+    {
+      "date": "2022-08-15",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2022-09-16",
+      "state": "bear",
+      "candidate": "bear"
+    },
+    {
+      "date": "2022-11-10",
+      "state": "bottoming",
+      "candidate": "bottoming"
+    },
+    {
+      "date": "2022-12-02",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2023-02-02",
+      "state": "bull",
+      "candidate": "bull"
+    },
+    {
+      "date": "2023-02-10",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2023-03-27",
+      "state": "structural",
+      "candidate": "structural"
+    },
+    {
+      "date": "2023-03-30",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2023-04-10",
+      "state": "structural",
+      "candidate": "structural"
+    },
+    {
+      "date": "2023-04-24",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2023-05-12",
+      "state": "bear",
+      "candidate": "bear"
+    },
+    {
+      "date": "2023-07-04",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2023-08-15",
+      "state": "bear",
+      "candidate": "bear"
+    },
+    {
+      "date": "2023-09-06",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2023-09-11",
+      "state": "bear",
+      "candidate": "bear"
+    },
+    {
+      "date": "2023-11-17",
+      "state": "bottoming",
+      "candidate": "bottoming"
+    },
+    {
+      "date": "2023-12-07",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2023-12-19",
+      "state": "bear",
+      "candidate": "bear"
+    },
+    {
+      "date": "2024-03-06",
+      "state": "bottoming",
+      "candidate": "bottoming"
+    },
+    {
+      "date": "2024-04-03",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2024-04-24",
+      "state": "structural",
+      "candidate": "structural"
+    },
+    {
+      "date": "2024-05-06",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2024-06-13",
+      "state": "bear",
+      "candidate": "bear"
+    },
+    {
+      "date": "2024-09-27",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2024-10-28",
+      "state": "bull",
+      "candidate": "bull"
+    },
+    {
+      "date": "2024-11-18",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2024-12-05",
+      "state": "bull",
+      "candidate": "bull"
+    },
+    {
+      "date": "2024-12-17",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2025-02-18",
+      "state": "bottoming",
+      "candidate": "bottoming"
+    },
+    {
+      "date": "2025-03-12",
+      "state": "bull",
+      "candidate": "bull"
+    },
+    {
+      "date": "2025-04-09",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2025-05-14",
+      "state": "bottoming",
+      "candidate": "bottoming"
+    },
+    {
+      "date": "2025-06-11",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2025-08-12",
+      "state": "bull",
+      "candidate": "bull"
+    },
+    {
+      "date": "2025-08-29",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2025-09-26",
+      "state": "structural",
+      "candidate": "structural"
+    },
+    {
+      "date": "2025-11-25",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2025-12-03",
+      "state": "structural",
+      "candidate": "structural"
+    },
+    {
+      "date": "2025-12-08",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2026-01-14",
+      "state": "bull",
+      "candidate": "bull"
+    },
+    {
+      "date": "2026-01-20",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2026-03-09",
+      "state": "structural",
+      "candidate": "structural"
+    },
+    {
+      "date": "2026-03-23",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2026-07-21",
+      "state": "bear",
+      "candidate": "bear"
+    },
+    {
+      "date": "2026-08-10",
+      "state": "range",
+      "candidate": "range"
+    },
+    {
+      "date": "2026-10-14",
+      "state": "bear",
+      "candidate": "bear"
+    }
+  ],
+  "counts": {
+    "structural": 384,
+    "bull": 259,
+    "range": 1195,
+    "unknown": 175,
+    "bear": 595,
+    "bottoming": 279
+  },
+  "coverage": {
+    "days": 2887,
+    "unknown": 175,
+    "valid_states": 2883
+  },
+  "provenance": {
+    "source": "Tushare Pro by GitHub Actions; derived aggregates only",
+    "years_present": [
+      2015,
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024,
+      2025,
+      2026
+    ],
+    "complete_2015_2026": true,
+    "data_by_year": {
+      "2015": {
+        "calendar_days": 244,
+        "data_complete": 73,
+        "taxonomy_backcast": 244,
+        "date_range": [
+          "2015-01-05",
+          "2015-12-31"
+        ]
+      },
+      "2016": {
+        "calendar_days": 244,
+        "data_complete": 240,
+        "taxonomy_backcast": 244,
+        "date_range": [
+          "2016-01-04",
+          "2016-12-30"
+        ]
+      },
+      "2017": {
+        "calendar_days": 244,
+        "data_complete": 244,
+        "taxonomy_backcast": 244,
+        "date_range": [
+          "2017-01-03",
+          "2017-12-29"
+        ]
+      },
+      "2018": {
+        "calendar_days": 243,
+        "data_complete": 243,
+        "taxonomy_backcast": 243,
+        "date_range": [
+          "2018-01-02",
+          "2018-12-28"
+        ]
+      },
+      "2019": {
+        "calendar_days": 244,
+        "data_complete": 244,
+        "taxonomy_backcast": 244,
+        "date_range": [
+          "2019-01-02",
+          "2019-12-31"
+        ]
+      },
+      "2020": {
+        "calendar_days": 243,
+        "data_complete": 243,
+        "taxonomy_backcast": 243,
+        "date_range": [
+          "2020-01-02",
+          "2020-12-31"
+        ]
+      },
+      "2021": {
+        "calendar_days": 243,
+        "data_complete": 243,
+        "taxonomy_backcast": 228,
+        "date_range": [
+          "2021-01-04",
+          "2021-12-31"
+        ]
+      },
+      "2022": {
+        "calendar_days": 242,
+        "data_complete": 242,
+        "taxonomy_backcast": 0,
+        "date_range": [
+          "2022-01-04",
+          "2022-12-30"
+        ]
+      },
+      "2023": {
+        "calendar_days": 242,
+        "data_complete": 242,
+        "taxonomy_backcast": 0,
+        "date_range": [
+          "2023-01-03",
+          "2023-12-29"
+        ]
+      },
+      "2024": {
+        "calendar_days": 242,
+        "data_complete": 242,
+        "taxonomy_backcast": 0,
+        "date_range": [
+          "2024-01-02",
+          "2024-12-31"
+        ]
+      },
+      "2025": {
+        "calendar_days": 243,
+        "data_complete": 243,
+        "taxonomy_backcast": 0,
+        "date_range": [
+          "2025-01-02",
+          "2025-12-31"
+        ]
+      },
+      "2026": {
+        "calendar_days": 213,
+        "data_complete": 213,
+        "taxonomy_backcast": 0,
+        "date_range": [
+          "2026-01-05",
+          "2026-11-20"
+        ]
+      }
+    },
+    "look_ahead_controls": [
+      "Historical daily stock snapshots, no 2026 listed-universe filter",
+      "No CSI2000 backcast before 2023-08-11",
+      "No future technical candles or breadth input, close(t) executed close(t+1)",
+      "Cost 10 bps of changed exposure",
+      "SW2021 index backcast before Dec-2021 is research-only; NOT PIT industry membership",
+      "2024+ time holdout, but parameters were formed after observing this era; NOT blinded"
+    ]
+  },
+  "post_2021_taxonomy": {
+    "n": 1180,
+    "from": "2022-01-06",
+    "to": "2026-11-20",
+    "annual_return": -0.024399,
+    "benchmark_annual": -0.044734,
+    "fixed50_annual": -0.016676,
+    "max_drawdown": -0.205428,
+    "benchmark_max_drawdown": -0.398083,
+    "fixed50_max_drawdown": -0.217343,
+    "turnover": 19.175,
+    "state_counts": {
+      "unknown": 2,
+      "range": 592,
+      "bear": 366,
+      "structural": 70,
+      "bottoming": 85,
+      "bull": 65
+    },
+    "missing": 0
+  },
+  "diagnostics": {
+    "by_year": {
+      "2015": {
+        "unknown": 171,
+        "leadership_data_missing": 0,
+        "state_switches": 4
+      },
+      "2016": {
+        "unknown": 4,
+        "leadership_data_missing": 0,
+        "state_switches": 10
+      },
+      "2017": {
+        "unknown": 0,
+        "leadership_data_missing": 0,
+        "state_switches": 15
+      },
+      "2018": {
+        "unknown": 0,
+        "leadership_data_missing": 0,
+        "state_switches": 11
+      },
+      "2019": {
+        "unknown": 0,
+        "leadership_data_missing": 0,
+        "state_switches": 13
+      },
+      "2020": {
+        "unknown": 0,
+        "leadership_data_missing": 0,
+        "state_switches": 17
+      },
+      "2021": {
+        "unknown": 0,
+        "leadership_data_missing": 0,
+        "state_switches": 15
+      },
+      "2022": {
+        "unknown": 0,
+        "leadership_data_missing": 0,
+        "state_switches": 11
+      },
+      "2023": {
+        "unknown": 0,
+        "leadership_data_missing": 0,
+        "state_switches": 14
+      },
+      "2024": {
+        "unknown": 0,
+        "leadership_data_missing": 0,
+        "state_switches": 10
+      },
+      "2025": {
+        "unknown": 0,
+        "leadership_data_missing": 0,
+        "state_switches": 11
+      },
+      "2026": {
+        "unknown": 0,
+        "leadership_data_missing": 0,
+        "state_switches": 7
+      }
+    },
+    "candidate_counts": {
+      "structural": 384,
+      "bull": 259,
+      "range": 1195,
+      "unknown": 175,
+      "bear": 595,
+      "bottoming": 279
+    }
+  }
+}

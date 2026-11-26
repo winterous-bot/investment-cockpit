@@ -1,0 +1,83 @@
+name: V2 Historical Tushare Validation (research only)
+on:
+  push:
+    branches:
+      - research/v2-historical-backtest-20261122
+    paths:
+      - "research/v2/**"
+      - "tests/test_v2_model.py"
+      - ".github/workflows/v2-historical-validation.yml"
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: v2-historical-validation
+  cancel-in-progress: false
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m unittest discover -s tests -v
+  annual-backfill:
+    needs: unit-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        year: [2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compute historical year from available Tushare 5000-point interfaces
+        env:
+          TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
+        run: python research/v2/v2_backfill.py --year ${{ matrix.year }}
+      - name: Upload derived aggregates ONLY, never raw prices/tokens/factors
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v2-aggregates-${{ matrix.year }}
+          path: research/v2/results/year_${{ matrix.year }}.json
+          if-no-files-found: ignore
+          retention-days: 3
+  evaluate:
+    needs: [unit-tests, annual-backfill]
+    if: always() && needs.unit-tests.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: v2-aggregates-*
+          path: research/v2/results
+          merge-multiple: true
+      - name: Evaluate chrono-split; label missing years as PARTIAL
+        run: python research/v2/v2_evaluate.py --partial
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v2-backtest-report
+          path: research/v2/results/backtest_report.json
+          retention-days: 14
+      - name: Commit compact summary only to research branch
+        if: github.ref == 'refs/heads/research/v2-historical-backtest-20261122'
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add research/v2/results/backtest_report.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'research(v2): publish aggregate backtest summary (no raw paid data)'
+            git push origin HEAD:research/v2-historical-backtest-20261122
+          fi
