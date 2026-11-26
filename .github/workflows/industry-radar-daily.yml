@@ -8,12 +8,13 @@ on:
       - 'radar-view.js'
       - 'radar-ui.css'
       - 'tests/test_radar_view.cjs'
+      - 'tests/test_radar_fixed_key.cjs'
       - 'index.html'
       - 'sw.js'
       - '.github/workflows/industry-radar-daily.yml'
   pull_request:
     branches: [main]
-    paths: ['radar/**','industry-radar.js','radar-view.js','radar-ui.css','tests/test_radar_view.cjs','index.html','sw.js','.github/workflows/industry-radar-daily.yml']
+    paths: ['radar/**','industry-radar.js','radar-view.js','radar-ui.css','tests/test_radar_view.cjs','tests/test_radar_fixed_key.cjs','index.html','sw.js','.github/workflows/industry-radar-daily.yml']
   schedule:
     - cron: '10 13 * * 1-5'
   workflow_dispatch:
@@ -36,6 +37,7 @@ jobs:
           node --check industry-radar.js
           node --check radar-view.js
           node tests/test_radar_view.cjs
+          node tests/test_radar_fixed_key.cjs
           node --check sw.js
           node radar/encrypt.mjs --test
   refresh:
