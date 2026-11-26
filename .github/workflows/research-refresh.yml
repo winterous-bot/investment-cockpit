@@ -1,0 +1,151 @@
+name: Research refresh coordinator V2.2.1
+on:
+  schedule:
+    # Beijing 18:15, 18:45, 19:15, 20:15, 20:45, 21:30, 22:20, 23:10.
+    - cron: '15 10,11,12 * * 1-5'
+    - cron: '45 10,12 * * 1-5'
+    - cron: '30 13 * * 1-5'
+    - cron: '20 14 * * 1-5'
+    - cron: '10 15 * * 1-5'
+    # Beijing 07:10 Mon-Sat, recover the last eligible trading day.
+    - cron: '10 23 * * 0-5'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/research-recovery.json']
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/research-refresh.yml','scripts/research-*','tests/test_research_*','update-status.js','index.html','growth.html','company.html','sw.js']
+permissions:
+  contents: read
+concurrency:
+  group: research-coordinator-${{ github.event_name == 'pull_request' && github.ref || 'production' }}
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: |
+          python -m unittest discover -s tests -p 'test_research_*.py' -v
+          node tests/test_research_health.mjs
+          node --check update-status.js
+          node --check sw.js
+          node tests/test_snapshot_store.cjs
+  plan:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: validate
+    runs-on: ubuntu-latest
+    outputs:
+      target: ${{ steps.plan.outputs.target }}
+      radar: ${{ steps.plan.outputs.radar }}
+      growth: ${{ steps.plan.outputs.growth }}
+      watchlist: ${{ steps.plan.outputs.watchlist }}
+      due: ${{ steps.plan.outputs.due }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Plan and authenticate snapshots
+        id: plan
+        env:
+          TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
+          RADAR_KEY: ${{ secrets.RADAR_KEY }}
+        run: |
+          set -euo pipefail
+          python scripts/research-plan.py > "$RUNNER_TEMP/plan.json"
+          target=$(python -c 'import json,sys;print(json.load(open(sys.argv[1]))["target"])' "$RUNNER_TEMP/plan.json")
+          node scripts/research-health.mjs "$target" > "$RUNNER_TEMP/health.json"
+          python - "$RUNNER_TEMP" <<'PY'
+          import json,os,sys
+          from pathlib import Path
+          p=Path(sys.argv[1]);plan=json.loads((p/"plan.json").read_text());health=json.loads((p/"health.json").read_text())
+          with open(os.environ["GITHUB_OUTPUT"],"a") as f:
+              print("target="+plan["target"],file=f)
+              print("due="+json.dumps(plan["due"],separators=(",",":")),file=f)
+              for k,v in plan["due"].items():print(k+"="+str(v and health[k]["state"]!="ready").lower(),file=f)
+          PY
+  radar:
+    needs: plan
+    if: needs.plan.outputs.radar == 'true'
+    uses: ./.github/workflows/industry-radar-daily.yml
+    with:
+      target_day: ${{ needs.plan.outputs.target }}
+    secrets: inherit
+    permissions:
+      contents: write
+  growth:
+    needs: plan
+    if: needs.plan.outputs.growth == 'true'
+    uses: ./.github/workflows/growth-production.yml
+    with:
+      target_day: ${{ needs.plan.outputs.target }}
+    secrets: inherit
+    permissions:
+      contents: write
+      actions: read
+  watchlist:
+    needs: [plan, growth]
+    if: always() && needs.plan.result == 'success' && needs.plan.outputs.watchlist == 'true'
+    uses: ./.github/workflows/company-watchlist.yml
+    with:
+      target_day: ${{ needs.plan.outputs.target }}
+    secrets: inherit
+    permissions:
+      contents: write
+  audit:
+    needs: [plan, radar, growth, watchlist]
+    if: always() && needs.plan.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Authenticate published output and persist sanitized status
+        env:
+          RADAR_KEY: ${{ secrets.RADAR_KEY }}
+          TARGET: ${{ needs.plan.outputs.target }}
+          DUE: ${{ needs.plan.outputs.due }}
+          RADAR_RESULT: ${{ needs.radar.result }}
+          GROWTH_RESULT: ${{ needs.growth.result }}
+          WATCHLIST_RESULT: ${{ needs.watchlist.result }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os,json
+          from pathlib import Path
+          Path(os.environ["RUNNER_TEMP"],"plan.json").write_text(json.dumps({"target":os.environ["TARGET"],"due":json.loads(os.environ["DUE"])}))
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for n in 1 2 3; do
+            git fetch origin main
+            git reset --hard origin/main
+            rc=0
+            node scripts/research-audit.mjs "$RUNNER_TEMP/plan.json" || rc=$?
+            if [ "$rc" -ne 0 ] && [ "$rc" -ne 2 ]; then exit "$rc"; fi
+            git add data/research-update-status.json
+            if git diff --cached --quiet; then exit "$rc"; fi
+            git commit -m 'data: publish research refresh health metadata'
+            if git push origin HEAD:main; then exit "$rc"; fi
+            sleep "$((2*n))"
+          done
+          exit 1

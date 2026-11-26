@@ -267,3 +267,7 @@ python3 -m http.server 8765
 2. 在仓库 Settings → Secrets and variables → Actions → New repository secret，Name 为 `RADAR_KEY`，Secret 粘贴同一随机密钥。不得粘贴到代码、Issue、聊天或URL。原有 `TUSHARE_TOKEN` 不变。
 3. 回雷达点击保存本机密钥（非导出型 WebCrypto 密钥存于本机IndexedDB），在 GitHub Actions 的 Industry radar daily refresh 选择 main 并点击 Run workflow。此后刷新雷达即可读取最新密文。每台设备单独配置同一密钥；清除浏览器数据可能需要重新配置。
 后台 AES-256-GCM 加密独立HTML快照、随机IV及认证行情日期。仅将密文和日期发布至公开仓库；不上传明文附件或个人持仓。公开网页不是身份认证服务，不共享密钥；保护设备、GitHub账号及密码管理器。私钥存储依赖受信任的同源代码及浏览器，非硬件安全承诺。旧研究附件仍按其既定保留期过期。若更换密钥，应同步变更Secret并重新运行；历史密文仍可能以原密钥解密，故妥善保管旧密钥。未经配置不下载、不发布。雷达仅辅助研究，阈值非交易建议。
+
+
+## V2.2.1 research refresh reliability
+统一入口：Actions → Research refresh coordinator V2.2.1。交易日18:15雷达、18:45成长、21:30观察池（北京时间）；多次补跑，次晨07:10补偿上一有效交易日。已认证且完整快照不重复扫描。每次审计仅发布模块日期和聚合状态，失败保留旧密文，不披露持仓、代码、密钥或公司报告。手机端展开“后台更新状态”检查，手动启动需登录 GitHub；原三个模块独立 workflow_dispatch 仍可用，观察池 sync/bootstrap 保留。外部恢复可通过仅修改 .github/research-recovery.json 触发协调器，目标交易日仍由后台交易日历决定。GitHub schedule 是尽力调度，非准点 SLA。
