@@ -91,7 +91,7 @@
   byId('radarGenerate').onclick=()=>{if(key&&!confirm('已有固定密钥。除非密钥泄漏，否则无需更换。确定生成新密钥？'))return;inp.value=Array.from(crypto.getRandomValues(new Uint8Array(32)),x=>x.toString(16).padStart(2,'0')).join('');inp.type='text';inp.select();setStatus('只在首次配置时生成；此后长期使用同一个固定密钥。请保存到密码管理器，并同步至GitHub Secret。')};
   byId('radarCopy').onclick=async()=>{if(!inp.value)return;try{await navigator.clipboard.writeText(inp.value);setStatus('密钥已复制，请仅粘贴至GitHub Secret。')}catch{inp.type='text';inp.select();setStatus('请长按选择并复制密钥。')}};
   byId('radarSave').onclick=async()=>{try{const v=await importKey(inp.value.trim());await remember(inp.value.trim(),v,byId('radarRemember').checked);key=v;epoch++;plain=null;asof=null;clearView();inp.value='';inp.type='password';settings(false);setStatus('已保存本机密钥；读取最新快照。');refresh()}catch(e){setStatus(e.message)}};
-  byId('radarClear').onclick=async()=>{if(!confirm('仅删除本机雷达密钥，不影响后台任务和旧版本本机数据？'))return;try{await storeKey(null);localStorage.removeItem(BACKUP);key=null;plain=null;asof=null;epoch++;inp.value='';clearView();setStatus('已删除本机雷达密钥。')}catch(e){setStatus(e.message)}};
+  byId('radarClear').onclick=async()=>{if(!confirm('仅删除本机雷达密钥，不影响后台任务和旧版本本机数据？'))return;try{let cleared=false;try{await storeKey(null);cleared=true}catch(_){}try{localStorage.removeItem(BACKUP);cleared=true}catch(_){}if(!cleared)throw Error('无法清除本机密钥存储');key=null;plain=null;asof=null;epoch++;inp.value='';clearView();setStatus('已删除本机雷达密钥。')}catch(e){setStatus(e.message)}};
   byId('settingsToggle').onclick=()=>settings(byId('radarSettings').hidden);byId('radarReload').onclick=refresh;refresh();
  }
  setup();
