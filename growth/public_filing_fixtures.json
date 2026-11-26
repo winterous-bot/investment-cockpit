@@ -1,0 +1,53 @@
+{
+  "period": "20251231",
+  "asof": "20261125",
+  "notes": "Public company-filed annual report summaries and financial final accounts. CATL published in thousands of yuan; convert to yuan. Independently selected benchmark companies, not claimed to be V1.1 candidates. Four raw values only, not complete FCFF/DCF verification.",
+  "companies": [
+    {
+      "code": "002475.SZ",
+      "name": "立讯精密",
+      "source": "https://vip.stock.finance.sina.com.cn/corp/view/vCB_AllBulletinDetail.php?id=12091098",
+      "revenue": 332344443143.39,
+      "cfo": 17325329533.97,
+      "assets": 306537675786.42,
+      "parent_equity": 84921103420.87
+    },
+    {
+      "code": "002371.SZ",
+      "name": "北方华创",
+      "source": "https://money.finance.sina.com.cn/corp/view/vCB_AllBulletinDetail.php?id=12113788&stockid=002371",
+      "revenue": 39353112419.78,
+      "cfo": 2133444577.85,
+      "assets": 89800578023.69,
+      "parent_equity": 37725889397.5
+    },
+    {
+      "code": "300604.SZ",
+      "name": "长川科技",
+      "source": "https://vip.stock.finance.sina.com.cn/corp/view/vCB_AllBulletinDetail.php?id=12197544",
+      "revenue": 5291542093.17,
+      "cfo": 562370204.67,
+      "assets": 10916593691.9,
+      "parent_equity": 4734105145.81
+    },
+    {
+      "code": "300124.SZ",
+      "name": "汇川技术",
+      "source": "https://vip.stock.finance.sina.com.cn/corp/view/vCB_AllBulletinDetail.php?id=12222831",
+      "revenue": 45104844200.13,
+      "cfo": 6681025417.16,
+      "assets": 71314393635.15,
+      "parent_equity": 35352991488.32
+    },
+    {
+      "code": "300750.SZ",
+      "name": "宁德时代",
+      "source": "https://vip.stock.finance.sina.com.cn/corp/view/vCB_AllBulletinDetail.php?id=11987703&stockid=300750",
+      "revenue": 423701834000,
+      "cfo": 133219982000,
+      "assets": 974827544000,
+      "parent_equity": 337107747000,
+      "rounding_unit": 1000
+    }
+  ]
+}
