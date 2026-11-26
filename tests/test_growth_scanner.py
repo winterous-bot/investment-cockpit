@@ -1,7 +1,7 @@
 import unittest,sys
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/"growth"))
-from growth_model import period_plan,select,ttm,cagr,metrics,passes
+from growth_model import period_plan,select,ttm,cagr,metrics,passes,PRESETS,preset_summary,DEFAULT
 class GrowthTests(unittest.TestCase):
     def test_period(self):
         p=period_plan("20261125")
@@ -36,4 +36,21 @@ class GrowthTests(unittest.TestCase):
         x,reason=metrics(k,p,d,{k:{"pe_ttm":30,"total_mv":1000}})
         self.assertEqual(reason,"ok");self.assertAlmostEqual(x["deducted_yoy"],.5);self.assertAlmostEqual(x["cash_conversion"],40/30)
         self.assertTrue(x["valuation_pass"])
+    def test_distinct_presets(self):
+        p={x["id"]:x["limits"] for x in PRESETS}
+        self.assertEqual(len(p),3)
+        self.assertEqual(p["balanced"],DEFAULT)
+        g={"code":"g","industry":"A","revenue_cagr":.30,"deducted_yoy":.40,"roic":.10,"cash_conversion":.70,"debt_ratio":.60,"pe":70}
+        b={"code":"b","industry":"B","revenue_cagr":.20,"deducted_yoy":.25,"roic":.12,"cash_conversion":.80,"debt_ratio":.60,"pe":50}
+        q={"code":"q","industry":"C","revenue_cagr":.10,"deducted_yoy":.15,"roic":.15,"cash_conversion":1.,"debt_ratio":.50,"pe":None}
+        self.assertTrue(passes(g,p["growth"],valuation=True))
+        self.assertFalse(passes(g,p["balanced"]))
+        self.assertTrue(passes(b,p["balanced"]))
+        self.assertFalse(passes(b,p["steady"]))
+        self.assertTrue(passes(q,p["steady"]))
+        self.assertFalse(passes(q,p["steady"],valuation=True))
+        z=preset_summary([g,b,q])
+        self.assertEqual([v["quality_count"] for v in z["scenarios"]],[1,1,1])
+        self.assertEqual([v["valuation_count"] for v in z["scenarios"]],[1,1,0])
+        self.assertEqual(z["unique_candidates"],3)
 if __name__=="__main__":unittest.main()
