@@ -8,7 +8,7 @@ from datetime import datetime,timedelta
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/"scripts"))
 from tushare_5000 import Tushare,SafeAPIError,POINTS
-from model import period_plan,select,metrics,passes,DEFAULT,QUALITY,FIELDS,valid_date
+from growth_model import period_plan,select,metrics,passes,DEFAULT,QUALITY,FIELDS,valid_date
 POINTS.update({k:5000 for k in FIELDS})
 def fetch_period(api,endpoint,p,asof,eligible):
     base={"period":p}
