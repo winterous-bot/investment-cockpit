@@ -1,0 +1,65 @@
+name: Growth scanner V1.2 valuation validation
+on:
+  push:
+    branches: [research/growth-scanner-v1]
+    paths: ['.github/workflows/growth-valuation.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  valuation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Regression and syntax checks
+        run: |
+          python -m unittest discover -s tests -v
+          python -m py_compile growth/valuation_model.py growth/valuation_build.py
+          node --check growth/reuse_snapshot.mjs
+          node --check growth/seal.mjs
+          python - <<'PY'
+          import re
+          from pathlib import Path
+          s=re.findall(r"<script>(.*?)</script>",Path("growth/view.html").read_text(),re.S)
+          assert len(s)==1
+          Path("/tmp/growth-view.js").write_text(s[0])
+          PY
+          node --check /tmp/growth-view.js
+      - uses: actions/download-artifact@v4
+        with:
+          name: growth-scanner-v11
+          run-id: 45745788391
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: ${{ runner.temp }}/growth-source
+      - name: Read authenticated prior snapshot
+        env:
+          RADAR_KEY: ${{ secrets.RADAR_KEY }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/growth-v12"
+          node growth/reuse_snapshot.mjs "$RUNNER_TEMP/growth-source/growth.html" "$RUNNER_TEMP/growth-v12/snapshot.json" growth-scanner-v1.1
+      - name: Fetch closing prices and historical monthly PE and calculate reference bands
+        env:
+          TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
+        run: python growth/valuation_build.py "$RUNNER_TEMP/growth-v12"
+      - name: Encrypt updated offline report with existing fixed key
+        env:
+          RADAR_KEY: ${{ secrets.RADAR_KEY }}
+        run: node growth/seal.mjs "$RUNNER_TEMP/growth-v12"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: growth-scanner-v12
+          path: |
+            ${{ runner.temp }}/growth-v12/growth.html
+            ${{ runner.temp }}/growth-v12/validation.json
+          retention-days: 3
+          if-no-files-found: error
+      - name: Clean private temporary outputs
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/growth-v12" "$RUNNER_TEMP/growth-source"
