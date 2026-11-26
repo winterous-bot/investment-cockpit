@@ -1,0 +1,49 @@
+name: Growth scanner V1.2 streamlined view
+on:
+  push:
+    branches: [research/growth-scanner-v1]
+    paths: ['.github/workflows/growth-view-refresh.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/download-artifact@v4
+        with:
+          name: growth-scanner-v12
+          run-id: 45746290422
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: ${{ runner.temp }}/growth-view
+      - name: Replace UI only, preserve encrypted payload unchanged
+        run: |
+          python - <<'PY'
+          import os,re,json
+          from pathlib import Path
+          p=Path(os.environ["RUNNER_TEMP"])/"growth-view/growth.html"
+          old=p.read_text()
+          m=re.search(r'<script type="application/json" id="cipher">(.*?)</script>',old,re.S)
+          assert m
+          payload=m.group(1)
+          assert json.loads(payload)["version"]==1
+          template=Path("growth/view.html").read_text()
+          assert "hist_discount" not in template and "peer_discount" not in template
+          assert template.count("__CIPHER__")==1
+          s=re.findall(r"<script>(.*?)</script>",template,re.S)
+          assert len(s)==1
+          Path("/tmp/growth-view.js").write_text(s[0])
+          p.write_text(template.replace("__CIPHER__",payload))
+          PY
+          node --check /tmp/growth-view.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: growth-scanner-v12-streamlined
+          path: ${{ runner.temp }}/growth-view/
+          retention-days: 3
+          if-no-files-found: error
