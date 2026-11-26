@@ -33,7 +33,14 @@ function reconcile(draft,manifest){
  if(same(draft.codes,codes))return {draft:null,conflict:false,synced:true};
  return {draft,conflict:draft.base!==manifest.revision,synced:false}
 }
-const lib={validCodes,validManifest,validDraft,reconcile,encrypt,decrypt,encryptionKey,day};
+// Clear the completed search only after the local encrypted draft is saved.
+async function completeSearchAdd(field,save,render){
+ const query=field.value;
+ if(!await save())return false;
+ if(field.value===query){field.value='';field.blur();render()}
+ return true;
+}
+const lib={validCodes,validManifest,validDraft,reconcile,encrypt,decrypt,encryptionKey,day,completeSearchAdd};
 if(typeof module!=='undefined'&&module.exports){module.exports=lib;return}
 root.NorthstarWatchlist=lib;
 const $=id=>document.getElementById(id),el=(t,x,c)=>{const e=document.createElement(t);if(x!==undefined)e.textContent=x;if(c)e.className=c;return e};
@@ -131,7 +138,7 @@ function renderSearch(){
  if(!q||!dir)return;
  const found=dir.filter(z=>z.code.toLowerCase().includes(q)||z.name.toLowerCase().includes(q)).slice(0,15);
  if(!found.length)$('searchRows').append(el('p','未找到匹配股票','muted'));
- for(const x of found){const row=el('div',undefined,'poolrow'),info=el('div');info.append(el('b',x.name+' '+x.code),el('p',x.industry,'muted'));const b=action(activeCodes().includes(x.code)?'已加入':'添加',()=>add(x));b.disabled=busySync()||activeCodes().includes(x.code)||!writeKey||editing||draftError||reconcile(draft,remote).conflict;row.append(info,b);$('searchRows').append(row)}
+ for(const x of found){const row=el('div',undefined,'poolrow'),info=el('div');info.append(el('b',x.name+' '+x.code),el('p',x.industry,'muted'));const b=action(activeCodes().includes(x.code)?'已加入':'添加',()=>completeSearchAdd($('stockSearch'),()=>add(x),renderSearch));b.disabled=busySync()||activeCodes().includes(x.code)||!writeKey||editing||draftError||reconcile(draft,remote).conflict;row.append(info,b);$('searchRows').append(row)}
 }
 async function loadDirectory(force=false){if(dirBusy||!remote||!key)return;dirBusy=true;try{await root.NorthstarSnapshots.load('directory',{force,decode:async q=>{const x=await decrypt(q,key,'northstar-directory-v11');if(x.version!=='company-directory-v1.1'||x.asof!==q.asof||!Array.isArray(x.stocks)||x.stocks.length<4500||x.stocks.length>7500||x.stocks.some(z=>!CODE.test(z.code)||typeof z.name!=='string'||typeof z.industry!=='string'))throw Error('名录校验失败');return x},show:x=>{dir=x.stocks;renderSearch()},notify:s=>$('directoryStatus').textContent=s})}catch(e){$('directoryStatus').textContent='名录暂不可用：'+e.message}finally{dirBusy=false}}
 async function handleHandoff(){if(!remote||!writeKey||draftError||busySync()||reconcile(draft,remote).conflict)return;let x;try{x=JSON.parse(sessionStorage.getItem(HANDOFF)||'null')}catch(_){}if(!x||!CODE.test(x.code))return;if(activeCodes().includes(x.code)){sessionStorage.removeItem(HANDOFF);return}if(confirm('加入观察池：'+String(x.name||x.code)+' '+x.code+'？')){if(!await add(x))return}try{sessionStorage.removeItem(HANDOFF)}catch(_){}}

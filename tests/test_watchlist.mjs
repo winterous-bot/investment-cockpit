@@ -16,6 +16,16 @@ write(join(work,'directory.json'),directory);
 function results(codes,date,statuses){const entries=codes.map((code,i)=>{const status=statuses[i];if(status!=='ready')return {code,status,reason:'vendor_api_error'};const file='company-'+i+'.json';write(join(work,file),{code,asof:date,valuation:{share_verified:true},profile:{ttm:{revenue:100,deducted_profit:5,cfo:6,capex:1}}});return {code,status,file,asof:date,quote_date:date}});write(join(work,'results.json'),{asof:date,quote_date:date,entries})}
 async function req(prior,codes){const date=day;return JSON.stringify(await ui.encrypt({version:'watchlist-request-v1.1',base:prior.revision,asof:date,codes},k,'northstar-watchlist-request-v11',date))}
 try{
+ // Search UX: successful persistence clears results and dismisses mobile keyboard.
+ let field={value:'示例甲',blur(){this.blurred=true}},renders=0;
+ assert.equal(await ui.completeSearchAdd(field,async()=>true,()=>renders++),true);
+ assert.equal(field.value,'');assert.equal(field.blurred,true);assert.equal(renders,1);
+ field={value:'示例乙',blur(){this.blurred=true}};
+ assert.equal(await ui.completeSearchAdd(field,async()=>false,()=>renders++),false);
+ assert.equal(field.value,'示例乙');assert.equal(field.blurred,undefined);assert.equal(renders,1);
+ // Do not erase a new search typed while the prior save was in flight.
+ assert.equal(await ui.completeSearchAdd(field,async()=>{field.value='下一只';return true},()=>renders++),true);
+ assert.equal(field.value,'下一只');assert.equal(field.blurred,undefined);assert.equal(renders,1);
  assert.throws(()=>codesValid([a,a]));assert.throws(()=>codesValid(['../']));assert.throws(()=>codesValid(directory.slice(0,21).map(x=>x.code)));
  assert.equal(pathFor('company:'+slot(key,a)),'companies/'+slot(key,a)+'.enc.json');assert.equal(pathFor('company:../'),null);assert.equal(pathFor('constructor'),null);
  const e=priorManifest(key,target),boot=prepare(key,e,'bootstrap','');assert.deepEqual(boot.codes,[]);results([],day,[]);let m=assemble(key,e,boot,work,target);
