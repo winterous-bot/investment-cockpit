@@ -1,8 +1,6 @@
 name: Growth scanner V1.4 financial reconstruction
 on:
-  push:
-    branches: [research/growth-scanner-v1]
-    paths: ['.github/workflows/growth-financial-v14.yml','growth/financial_engine*.py','tests/test_financial_engine.py']
+  workflow_dispatch:
 permissions:
   contents: read
   actions: read
