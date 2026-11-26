@@ -84,39 +84,62 @@ def dcf(base,g,n,wacc,terminal):
             "nopat_growth":g,"fcff_cagr":fcff_cagr,"reinvestment":rr,
             "terminal_share":pv_terminal/ev if ev>0 else None,"year_n_fcff":flows[-1]}
 
+def _polyval(c,x):
+    z=0.
+    for v in reversed(c):z=z*x+v
+    return z
+
+def _roots(c,lo,hi):
+    """Isolate polynomial roots including tangent roots by recursively locating
+    derivative roots. This is deterministic for the degree <=11 here."""
+    scale=max(1.,max(abs(v) for v in c))
+    while len(c)>1 and abs(c[-1])<=1e-14*scale:c=c[:-1]
+    tol=1e-9*max(1.,abs(c[0]))
+    if len(c)==1:return [],abs(c[0])<=tol
+    if len(c)==2:
+        x=-c[0]/c[1]
+        return ([max(lo,min(hi,x))] if lo-1e-10<=x<=hi+1e-10 else []),False
+    crit,_=_roots([i*c[i] for i in range(1,len(c))],lo,hi)
+    bounds=sorted(set([lo,hi]+crit))
+    vals=[_polyval(c,x) for x in bounds]
+    out=[x for x,v in zip(bounds,vals) if abs(v)<=tol]
+    for l,h,fl,fh in zip(bounds,bounds[1:],vals,vals[1:]):
+        if fl*fh<0 and abs(fl)>tol and abs(fh)>tol:
+            for _ in range(80):
+                m=(l+h)/2;fm=_polyval(c,m)
+                if h-l<1e-12:l=h=m;break
+                if fl*fm<=0:h=m;fh=fm
+                else:l=m;fl=fm
+            out.append((l+h)/2)
+    return out,False
+
 def solve(base,n,wacc,terminal):
-    """Search full bounded domain and bracket ALL sign-changing roots.
-    For positive growth, with terminal ROC=WACC, derivative simplifies:
-    EV(g)=NOPAT0*[sum (1+g)^t/(1+w)^t*(1-g/R) + ((1+g)/(1+w))^n/w].
-    EV is monotonic in g within this segment iff R>w; otherwise declining/flat.
-    Negative-growth segment uses zero reinvestment, is increasing. Split at zero.
+    """Isolate all roots on each piece, including nonmonotonic value curves.
+    x=(1+g)/(1+WACC); EV/NOPAT is a polynomial of degree <=n+1.
+    Terminal multiplier (1+terminal)/WACC follows the exact Gordon formula
+    at terminal incremental ROIC = WACC; terminal growth has a small effect
+    through next year's NOPAT even under this no-excess-return convention.
     """
-    top=min(GROWTH_MAX,base["roic"])
-    target=base["ev"]
-    def f(g):return dcf(base,g,n,wacc,terminal)["ev"]-target
-    # Split by structural turning point; no arbitrary root selection.
-    bounds=[GROWTH_MIN,0.,top]
-    vals=[f(g) for g in bounds]
-    tol=max(1e-7,target*1e-9)
-    roots=[];flat=False
-    for lo,hi,fl,fh in zip(bounds,bounds[1:],vals,vals[1:]):
-        if abs(fl)<=tol and abs(fh)<=tol:
-            flat=True;continue
-        if abs(fl)<=tol:roots.append(lo)
-        if abs(fh)<=tol:roots.append(hi)
-        if fl*fh<0:
-            for _ in range(70):
-                mid=(lo+hi)/2;fm=f(mid)
-                if abs(fm)<=tol:lo=hi=mid;break
-                if fl*fm<=0:hi=mid;fh=fm
-                else:lo=mid;fl=fm
-            roots.append((lo+hi)/2)
+    top=min(GROWTH_MAX,base["roic"]);target=base["ev"];r=base["roic"]
+    basec=[-target/base["nopat"]]+[1.]*n+[0.]
+    basec[n]+=(1+terminal)/wacc
+    pos=basec[:]
+    for t in range(1,n+1):
+        pos[t]+=1/r;pos[t+1]-=(1+wacc)/r
+    roots=[];extrema=[];flat=False
+    for c,l,h in [(basec,GROWTH_MIN,0.),(pos,0.,top)]:
+        xl,xh=(1+l)/(1+wacc),(1+h)/(1+wacc)
+        xs,z=_roots(c,xl,xh);flat|=z
+        roots.extend(x*(1+wacc)-1 for x in xs)
+        crit,_=_roots([i*c[i] for i in range(1,len(c))],xl,xh)
+        extrema.extend(_polyval(c,x) for x in [xl,xh]+crit)
     unique=[]
     for g in sorted(roots):
+        g=max(GROWTH_MIN,min(top,g))
         if not unique or abs(g-unique[-1])>1e-6:unique.append(g)
     if flat or len(unique)>1:return {"status":"ambiguous","roots":len(unique)}
     if not unique:
-        return {"status":"price_above_model_range" if max(vals)<-tol else "price_below_model_range" if min(vals)>tol else "no_solution",
+        return {"status":"price_above_model_range" if max(extrema)<0 else "price_below_model_range" if min(extrema)>0 else "no_solution",
                 "growth_bounds":[GROWTH_MIN,top]}
     o=dcf(base,unique[0],n,wacc,terminal)
     if abs(o["ev"]-target)>max(1e-5,target*1e-7):return {"status":"residual_error"}
@@ -137,4 +160,4 @@ def analyze(base):
     return {"status":"ok","base":base,"sensitivity":matrix,"forward":forward,
             "assumptions":{"wacc":WACCS,"terminal_growth":TERMINAL_GROWTH,"horizons":HORIZONS,
               "terminal_roic":"WACC","tax":.25,"growth_domain":[GROWTH_MIN,min(GROWTH_MAX,base["roic"])],
-              "terminal_growth_invariance":True}}
+              "terminal_growth_invariance":False}}
