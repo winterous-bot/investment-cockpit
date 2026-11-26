@@ -28,6 +28,8 @@ async function main(){
  // A fresh page with IndexedDB unavailable must recover the same fixed key automatically.
  let b=launch();await until(()=>b.mounted()===1&&!b.get('radarReload').disabled,'restored key load');
  assert.equal(b.mounted(),1);assert.match(b.get('radarStatus').textContent,/2026-11-25/);
+ memory.set('northstar-watchlist-draft-v11','encrypted-draft');memory.set('northstar-watchlist-sync-pending-v12','encrypted-pending');memory.set('northstar-watchlist-sync-url-v12','https://example.invalid');
+ await b.get('radarClear').onclick();assert(!memory.has('northstar-radar-fixed-key-v1'));assert(!memory.has('northstar-watchlist-draft-v11'));assert(!memory.has('northstar-watchlist-sync-pending-v12'));assert(memory.has('northstar-watchlist-sync-url-v12'));
  console.log('Fixed-key recovery after reload, immutable current snapshot and WebCrypto authentication passed');
 }
 main().catch(e=>{console.error(e);process.exitCode=1});

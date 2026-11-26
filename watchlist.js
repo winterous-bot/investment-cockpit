@@ -44,7 +44,7 @@ const lib={validCodes,validManifest,validDraft,reconcile,encrypt,decrypt,encrypt
 if(typeof module!=='undefined'&&module.exports){module.exports=lib;return}
 root.NorthstarWatchlist=lib;
 const $=id=>document.getElementById(id),el=(t,x,c)=>{const e=document.createElement(t);if(x!==undefined)e.textContent=x;if(c)e.className=c;return e};
-let key=null,writeKey=null,authKey=null,remote=null,draft=null,draftError=false,dir=null,manifestBusy=false,dirBusy=false,editing=false,companyEpoch=0,current=null;
+let key=null,writeKey=null,authKey=null,remote=null,draft=null,draftError=false,dir=null,manifestBusy=false,dirBusy=false,editing=false,companyEpoch=0,current=null,lastVisibleCheck=0;
 const syncApi=root.NorthstarWatchlistSync,SYNC_URL='northstar-watchlist-sync-url-v12',PENDING='northstar-watchlist-sync-pending-v12';
 let pending=null,submitting=false,polling=false,syncUrl='',syncMessage='';
 try{syncUrl=localStorage.getItem(SYNC_URL)||'';if(syncUrl)syncUrl=syncApi.endpoint(syncUrl);const p=JSON.parse(localStorage.getItem(PENDING)||'null');if(p&&/^[0-9a-f]{32}$/.test(p.body?.request_id)&&p.body?.type==='sync'&&p.body?.encrypted_request?.codec==='json'&&Number.isFinite(p.at))pending=p}catch(_){}
@@ -111,8 +111,8 @@ async function saveDraft(codes,labels){
 function action(label,fn){const b=el('button',label);b.type='button';b.onclick=fn;return b}
 const reasonText={not_currently_listed_shsz:'不在当前沪深上市名录',ttm_core_missing:'核心TTM财务数据不完整',same_day_quote_unverified:'当日行情未通过核验',public_filing_check_failed:'年报核对不一致',vendor_api_error:'数据接口异常',statement_or_calculation_unavailable:'报表类型或计算条件不适用'};
 function renderPool(){
- $('poolPanel').hidden=!remote;$('searchPanel').hidden=!remote;$('keyPanel').hidden=!remote||!!writeKey;
- if(!remote)return;
+ $('poolPanel').hidden=!remote||!!current;$('searchPanel').hidden=!remote||!!current;$('keyPanel').hidden=!remote||!!current||!!writeKey;
+ if(!remote||current)return;
  const state=reconcile(draft,remote),codes=activeCodes();
  $('poolCount').textContent='观察池 '+codes.length+'/'+LIMIT;
  $('poolSyncState').textContent=draftError?'本机草稿无法解密，需明确采用后台清单后再编辑':state.conflict?'后台清单已经变化，本机草稿不能直接覆盖':state.synced?'已与后台清单一致':'本机有未同步修改';
@@ -132,7 +132,7 @@ function renderPool(){
  notice(removed?'有 '+removed+' 只股票待从后台移出；同步后生效。':'名单仅在明确提交加密同步请求后变更后台。')
 }
 async function edit(fn){if(editing||busySync())return false;editing=true;let error=null;try{if(!writeKey)throw Error('请先授权本地编辑');if(draftError||reconcile(draft,remote).conflict)throw Error('请先处理观察池版本冲突');await fn()}catch(e){error=e.message}finally{editing=false;renderPool();renderSearch()}if(error)notice(error);return !error}
-function add(x){return edit(async()=>{if(!CODE.test(x.code))throw Error('仅支持沪深股票');if(activeCodes().includes(x.code)){notice('该股票已在观察池');return}await saveDraft([...activeCodes(),x.code],[...(draft?.labels||[]),{code:x.code,name:String(x.name||x.code),industry:String(x.industry||'待确认')}])})}
+function add(x){return edit(async()=>{if(!CODE.test(x.code))throw Error('仅支持沪深股票');if(activeCodes().includes(x.code))throw Error('该股票已在观察池');await saveDraft([...activeCodes(),x.code],[...(draft?.labels||[]),{code:x.code,name:String(x.name||x.code),industry:String(x.industry||'待确认')}])})}
 function renderSearch(){
  const q=$('stockSearch').value.trim().toLowerCase();$('searchRows').replaceChildren();
  if(!q||!dir)return;
@@ -141,9 +141,9 @@ function renderSearch(){
  for(const x of found){const row=el('div',undefined,'poolrow'),info=el('div');info.append(el('b',x.name+' '+x.code),el('p',x.industry,'muted'));const b=action(activeCodes().includes(x.code)?'已加入':'添加',()=>completeSearchAdd($('stockSearch'),()=>add(x),renderSearch));b.disabled=busySync()||activeCodes().includes(x.code)||!writeKey||editing||draftError||reconcile(draft,remote).conflict;row.append(info,b);$('searchRows').append(row)}
 }
 async function loadDirectory(force=false){if(dirBusy||!remote||!key)return;dirBusy=true;try{await root.NorthstarSnapshots.load('directory',{force,decode:async q=>{const x=await decrypt(q,key,'northstar-directory-v11');if(x.version!=='company-directory-v1.1'||x.asof!==q.asof||!Array.isArray(x.stocks)||x.stocks.length<4500||x.stocks.length>7500||x.stocks.some(z=>!CODE.test(z.code)||typeof z.name!=='string'||typeof z.industry!=='string'))throw Error('名录校验失败');return x},show:x=>{dir=x.stocks;renderSearch()},notify:s=>$('directoryStatus').textContent=s})}catch(e){$('directoryStatus').textContent='名录暂不可用：'+e.message}finally{dirBusy=false}}
-async function handleHandoff(){if(!remote||!writeKey||draftError||busySync()||reconcile(draft,remote).conflict)return;let x;try{x=JSON.parse(sessionStorage.getItem(HANDOFF)||'null')}catch(_){}if(!x||!CODE.test(x.code))return;if(activeCodes().includes(x.code)){sessionStorage.removeItem(HANDOFF);return}if(confirm('加入观察池：'+String(x.name||x.code)+' '+x.code+'？')){if(!await add(x))return}try{sessionStorage.removeItem(HANDOFF)}catch(_){}}
+async function handleHandoff(){if(current||!remote||!writeKey||draftError||busySync()||reconcile(draft,remote).conflict)return;let x;try{x=JSON.parse(sessionStorage.getItem(HANDOFF)||'null')}catch(_){}if(!x||!CODE.test(x.code))return;if(activeCodes().includes(x.code)){sessionStorage.removeItem(HANDOFF);return}if(confirm('加入观察池：'+String(x.name||x.code)+' '+x.code+'？')){if(!await add(x))return}try{sessionStorage.removeItem(HANDOFF)}catch(_){}}
 async function refresh(force=false){
- if(manifestBusy||!key)return;manifestBusy=true;
+ if(manifestBusy||!key)return;manifestBusy=true;lastVisibleCheck=Date.now();
  try{await root.NorthstarSnapshots.load('watchlist',{force,decode:async q=>{const x=await decrypt(q,key,'northstar-watchlist-v11');if(!validManifest(x,q))throw Error('观察池数据校验失败');return x},show:x=>{remote=x;$('initPanel').hidden=true;const z=reconcile(draft,remote);if(draft&&z.synced&&!draftError){removeDraft();if(pending){savePending(null);syncNotice('观察池已与后台加密名单一致；可查看已生成的报告。')}}renderPool();renderSearch()},notify:(s,q)=>status((q?'后台日期 '+q.asof+' · ':'')+s)})}
  catch(e){status('后台观察池暂不可用：'+e.message);if(!remote&&/HTTP 404/.test(e.message))$('initPanel').hidden=false}
  finally{manifestBusy=false}
@@ -163,7 +163,7 @@ $('oneSync').onclick=()=>submitOne();$('syncRetry').onclick=()=>submitOne(true);
 $('syncSave').onclick=()=>{try{if(busySync())throw Error('同步过程中不可更换网关');const v=syncApi.endpoint($('syncUrl').value);localStorage.setItem(SYNC_URL,v);syncUrl=v;syncNotice('网关地址已保存，请测试连接。');renderSync()}catch(e){syncNotice(e.message)}};
 $('syncProbe').onclick=async()=>{if(!authKey||!syncUrl){syncNotice('请先保存网关地址并授权本地编辑。');return}try{const d=await syncApi.send(syncUrl,authKey,{type:'probe'});syncNotice(d.state==='configured'?'授权网关连接通过；提交权限仍以实际同步结果为准。':'网关尚未就绪')}catch(e){syncNotice(e.message)}};
 $('syncReset').onclick=async()=>{if(!pending||submitting||Date.now()-pending.at<45*60*1000)return;await pollSync();if(pending&&confirm('仅解除本机等待，不取消后台任务。请确认后台已结束；保留草稿，重新提交可能遇到版本冲突。继续？')){savePending(null);syncNotice('已解除等待，草稿仍保留。');renderPool();renderSearch()}};
-setInterval(()=>{if(pending)pollSync()},120000);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&pending)pollSync()});
+setInterval(()=>{if(pending)pollSync()},120000);document.addEventListener('visibilitychange',()=>{if(document.visibilityState!=='visible'||current)return;if(pending)pollSync();else if(Date.now()-lastVisibleCheck>=15*60*1000)refresh()});
 $('loadDirectory').onclick=()=>loadDirectory(true);
 $('stockSearch').oninput=()=>{if(!dir&&$('stockSearch').value.trim())loadDirectory();else renderSearch()};
 $('unlockEdit').onclick=async()=>{try{const h=$('editKey').value.trim();writeKey=await encryptionKey(h,key);authKey=await syncApi.authKey(h);$('editKey').value='';renderPool();renderSearch();await handleHandoff()}catch(_){notice('原固定密钥未通过本机认证')}};

@@ -4,7 +4,7 @@
  const bytes=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
  let loading=false,last=null,lastDate=null,lastCipher=null,lastVisibleCheck=0;
  function readKey(){return new Promise((resolve,reject)=>{const r=indexedDB.open('northstar-radar-key-v1',1);r.onupgradeneeded=()=>r.result.createObjectStore('keys');r.onerror=()=>reject(r.error);r.onsuccess=()=>{const db=r.result;try{const t=db.transaction('keys','readonly'),q=t.objectStore('keys').get('radar');q.onsuccess=()=>resolve(q.result||null);q.onerror=()=>reject(q.error);t.oncomplete=()=>db.close();t.onabort=()=>db.close()}catch(e){db.close();reject(e)}}})}
- async function fixedKey(){try{const k=await readKey();if(k)return k}catch(_){}try{const h=localStorage.getItem('northstar-radar-fixed-key-v1');if(/^[0-9a-fA-F]{64}$/.test(h||''))return crypto.subtle.importKey('raw',Uint8Array.from(h.match(/../g),x=>parseInt(x,16)),'AES-GCM',false,['decrypt'])}catch(_){}return null}
+ async function fixedKey(){let timer;try{const k=await Promise.race([readKey(),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('本机密钥读取超时')),2500)})]);if(k)return k}catch(_){}finally{clearTimeout(timer)}try{const h=localStorage.getItem('northstar-radar-fixed-key-v1');if(/^[0-9a-fA-F]{64}$/.test(h||''))return crypto.subtle.importKey('raw',Uint8Array.from(h.match(/../g),x=>parseInt(x,16)),'AES-GCM',false,['decrypt'])}catch(_){}return null}
  async function decode(q,key){
   if(q.version!==2||q.codec!=='gzip'||!/^\d{8}$/.test(q.asof)||typeof q.iv!=='string'||typeof q.ciphertext!=='string'||q.ciphertext.length>20000000)throw Error('快照格式错误');
   const iv=bytes(q.iv);if(iv.length!==12)throw Error('IV格式错误');

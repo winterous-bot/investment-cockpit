@@ -12,11 +12,12 @@
   let pending=null;
   function db(){
    if(!pending)pending=new Promise((resolve,reject)=>{
-    let r;try{r=indexedDB.open(DB,1)}catch(e){reject(e);return}
+    let r,expired=false;try{r=indexedDB.open(DB,1)}catch(e){reject(e);return}
+    const fail=e=>{expired=true;clearTimeout(timer);reject(e)},timer=setTimeout(()=>fail(Error('storage open timeout')),2500);
     r.onupgradeneeded=()=>r.result.createObjectStore(STORE);
-    r.onsuccess=()=>{r.result.onversionchange=()=>{r.result.close();pending=null};resolve(r.result)};
-    r.onerror=()=>reject(r.error||Error('storage error'));
-    r.onblocked=()=>reject(Error('storage blocked'));
+    r.onsuccess=()=>{clearTimeout(timer);if(expired){r.result.close();return}r.result.onversionchange=()=>{r.result.close();pending=null};resolve(r.result)};
+    r.onerror=()=>fail(r.error||Error('storage error'));
+    r.onblocked=()=>fail(Error('storage blocked'));
    }).catch(e=>{pending=null;throw e});
    return pending;
   }

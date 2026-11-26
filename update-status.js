@@ -11,11 +11,11 @@
  function e(tag,text){const n=document.createElement(tag);if(text)n.textContent=text;return n}
  const nav=document.querySelector('.module-nav');if(!nav)return;
  const panel=e('details');panel.className='radar-panel';panel.style.margin='8px 0';
- const summary=e('summary','后台更新状态 · V2.2.1');const body=e('div'),state=e('p','展开后检查后台，不影响本地快照加载。');state.className='radar-muted';
+ const summary=e('summary','后台更新状态');const body=e('div'),state=e('p','展开后检查后台，不影响本地快照加载。');state.className='radar-muted';
  const list=e('div'),actions=e('div');actions.className='radar-row';
  const refresh=e('button','检查后台');refresh.type='button';refresh.className='radar-chip';
  const a=e('a','手动启动后台更新');a.href=link;a.target='_blank';a.rel='noopener noreferrer';
- actions.append(refresh,a);body.append(state,list,actions,e('p','手动启动需登录 GitHub 并选择 Run workflow；完成后返回对应模块刷新。状态只反映最后一次后台审计，不代表手机已经下载。'));panel.append(summary,body);nav.after(panel);
+ actions.append(refresh,a);body.append(state,list,actions,e('p','手动启动需登录 GitHub 并选择 Run workflow；完成后返回对应模块刷新。状态只反映最后一次统一调度审计；单独刷新或观察池同步可能更新得更晚，不代表手机已经下载。'));panel.append(summary,body);nav.after(panel);
  let busy=false,last=0;
  async function check(force=false){
   if(busy||(!force&&Date.now()-last<60000))return;
@@ -26,7 +26,7 @@
    const d=m.status==='fulfilled'?m.value:null,run=r.status==='fulfilled'?r.value.workflow_runs?.find(x=>x.event!=='pull_request'):null;
    if(d?.version===1&&/^\d{8}$/.test(d.target)&&d.modules){
     for(const [id,name] of Object.entries(modules)){const x=d.modules[id]||{};const p=e('p',name+' · '+(label[x.state]||'未核实')+' · '+fmt(x.asof));list.append(p)}
-    state.textContent='最近审计 '+localTime(d.checked_at)+'（北京时间） · 目标交易日 '+fmt(d.target);
+    state.textContent='最近一次统一调度审计 '+localTime(d.checked_at)+'（北京时间） · 目标交易日 '+fmt(d.target);
    }else state.textContent='尚无可靠后台审计记录，请查看运行记录；保留本地快照。';
    if(run){
     const active=['queued','in_progress','waiting','requested','pending'].includes(run.status);

@@ -16,7 +16,7 @@ https://github.com/winterous-bot/investment-cockpit/settings/secrets/actions
 现有 RADAR_KEY 和 TUSHARE_TOKEN 不要修改。不要把任何 Token 发给聊天、写入代码或 URL。
 
 ## 4. 部署
-打开 https://github.com/winterous-bot/investment-cockpit/actions/workflows/watchlist-sync-gateway-deploy.yml ，选择 main，Run workflow。只有主动运行才会部署。成功后从 Deploy 日志复制 investment-watchlist-sync.<本人子域>.workers.dev 的 HTTPS 根网址（不要复制日志中的其他内容）。部署脚本使用现有 RADAR_KEY 在 runner 内派生独立 HMAC 密钥，Cloudflare 仅保存派生密钥和 Actions 令牌；不保存原始 RADAR_KEY。
+打开 https://github.com/winterous-bot/investment-cockpit/actions/workflows/watchlist-sync-gateway-deploy.yml ，选择 main，Run workflow。常规部署由主动运行触发；明确标记的网关修复提交也可触发。成功后从 Deploy 日志复制 investment-watchlist-sync.<本人子域>.workers.dev 的 HTTPS 根网址（不要复制日志中的其他内容）。部署脚本使用现有 RADAR_KEY 在 runner 内派生独立 HMAC 密钥，Cloudflare 仅保存派生密钥和 Actions 令牌；不保存原始 RADAR_KEY。
 
 ## 5. 手机
 关闭并重新打开驾驶舱（不清理数据），个股研究 → 一键同步设置 → 保存网关 → 测试连接 → 一键同步观察池。等待后台完成后页面自动检查；原加密草稿直到后台清单验证一致才清除。手动同步作为备用。连接测试不触发研究，只验证签名及 GitHub 工作流可读；实际提交才能证明 Actions 写权限。后台可能排队、接口失败或部分公司报告未完成，提交接收不代表报告完成。
@@ -25,4 +25,4 @@ https://github.com/winterous-bot/investment-cockpit/settings/secrets/actions
 - 网关仅接受指定网页 origin、120秒有效期 HMAC 签名及有界加密请求。签名不能代替后端原 AES-GCM 认证与版本冲突检查。
 - Durable Object 记录请求 ID 和摘要以阻止重复派发（24小时、最多约64项），每分钟最多新提交一次；不保存股票明文或请求密文。重复请求返回之前结果，未知结果必须人工检查。GitHub 并发规则仍有效；任务取消/失败保留草稿。
 - 原密钥轮换后需重新运行部署任务更新派生密钥；PAT 到期前更新 Secret 后重部署。Cloudflare 权限不足、网络不可达或服务费用/限额变化时可回退手动同步。
-- 首次部署后须验证真实网关、iOS 端到端同步、三个待研究股票及自动更新。离线模拟测试不能替代这些生产验证。
+- 首次部署后须验证真实网关、iOS 端到端同步、全部待研究股票及自动更新。离线模拟测试不能替代这些生产验证。
