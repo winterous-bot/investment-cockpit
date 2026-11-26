@@ -1,7 +1,7 @@
 import unittest,sys
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/"growth"))
-from model import period_plan,select,ttm,cagr,metrics,passes
+from growth_model import period_plan,select,ttm,cagr,metrics,passes
 class GrowthTests(unittest.TestCase):
     def test_period(self):
         p=period_plan("20261125")
