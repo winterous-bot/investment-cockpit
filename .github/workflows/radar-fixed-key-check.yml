@@ -20,6 +20,7 @@ jobs:
           node --check industry-radar.js
           node --check sw.js
           node tests/test_radar_view.cjs
+          node tests/test_radar_fixed_key.cjs
           node radar/encrypt.mjs --test
       - name: Verify latest ciphertext against current RADAR_KEY without downloading market data
         env:
