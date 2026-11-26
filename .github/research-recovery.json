@@ -1,1 +1,6 @@
-{"version":1,"request":"initial-placeholder"}
+{
+  "version": 1,
+  "request": "2026-11-26T22:34:00+08:00",
+  "target": "20261126",
+  "slot": "acceptance"
+}
