@@ -1,0 +1,112 @@
+name: Company watchlist (owner sync and daily refresh)
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'bootstrap=empty initial pool; sync=encrypted draft; refresh=existing pool'
+        required: true
+        type: choice
+        options: [bootstrap, sync, refresh]
+        default: refresh
+      encrypted_request:
+        description: 'Paste encrypted request only for sync (never paste a secret)'
+        type: string
+        required: false
+  schedule:
+    # Beijing 21:30 on trading weekdays; no automatic initial pool.
+    - cron: '30 13 * * 1-5'
+permissions:
+  contents: write
+concurrency:
+  group: company-watchlist-v11
+  cancel-in-progress: false
+jobs:
+  research:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check calendar, authenticate pool and prepare request
+        id: gate
+        env:
+          RADAR_KEY: ${{ secrets.RADAR_KEY }}
+          TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
+          WATCHLIST_MODE: ${{ inputs.mode || 'refresh' }}
+          WATCHLIST_REQUEST: ${{ inputs.encrypted_request }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT" = schedule ] && [ ! -f data/watchlist.enc.json ]; then echo "run=no" >> "$GITHUB_OUTPUT"; exit 0; fi
+          day=$(TZ=Asia/Shanghai date +%Y%m%d)
+          if [ "$EVENT" = schedule ]; then
+            OPEN=$(python - "$day" <<'PY'
+          import sys,os
+          sys.path.insert(0,"scripts")
+          from tushare_5000 import Tushare
+          day=sys.argv[1]
+          rows=Tushare(os.environ["TUSHARE_TOKEN"]).ask("trade_cal",{"exchange":"SSE","start_date":day,"end_date":day},"cal_date,is_open")
+          v={str(x["is_open"]) for x in rows if str(x["cal_date"])==day}
+          if len(v)!=1 or not v<={"0","1"}:raise RuntimeError("Trading calendar unavailable")
+          print(next(iter(v)))
+          PY
+            )
+            if [ "$OPEN" != 1 ]; then echo "run=no" >> "$GITHUB_OUTPUT"; exit 0; fi
+          fi
+          mkdir -p "$RUNNER_TEMP/watchlist"
+          node company/watchlist_seal.mjs prepare data "$RUNNER_TEMP/watchlist"
+          echo "run=yes" >> "$GITHUB_OUTPUT"
+          echo "day=$day" >> "$GITHUB_OUTPUT"
+      - name: Reuse same-date encrypted growth peer source if available
+        if: steps.gate.outputs.run == 'yes'
+        env:
+          RADAR_KEY: ${{ secrets.RADAR_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -f data/growth.enc.json ]; then
+            node company/seal.mjs --growth data/growth.enc.json "$RUNNER_TEMP/watchlist-growth.json" || rm -f "$RUNNER_TEMP/watchlist-growth.json"
+          fi
+      - name: Build only requested company profiles
+        if: steps.gate.outputs.run == 'yes'
+        env:
+          TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
+          DAY: ${{ steps.gate.outputs.day }}
+        run: |
+          set -euo pipefail
+          args=()
+          if [ -f "$RUNNER_TEMP/watchlist-growth.json" ]; then args+=(--growth "$RUNNER_TEMP/watchlist-growth.json"); fi
+          python company/watchlist_build.py --asof "$DAY" --request "$RUNNER_TEMP/watchlist/request.json" --output "$RUNNER_TEMP/watchlist" "${args[@]}"
+      - name: Assemble and authenticate ciphertext only
+        if: steps.gate.outputs.run == 'yes'
+        env:
+          RADAR_KEY: ${{ secrets.RADAR_KEY }}
+        run: node company/watchlist_seal.mjs assemble data "$RUNNER_TEMP/watchlist"
+      - name: Atomically publish encrypted changes
+        if: steps.gate.outputs.run == 'yes'
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A -- data
+          if git diff --cached --quiet; then exit 0; fi
+          git diff --cached --name-only | python -c 'import sys,re; assert all(re.fullmatch(r"data/(watchlist\.enc\.json|company-directory\.enc\.json|companies/[0-9a-f]{64}\.enc\.json)", x.strip()) for x in sys.stdin)'
+          git commit -m 'data: refresh encrypted company observation pool'
+          for n in 1 2 3; do
+            git fetch origin main
+            git rebase origin/main
+            if git push origin HEAD:main; then exit 0; fi
+            sleep "$((2*n))"
+          done
+          exit 1
+      - name: Clean private temporary files
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/watchlist" "$RUNNER_TEMP/watchlist-growth.json"
