@@ -1,0 +1,29 @@
+name: Watchlist V1.2 gateway validation
+on:
+  pull_request:
+    branches: [main]
+    paths: ['watchlist*.js','worker/watchlist*','worker/WATCHLIST-SYNC.md','company.html','sw.js','scripts/research-plan.py','tests/test_watchlist*','.github/workflows/watchlist-sync*','.github/workflows/company-watchlist.yml']
+  push:
+    branches: [main]
+    paths: ['watchlist*.js','worker/watchlist*','worker/WATCHLIST-SYNC.md','company.html','sw.js','scripts/research-plan.py','tests/test_watchlist*','.github/workflows/watchlist-sync*','.github/workflows/company-watchlist.yml']
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: |
+          node --check watchlist.js
+          node --check watchlist-sync.js
+          node --check worker/watchlist-sync.mjs
+          node tests/test_watchlist_sync.mjs
+          node tests/test_watchlist.mjs
+          node tests/test_snapshot_store.cjs
+          python -m unittest discover -s tests -p 'test_research_*.py' -v

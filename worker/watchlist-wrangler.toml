@@ -1,0 +1,16 @@
+name = "investment-watchlist-sync"
+main = "watchlist-sync.mjs"
+compatibility_date = "2026-11-26"
+workers_dev = true
+preview_urls = false
+
+[[durable_objects.bindings]]
+name = "SYNC_GATE"
+class_name = "SyncGate"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["SyncGate"]
+
+[observability]
+enabled = false
