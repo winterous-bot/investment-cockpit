@@ -1,0 +1,63 @@
+name: Growth scanner V1.4.1 accounting diagnostics
+on:
+  push:
+    branches: [research/growth-scanner-v1]
+    paths: ['.github/workflows/growth-financial-v141.yml','growth/financial_engine_v141*.py','tests/test_financial_engine_v141.py']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  reconstruct:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Financial identity and regression tests
+        run: |
+          python -m unittest discover -s tests -v
+          python -m py_compile growth/financial_engine_v141.py growth/financial_engine_v141_build.py
+          python - <<'PY'
+          import re
+          from pathlib import Path
+          s=re.findall(r"<script>(.*?)</script>",Path("growth/view.html").read_text(),re.S)
+          assert len(s)==1 and "hist_discount" not in s[0]
+          Path("/tmp/growth-view.js").write_text(s[0])
+          PY
+          node --check /tmp/growth-view.js
+      - uses: actions/download-artifact@v4
+        with:
+          name: growth-scanner-v14
+          run-id: 45747934784
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: ${{ runner.temp }}/growth-source
+      - name: Recover authenticated financial snapshot
+        env:
+          RADAR_KEY: ${{ secrets.RADAR_KEY }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/growth-v141"
+          node growth/reuse_snapshot.mjs "$RUNNER_TEMP/growth-source/growth.html" "$RUNNER_TEMP/growth-v141/snapshot.json" growth-scanner-v1.4
+      - name: Fetch raw consolidated statements and independently reconstruct financial inputs
+        env:
+          TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
+        run: python growth/financial_engine_v141_build.py "$RUNNER_TEMP/growth-v141"
+      - name: Encrypt report with existing key
+        env:
+          RADAR_KEY: ${{ secrets.RADAR_KEY }}
+        run: node growth/seal.mjs "$RUNNER_TEMP/growth-v141"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: growth-scanner-v141
+          path: |
+            ${{ runner.temp }}/growth-v141/growth.html
+            ${{ runner.temp }}/growth-v141/validation.json
+          retention-days: 3
+          if-no-files-found: error
+      - name: Clean temporary financial data
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/growth-v141" "$RUNNER_TEMP/growth-source"
