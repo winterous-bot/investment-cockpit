@@ -2,10 +2,10 @@ name: Watchlist V1.2 gateway validation
 on:
   pull_request:
     branches: [main]
-    paths: ['watchlist*.js','worker/watchlist*','worker/WATCHLIST-SYNC.md','company.html','sw.js','scripts/research-plan.py','tests/test_watchlist*','.github/workflows/watchlist-sync*','.github/workflows/company-watchlist.yml']
+    paths: ['watchlist*.js','worker/watchlist*','worker/WATCHLIST-SYNC.md','company.html','sw.js','scripts/research-plan.py','tests/test_watchlist*','tests/test_release_consistency.cjs','tests/test_radar_fixed_key.cjs','.github/workflows/watchlist-sync*','.github/workflows/company-watchlist.yml']
   push:
     branches: [main]
-    paths: ['watchlist*.js','worker/watchlist*','worker/WATCHLIST-SYNC.md','company.html','sw.js','scripts/research-plan.py','tests/test_watchlist*','.github/workflows/watchlist-sync*','.github/workflows/company-watchlist.yml']
+    paths: ['watchlist*.js','worker/watchlist*','worker/WATCHLIST-SYNC.md','company.html','sw.js','scripts/research-plan.py','tests/test_watchlist*','tests/test_release_consistency.cjs','tests/test_radar_fixed_key.cjs','.github/workflows/watchlist-sync*','.github/workflows/company-watchlist.yml']
 permissions:
   contents: read
 jobs:
