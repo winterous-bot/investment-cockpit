@@ -2,10 +2,10 @@ name: Watchlist V1.2 gateway validation
 on:
   pull_request:
     branches: [main]
-    paths: ['watchlist*.js','worker/watchlist*','worker/WATCHLIST-SYNC.md','company.html','sw.js','scripts/research-plan.py','tests/test_watchlist*','tests/test_release_consistency.cjs','tests/test_radar_fixed_key.cjs','.github/workflows/watchlist-sync*','.github/workflows/company-watchlist.yml']
+    paths: ['watchlist*.js','worker/watchlist*','worker/WATCHLIST-SYNC.md','company.html','sw.js','scripts/research-plan.py','tests/test_watchlist*','tests/test_release_consistency.cjs','tests/test_app_update.cjs','app-update.js','release.json','index.html','growth.html','tests/test_radar_fixed_key.cjs','.github/workflows/watchlist-sync*','.github/workflows/company-watchlist.yml']
   push:
     branches: [main]
-    paths: ['watchlist*.js','worker/watchlist*','worker/WATCHLIST-SYNC.md','company.html','sw.js','scripts/research-plan.py','tests/test_watchlist*','tests/test_release_consistency.cjs','tests/test_radar_fixed_key.cjs','.github/workflows/watchlist-sync*','.github/workflows/company-watchlist.yml']
+    paths: ['watchlist*.js','worker/watchlist*','worker/WATCHLIST-SYNC.md','company.html','sw.js','scripts/research-plan.py','tests/test_watchlist*','tests/test_release_consistency.cjs','tests/test_app_update.cjs','app-update.js','release.json','index.html','growth.html','tests/test_radar_fixed_key.cjs','.github/workflows/watchlist-sync*','.github/workflows/company-watchlist.yml']
 permissions:
   contents: read
 jobs:
@@ -26,6 +26,7 @@ jobs:
           node tests/test_watchlist_sync.mjs
           node tests/test_watchlist.mjs
           node tests/test_release_consistency.cjs
+          node tests/test_app_update.cjs
           node tests/test_radar_fixed_key.cjs
           node tests/test_snapshot_store.cjs
           python -m unittest discover -s tests -p 'test_research_*.py' -v
