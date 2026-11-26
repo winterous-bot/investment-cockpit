@@ -1,0 +1,31 @@
+name: Local-first V2.1 validation
+on:
+  push:
+    branches: [release/local-first-v21]
+    paths: ['.github/workflows/local-first-validation.yml']
+  pull_request:
+    branches: [main]
+    paths: ['snapshot-store.js','tests/test_snapshot_store.cjs','industry-radar.js','growth-loader.js','sw.js']
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: |
+          python -m unittest discover -s tests -v
+          node --check snapshot-store.js
+          node --check industry-radar.js
+          node --check growth-loader.js
+          node --check sw.js
+          node tests/test_snapshot_store.cjs
+          node tests/test_radar_fixed_key.cjs
+          node tests/test_radar_view.cjs
+          node tests/test_growth_ui.cjs

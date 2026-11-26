@@ -14,7 +14,7 @@ function harness(snapshot,hex){
  const get=id=>{if(!elements.has(id))elements.set(id,new El());return elements.get(id)};
  const key=hex,urls=[],window={};
  const ctx={document:{getElementById:get,createElement:t=>new El(t)},window,indexedDB:{open(){throw Error('blocked')}},localStorage:{getItem(k){assert.equal(k,'northstar-radar-fixed-key-v1');return key}},crypto:webcrypto,Blob,DecompressionStream,TextEncoder,TextDecoder,atob,Uint8Array,AbortController,setTimeout,clearTimeout,Intl,location:{protocol:'https:'},navigator:{},fetch:async u=>{urls.push(u);return {ok:true,json:async()=>u.includes('api.github.com')?[{sha:'a'.repeat(40)}]:snapshot}}};
- vm.runInNewContext(view,ctx);vm.runInNewContext(loader,ctx);return {get,urls,window};
+ vm.runInNewContext(fs.readFileSync('snapshot-store.js','utf8'),ctx);vm.runInNewContext(view,ctx);vm.runInNewContext(loader,ctx);return {get,urls,window};
 }
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 async function ready(h){for(let i=0;i<200&&h.get('growthReload').disabled;i++)await wait(30)}

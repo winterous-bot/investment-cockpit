@@ -11,10 +11,12 @@ on:
       - 'tests/test_radar_fixed_key.cjs'
       - 'index.html'
       - 'sw.js'
+      - 'snapshot-store.js'
+      - 'tests/test_snapshot_store.cjs'
       - '.github/workflows/industry-radar-daily.yml'
   pull_request:
     branches: [main]
-    paths: ['radar/**','industry-radar.js','radar-view.js','radar-ui.css','tests/test_radar_view.cjs','tests/test_radar_fixed_key.cjs','index.html','sw.js','.github/workflows/industry-radar-daily.yml']
+    paths: ['radar/**','industry-radar.js','radar-view.js','radar-ui.css','tests/test_radar_view.cjs','tests/test_radar_fixed_key.cjs','index.html','sw.js','snapshot-store.js','tests/test_snapshot_store.cjs','.github/workflows/industry-radar-daily.yml']
   schedule:
     # Beijing 18:15, 19:15, 20:15, 21:10; retry only if current snapshot is not authenticated.
     - cron: '15 10,11,12 * * 1-5'
@@ -40,6 +42,8 @@ jobs:
           node --check radar-view.js
           node tests/test_radar_view.cjs
           node tests/test_radar_fixed_key.cjs
+          node --check snapshot-store.js
+          node tests/test_snapshot_store.cjs
           node --check sw.js
           node radar/encrypt.mjs --test
   refresh:
