@@ -10,3 +10,9 @@
 同行估值：从当前完整财务截面排除目标公司、按Tushare stock_basic行业相同及营收CAGR±15pp、扣非TTM增速±30pp、ROIC±7pp匹配，至少8家。以扣非PE P25/P50/P75乘目标当前扣非EPS（close/扣非PE）。不匹配时仅给同分类中位数背景（至少8家），不生成价格。不是申万行业分类；不能替代人工业务可比性判断。普通和扣非PE差异大于30%比值时提示核查。
 模型均为相对估值，不是DCF内在价值、收益预测或买卖点，不能平均成目标价。按用户要求移除两类估值折价排序，保留估值卡片；三种筛选场景和可选PE上限不变。使用现有固定密钥加密，研究附件不含明文公司数据。正式部署尚未进行。
 专业依据：CFA Institute Market-Based Valuation: Price and Enterprise Value Multiples；Equity Valuation: Applications and Processes；Aswath Damodaran Price Earnings Ratio (PE)。具体样本和匹配阈值为本工具设计，并非专业机构指定。
+
+## V1.3 反向DCF（独立研究）
+反向FCFF DCF求解当前企业价值隐含的恒定NOPAT增速；再投资与增长相联，FCFF增速为从正常化基期FCFF到增长期末的派生CAGR，不等同于NOPAT增速。基期NOPAT取供应商TTM EBIT×75%（统一25%税率仅作假设）；FCFF取TTM经营规模×（三年年度FCFF/NOPAT中位数的50%＋TTM FCFF/NOPAT的50%）。供应商EBIT、FCFF字段及累计转TTM口径需逐股核对，未将原有CFO减资本支出直接称为FCFF。连续三个完整年度及TTM均需正FCFF、正EBIT，FCFF/NOPAT最大/最小不超过4且最大不超过2，三年ROIC均为正。增量ROIC代理为最近三年年度ROIC中位数（5%～60%适用域），不等于未来真实增量ROIC。
+市值＋供应商净债务＋账面少数权益＋其他权益工具=模型企业价值。少数权益用合并股东权益差核验，其他权益工具缺失按未披露金额0作近似。未单独估计非经营资产、公允价值、受限现金等，净债务及EBIT、FCFF口径是简化，不是审计后的个股估值。金额以亿元统一；对应每股价格使用经V1.2交叉核验的当前收盘价与市值比例。
+5年/10年增长期，WACC 8%/10%/12%，永续增长2%/3%/4%，共18组；基准10%/3%。增长期再投资率=max(g,0)/ROIC，求解域-20%至min(60%,ROIC)，不假设收缩释放营运资本，不允许超过100%再投资。该限制排除了依赖外部融资或未来ROIC改善的情形，不意味着公司不能实现更高增长。终值增量ROIC=WACC，重算下一年FCFF及Gordon终值。用分段多项式与导数根隔离搜索全部有效根，包括非单调及相切，单一有效根才显示数值；超范围/多解/数据异常明确提示。15%/25%/35%假设NOPAT增长的前向价格也受同一适用域约束。所有假设仅为情景，不是未来预测。
+理论依据：Aswath Damodaran, Growth Rates and Terminal Value；Reinvestment and Excess Return Assumptions（NYU Stern）。没有历史收益验证。维持V1.1筛选及V1.2相对估值，不增加排序，不新增密钥；仅研究附件，不上线正式工具。
