@@ -29,11 +29,22 @@ async function run(){
  assert.ok(fold,'Native filter disclosure is present');assert.ok(!/\bopen\b/.test(fold[1]),'Filter disclosure starts collapsed');
  for(const id of ['filters','value','reset'])assert.ok(fold[2].includes('id="'+id+'"'),id+' must be inside disclosure');
  for(const id of ['presets','sceneNote','count','query','sort','rows'])assert.ok(!fold[2].includes('id="'+id+'"'),id+' must stay outside disclosure');
+ const toolbar=html.match(/<div class="growth-toolbar">([\s\S]*?)<\/select><\/div>/);
+ assert.ok(toolbar,'Compact results toolbar exists');
+ assert.match(toolbar[1],/<input id="query" type="search" placeholder="搜索公司或行业" aria-label="搜索公司或行业"/);
+ assert.match(toolbar[1],/<select id="sort" aria-label="排序">/);
+ assert.deepEqual([...toolbar[1].matchAll(/<option value="([^"]+)"/g)].map(m=>m[1]),['roic','revenue_cagr','deducted_yoy','cash_conversion','pe']);
+ const css=fs.readFileSync('growth-ui.css','utf8');
+ assert.match(css,/\.growth-toolbar\{display:grid;grid-template-columns:minmax\(0,1\.08fr\) minmax\(0,1fr\);align-items:center/);
+ assert.match(css,/#query,#growthMain \.growth-toolbar #sort\{[^}]*height:44px/);
  const h=harness(cipher,hex);await ready(h);assert.match(h.get('growthStatus').textContent,/行情日期 20261125/);assert.equal(h.get('growthMain').hidden,false);assert.equal(h.get('presets').children.length,3);assert.match(h.get('count').textContent,new RegExp('符合条件 '+(arg?18:1)+' 家'));
  const counts=arg?[7,18,17]:[1,1,1];for(let i=0;i<3;i++){h.get('presets').children[i].onclick();assert.match(h.get('count').textContent,new RegExp('符合条件 '+counts[i]+' 家'))}
  const presetRoic=h.get('roic').value;h.get('roic').value=999;h.get('roic').oninput();assert.match(h.get('sceneNote').textContent,/已手动调整参数/);
  h.get('reset').onclick();assert.equal(h.get('roic').value,presetRoic);assert.match(h.get('sceneNote').textContent,/使用预设参数/);
  assert.equal(h.get('rows').children.length,counts[2]);assert.ok(h.urls.some(u=>u.includes('a'.repeat(40))));
+ h.get('query').value='不可能匹配的测试关键词';h.get('query').oninput();assert.equal(h.get('rows').children.length,0);
+ h.get('query').value='';h.get('query').oninput();assert.equal(h.get('rows').children.length,counts[2]);
+ for(const sort of ['roic','revenue_cagr','deducted_yoy','cash_conversion','pe']){h.get('sort').value=sort;h.get('sort').onchange();assert.equal(h.get('rows').children.length,counts[2]);}
  const bad=harness(cipher,randomBytes(32).toString('hex'));await ready(bad);assert.match(bad.get('growthStatus').textContent,/未通过认证/);
  console.log('Growth UI: shared fixed-key fallback, authenticated gzip snapshot, all three scenario buttons, actual card rendering and wrong-key rejection passed.');
 }

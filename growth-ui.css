@@ -4,3 +4,14 @@ h1{font-size:24px}h2{font-size:18px}.panel{background:#111e31;border:1px solid #
 #growthMain .panel{padding:12px}#growthMain .metric{min-width:0;overflow-wrap:anywhere}#growthMain .dcf td,#growthMain .dcf th{overflow-wrap:anywhere}#growthMain details>summary{cursor:pointer;color:#81d4da}#growthMain .presets{gap:5px}#growthMain .presets button{min-width:0}#growthMain .grid{gap:8px}
 
 #growthMain .filter-settings{border-top:1px solid #283c55;margin-top:10px;padding-top:10px}#growthMain .filter-settings>summary{font-size:14px;line-height:1.6;min-height:28px}#growthMain .filter-settings[open]>summary{margin-bottom:12px}
+
+/* Compact single-row results toolbar; both controls remain usable on narrow iPhones. */
+#growthMain .growth-toolbar{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,1fr);align-items:center;gap:8px;margin:10px 0 8px}
+#growthMain .growth-search{position:relative;min-width:0}
+#growthMain .growth-search svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+#growthMain .growth-toolbar #query,#growthMain .growth-toolbar #sort{display:block;box-sizing:border-box;width:100%;min-width:0;height:44px;margin:0;border:1px solid #39536a;border-radius:8px;background:#1c3045;color:var(--text);font-size:16px;line-height:1.2}
+#growthMain .growth-toolbar #query{padding:0 8px 0 32px;appearance:none;-webkit-appearance:none}
+#growthMain .growth-toolbar #query::placeholder{color:var(--muted);opacity:1}
+#growthMain .growth-toolbar #sort{padding:0 6px 0 9px;text-overflow:ellipsis}
+#growthMain .growth-toolbar #sort:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media(max-width:390px){#growthMain .growth-toolbar{gap:6px;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr)}#growthMain .growth-search svg{left:8px;width:14px;height:14px}#growthMain .growth-toolbar #query{padding-left:27px}#growthMain .growth-toolbar #query::placeholder{font-size:12px}#growthMain .growth-toolbar #sort{padding-left:5px}}
