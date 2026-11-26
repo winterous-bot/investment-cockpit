@@ -36,7 +36,7 @@ jobs:
         env:
           RADAR_KEY: ${{ secrets.RADAR_KEY }}
         run: node company/seal.mjs --growth data/growth.enc.json "$RUNNER_TEMP/company-growth.json"
-      - name: Real financials, valuation and public filing headline reconciliation
+      - name: Real financials, exact-period recovery and public filing headline reconciliation
         env:
           TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
         run: python company/build.py --asof 20261125 --growth "$RUNNER_TEMP/company-growth.json" --output "$RUNNER_TEMP/company-research"

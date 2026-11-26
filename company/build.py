@@ -11,11 +11,52 @@ from company_model import *
 POINTS.update({k.removesuffix("_vip"):2000 for k in gm.FIELDS})
 EXTRA={"income_vip":("oper_cost","rd_exp"),"cashflow_vip":(),"balancesheet_vip":("accounts_receiv","inventories","total_cur_assets","total_cur_liab"),"fina_indicator_vip":()}
 def fields(ep):return tuple(dict.fromkeys(gm.FIELDS[ep]+fe.FIELDS.get(ep,())+EXTRA[ep]))
+def selection(rows,ep,k,p,asof):
+    # Same original frozen selectors, on exactly the requested report period.
+    r=[x for x in rows if str(x.get("end_date"))==p]
+    d,gh=gm.select(r,ep,p,asof)
+    base=d.get(k)
+    accounting=None;ah={}
+    if ep in fe.FIELDS:
+        f,ah=fe.pick(r,p,asof,fe.FIELDS[ep])
+        accounting=f.get(k)
+        ff,ph=fe.pick(r,p,asof,fields(ep))
+        profile_row=ff.get(k) if k in ff else accounting
+    else:
+        profile_row=base;ph=gh
+    return profile_row,base,accounting,{"raw":len(r),"growth_conflicts":gh.get("conflicts",0),"profile_conflicts":ph.get("conflicts",0),"accounting_conflicts":ah.get("conflicts",0)}
+def required_fields(ep):
+    # Only repair core flow inputs used for annual/quarter/TTM, plus the
+    # core balance and frozen scanner fields. No demand for optional blanks.
+    return {"income_vip":("revenue","n_income","n_income_attr_p"),
+            "cashflow_vip":("n_cashflow_act","c_pay_acq_const_fiolta"),
+            "balancesheet_vip":("total_assets","total_liab","total_hldr_eqy_exc_min_int"),
+            "fina_indicator_vip":("profit_dedt",)}[ep]
+def missing(row,keys):
+    return [key for key in keys if row is None or gm.number(row.get(key)) is None]
+def repair_period(api,ep,k,p,asof,rows,request_fields):
+    keys=required_fields(ep)
+    current,base,_,health=selection(rows,ep,k,p,asof)
+    before=missing(current,keys)
+    if not before and base is not None:return rows,None
+    params={"ts_code":k,"period":p}
+    if ep!="fina_indicator_vip":params["report_type"]="1"
+    failed=False;extra=[]
+    try:
+        extra=api.ask(ep.removesuffix("_vip"),params,request_fields)
+        if any(z.get("ts_code")!=k or str(z.get("end_date"))!=p for z in extra):
+            raise RuntimeError("Exact-period endpoint returned wrong stock or period")
+    except SafeAPIError:
+        failed=True
+    # Never silently discard contradictory rows or join fields from versions.
+    # Add exact-period results and re-run the original full-row selectors.
+    combined=rows+extra
+    selected,_,_,after_health=selection(combined,ep,k,p,asof)
+    return combined,{"endpoint":ep,"period":p,"before":before,"after":missing(selected,keys),"range_rows":health["raw"],"exact_rows":len(extra),"api_error":failed,"growth_conflicts":after_health["growth_conflicts"],"profile_conflicts":after_health["profile_conflicts"]}
 def load_company(api,k,asof,plan):
-    # Calendar-year slices avoid per-request row caps. Statements use announcement
-    # dates; fina_indicator uses report periods. Both get announcement-date gating.
     first=int(plan["annual"][:4])-5
-    raw={};health=[]
+    raw={};health=[];data={};base={};accounting={}
+    periods=[period(q) for q in range(first*4,qindex(plan["latest"])+1)]
     for ep in gm.FIELDS:
         f=fields(ep);is_statement=ep!="fina_indicator_vip"
         metadata="ts_code,ann_date,end_date,"+("f_ann_date,report_type,comp_type,update_flag," if is_statement else "")
@@ -28,29 +69,20 @@ def load_company(api,k,asof,plan):
             if len(a)>=100:raise RuntimeError("Single-company financial batch may be truncated")
             if any(x.get("ts_code")!=k for x in a):raise RuntimeError("Unexpected company in response")
             rows.extend(a);time.sleep(.1)
-        raw[ep]=rows
-        health.append({"endpoint":ep,"rows":len(rows)})
-    # Use frozen growth selector for scanner metrics; separate conservative
-    # same-day selection for profile and exact frozen accounting fields for DCF.
-    data={};base={};accounting={}
-    periods=[period(q) for q in range(first*4,qindex(plan["latest"])+1)]
-    for ep,rows in raw.items():
+        # Bounded exact-report-period recovery; still only the five test stocks.
+        y=int(plan["annual"][:4]);q=qindex(plan["latest"])
+        annual={str(z)+"1231" for z in range(y-5,y+1)}
+        relevant=annual|{period(z) for z in range(q-16,q+1)} if ep!="balancesheet_vip" else annual|{plan["latest"],plan["prior"]}
+        repairs=[]
+        for p in sorted(relevant):
+            rows,event=repair_period(api,ep,k,p,asof,rows,request_fields)
+            if event is not None:repairs.append(event);time.sleep(.15)
         for p in periods:
-            r=[x for x in rows if x.get("end_date")==p]
-            d,h=gm.select(r,ep,p,asof)
-            if k in d:base[(ep,p)]={k:d[k]}
-            if ep in fe.FIELDS:
-                f,h=fe.pick(r,p,asof,fe.FIELDS[ep])
-                if k in f:accounting[(ep,p)]=f[k]
-                ff,h=fe.pick(r,p,asof,fields(ep))
-                if k in ff:data[(ep,p)]=ff[k]
-            else:
-                if k in d:data[(ep,p)]=d[k]
-    # Retain exact core profile values when only an extra-field conflict exists,
-    # never merge distinct records across dates. Fall back to the independently
-    # selected frozen accounting row as a whole, with unavailable extras.
-    for key,v in accounting.items():
-        if key not in data:data[key]=v
+            d,g,f,h=selection(rows,ep,k,p,asof)
+            if d is not None:data[(ep,p)]=d
+            if g is not None:base[(ep,p)]={k:g}
+            if f is not None:accounting[(ep,p)]=f
+        health.append({"endpoint":ep,"rows":len(rows),"repairs":repairs})
     return data,base,accounting,health
 def quote_for(api,k,day,start):
     rows=[]
@@ -117,13 +149,16 @@ def main():
           "reverse_dcf":dcf,"filing_check":{"period":fixtures["period"],"source":f["source"],"checks":cc}}
         reports.append(report)
         health.append({"annual_revenue_complete":sum(x["revenue"] is not None for x in p["annual"]),"quarter_deducted_complete":sum(x["deducted_profit"] is not None for x in p["quarters"]),"ttm_complete":sum(p["ttm"][x] is not None for x in ("revenue","deducted_profit","cfo","capex")),"historical_pe":history is not None,"peer":peers is not None,"dcf_status":dcf["status"],"dcf_reason":dcf.get("reason"),"quote_verified":v["share_verified"],"raw_batches":h})
-        print(json.dumps({"companies_processed":len(reports),"filing_fields_matched":sum(checks),"filing_fields_total":len(checks)},ensure_ascii=False),flush=True)
+        print(json.dumps({"companies_processed":len(reports),"filing_fields_matched":sum(checks),"filing_fields_total":len(checks),"ttm_missing":[x for x in ("revenue","deducted_profit","cfo","capex") if p["ttm"][x] is None],"quarter_deducted_missing":[x["period"] for x in p["quarters"] if x["deducted_profit"] is None],"period_repair":[z for v in h for z in v["repairs"]],"dcf_status":dcf["status"],"dcf_reason":dcf.get("reason")},ensure_ascii=False),flush=True)
     validation={"version":VERSION,"asof":asof,"quote_date":day,"report_period":plan["latest"],"companies":len(reports),
         "filing_fields_matched":sum(checks),"filing_fields_total":len(checks),"peer_source_date":peer_date,
         "annual_revenue_complete":sum(x["annual_revenue_complete"]==5 for x in health),"quarter_deducted_complete":sum(x["quarter_deducted_complete"]==12 for x in health),
         "ttm_complete":sum(x["ttm_complete"]==4 for x in health),"historical_pe_available":sum(x["historical_pe"] for x in health),
         "peer_available":sum(x["peer"] for x in health),"dcf_eligible":sum(x["dcf_status"]=="ok" for x in health),"dcf_unique":sum(any(z["status"]=="ok" for z in r["reverse_dcf"].get("sensitivity",[])) for r in reports),
         "quotes_verified":sum(x["quote_verified"] for x in health),"dcf_reasons":dict(__import__("collections").Counter(x["dcf_reason"] or x["dcf_status"] for x in health)),
+        "exact_period_repair_attempts":sum(len(v["repairs"]) for x in health for v in x["raw_batches"]),
+        "exact_period_repairs_resolved":sum(bool(z["before"]) and not z["after"] for x in health for v in x["raw_batches"] for z in v["repairs"]),
+        "unresolved_core_fields":dict(__import__("collections").Counter(z["endpoint"]+":"+f for x in health for v in x["raw_batches"] for z in v["repairs"] for f in z["after"])),
         "notes":["Five-company prototype, not market-wide. Latest common statutory report period; current revised financial statements, not point-in-time history.","Cash conversion uses consolidated net profit, FCF proxy is CFO minus capex. Missing and nonpositive denominators are not zero. Quarter flows are cumulative differences.","Descriptive acceleration label only; not V1.0 trading signal; risk flags are review prompts, not calibrated predictions.","Historical PE positive months only; peer reference from same-date growth snapshot if available; frozen V1.4.2 reverse DCF may be unavailable. Public filing fixture check only four raw values per company."]}
     out=Path(a.output);out.mkdir(parents=True,exist_ok=True)
     (out/"snapshot.json").write_text(json.dumps({"report":validation,"companies":reports},ensure_ascii=False,separators=(",",":"),allow_nan=False))
