@@ -7,6 +7,7 @@ const snapshot={version:'industry-radar-v1.1',asof,levels:{L1:[{name:'甲',code:
 const html='<!doctype html><script type="application/json" id="data">'+JSON.stringify(snapshot)+'</script>';
 async function encrypt(h){const key=await webcrypto.subtle.importKey('raw',Buffer.from(h,'hex'),'AES-GCM',false,['encrypt']);const iv=randomBytes(12);const c=await webcrypto.subtle.encrypt({name:'AES-GCM',iv,additionalData:new TextEncoder().encode('northstar-radar-v1:'+asof),tagLength:128},key,new TextEncoder().encode(html));return {version:1,asof,iv:iv.toString('base64'),ciphertext:Buffer.from(c).toString('base64')}}
 const memory=new Map(),wait=ms=>new Promise(r=>setTimeout(r,ms));
+async function until(check,label){for(let i=0;i<200;i++){if(check())return;await wait(25)}throw Error('Timed out: '+label)}
 async function main(){
  const current=await encrypt(hex),stale=await encrypt(old);
  function launch(){
@@ -18,14 +19,14 @@ async function main(){
   vm.runInNewContext(code,context);
   return {get,urls,mounted:()=>mounted};
  }
- let a=launch();await wait(40);
+ let a=launch();await until(()=>/首次使用/.test(a.get('radarStatus').textContent||''),'initial key prompt');
  assert.match(a.get('radarStatus').textContent,/首次使用/);
  a.get('radarKeyInput').value=hex;
- await a.get('radarSave').onclick();await wait(100);
+ await a.get('radarSave').onclick();await until(()=>a.mounted()===1&&!a.get('radarReload').disabled,'first authenticated load');
  assert.equal(a.mounted(),1);assert.equal(memory.get('northstar-radar-fixed-key-v1'),hex);
  assert.ok(a.urls.some(u=>u.includes(rev)));
  // A fresh page with IndexedDB unavailable must recover the same fixed key automatically.
- let b=launch();await wait(100);
+ let b=launch();await until(()=>b.mounted()===1&&!b.get('radarReload').disabled,'restored key load');
  assert.equal(b.mounted(),1);assert.match(b.get('radarStatus').textContent,/2026-11-25/);
  console.log('Fixed-key recovery after reload, immutable current snapshot and WebCrypto authentication passed');
 }
