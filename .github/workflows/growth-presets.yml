@@ -1,0 +1,60 @@
+name: Growth scanner V1.1 scenario validation
+on:
+  push:
+    branches: [research/growth-scanner-v1]
+    paths: ['.github/workflows/growth-presets.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Regression tests
+        run: |
+          python -m unittest discover -s tests -v
+          python -m py_compile growth/build.py growth/growth_model.py growth/evaluate_presets.py
+          node --check growth/reuse_snapshot.mjs
+          node --check growth/seal.mjs
+          python - <<'PY'
+          import re
+          from pathlib import Path
+          s=re.findall(r"<script>(.*?)</script>",Path("growth/view.html").read_text(),re.S)
+          assert len(s)==1
+          Path("/tmp/growth-view.js").write_text(s[0])
+          PY
+          node --check /tmp/growth-view.js
+      - uses: actions/download-artifact@v4
+        with:
+          name: growth-scanner-v1
+          run-id: 45745161977
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: ${{ runner.temp }}/growth-source
+      - name: Reuse existing snapshot and calculate actual preset counts
+        env:
+          RADAR_KEY: ${{ secrets.RADAR_KEY }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/growth-v11"
+          node growth/reuse_snapshot.mjs "$RUNNER_TEMP/growth-source/growth.html" "$RUNNER_TEMP/growth-v11/snapshot.json"
+          python growth/evaluate_presets.py "$RUNNER_TEMP/growth-v11"
+          node growth/seal.mjs "$RUNNER_TEMP/growth-v11"
+      - name: Upload encrypted interactive report and aggregate validation
+        uses: actions/upload-artifact@v4
+        with:
+          name: growth-scanner-v11
+          path: |
+            ${{ runner.temp }}/growth-v11/growth.html
+            ${{ runner.temp }}/growth-v11/validation.json
+          retention-days: 3
+          if-no-files-found: error
+      - name: Clean temporary research data
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/growth-v11" "$RUNNER_TEMP/growth-source"
