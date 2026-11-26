@@ -1,0 +1,15 @@
+import {readFileSync,writeFileSync,unlinkSync} from 'node:fs';
+import {randomBytes,createCipheriv} from 'node:crypto';
+import assert from 'node:assert/strict';
+const [dir]=process.argv.slice(2),hex=process.env.RADAR_KEY||'';
+if(!/^[a-fA-F0-9]{64}$/.test(hex))throw Error('Existing RADAR_KEY is missing or invalid');
+const path=dir+'/snapshot.json',raw=readFileSync(path),x=JSON.parse(raw);
+const asof=x.report.asof,iv=randomBytes(12),aad=Buffer.from('northstar-growth-v1:'+asof),cipher=createCipheriv('aes-256-gcm',Buffer.from(hex,'hex'),iv);
+cipher.setAAD(aad);const sealed=Buffer.concat([cipher.update(raw),cipher.final(),cipher.getAuthTag()]);
+const key=await crypto.subtle.importKey('raw',Buffer.from(hex,'hex'),'AES-GCM',false,['decrypt']);
+const decoded=await crypto.subtle.decrypt({name:'AES-GCM',iv,additionalData:aad,tagLength:128},key,sealed);
+assert.deepEqual(Buffer.from(decoded),raw);
+const payload={version:1,asof,iv:iv.toString('base64'),ciphertext:sealed.toString('base64')};
+const html=readFileSync(new URL('./view.html',import.meta.url),'utf8');
+writeFileSync(dir+'/growth.html',html.replace('__CIPHER__',JSON.stringify(payload)));
+unlinkSync(path);console.log('Encrypted offline report roundtrip passed.');
