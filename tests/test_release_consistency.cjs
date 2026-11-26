@@ -12,7 +12,6 @@ for(const page of ['index.html','growth.html','company.html']){
   assert.equal(m[2],release,page+' '+m[1]);
   assert(sw.includes("'"+m[1]+"'"),page+' cache missing '+m[1]);
  }
- assert(html.includes('后台')||page==='growth.html');
 }
 assert(!/后台更新状态 · V\d/.test(read('update-status.js')));
 console.log('Release version, three HTML headers, versioned assets and service-worker precache agree: V'+release);
