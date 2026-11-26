@@ -1,0 +1,164 @@
+name: Growth scanner production refresh
+on:
+  push:
+    branches: [main, release/growth-v2]
+    paths: ['growth/**','growth.html','growth-*.js','growth-ui.css','radar-ui.css','index.html','industry-radar.js','sw.js','tests/test_growth*','.github/workflows/growth-production.yml']
+  pull_request:
+    branches: [main]
+    paths: ['growth/**','growth.html','growth-*.js','growth-ui.css','radar-ui.css','index.html','industry-radar.js','sw.js','tests/test_growth*','.github/workflows/growth-production.yml']
+  schedule:
+    # Beijing 18:45 and 20:45; authenticated same-day snapshot skips retry.
+    - cron: '45 10,12 * * 1-5'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Regression and shared-key browser logic checks
+        run: |
+          python -m unittest discover -s tests -v
+          python -m py_compile growth/build.py growth/valuation_build.py growth/financial_engine_v142_build.py
+          node --check growth-loader.js
+          node --check growth-view.js
+          node --check sw.js
+          node --check industry-radar.js
+          node tests/test_radar_view.cjs
+          node tests/test_radar_fixed_key.cjs
+          node tests/test_growth_ui.cjs
+  publish:
+    needs: test
+    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release/growth-v2')
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions:
+      contents: write
+      actions: read
+    concurrency:
+      group: a-share-quotes
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Determine bootstrap, refresh or skip
+        id: gate
+        env:
+          RADAR_KEY: ${{ secrets.RADAR_KEY }}
+          TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+          [[ "$RADAR_KEY" =~ ^[0-9a-fA-F]{64}$ ]] && [ -n "$TUSHARE_TOKEN" ] || { echo "Existing secrets required"; exit 1; }
+          day=$(TZ=Asia/Shanghai date +%Y%m%d)
+          echo "day=$day" >> "$GITHUB_OUTPUT"
+          git fetch origin main
+          if [ "$REF" != refs/heads/main ]; then
+            echo "mode=bootstrap" >> "$GITHUB_OUTPUT"
+          elif [ "$EVENT" = push ]; then
+            if git cat-file -e origin/main:data/growth.enc.json 2>/dev/null; then echo "mode=skip" >> "$GITHUB_OUTPUT"; else echo "mode=bootstrap" >> "$GITHUB_OUTPUT"; fi
+          else
+            if [ "$EVENT" = schedule ] && git show origin/main:data/growth.enc.json > "$RUNNER_TEMP/growth-current.json" 2>/dev/null && node growth/seal_production.mjs --verify "$RUNNER_TEMP/growth-current.json" "$day" 2>/dev/null; then
+              echo "mode=skip" >> "$GITHUB_OUTPUT"
+            else
+              OPEN=$(python - "$day" <<'PY'
+          import sys,os
+          sys.path.insert(0,"scripts")
+          from tushare_5000 import Tushare
+          day=sys.argv[1]
+          rows=Tushare(os.environ["TUSHARE_TOKEN"]).ask("trade_cal",{"exchange":"SSE","start_date":day,"end_date":day},"cal_date,is_open")
+          v={str(x["is_open"]) for x in rows if str(x["cal_date"])==day}
+          if len(v)!=1 or not v<= {"0","1"}:raise RuntimeError("Trading calendar unavailable")
+          print(next(iter(v)))
+          PY
+              )
+              if [ "$OPEN" = 1 ]; then echo "mode=refresh" >> "$GITHUB_OUTPUT"; else echo "mode=skip" >> "$GITHUB_OUTPUT"; fi
+            fi
+          fi
+      - uses: actions/download-artifact@v4
+        if: steps.gate.outputs.mode == 'bootstrap'
+        with:
+          name: growth-scanner-v142
+          run-id: 45749569382
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: ${{ runner.temp }}/growth-source
+      - name: Authenticate validated initial research snapshot
+        if: steps.gate.outputs.mode == 'bootstrap'
+        env:
+          RADAR_KEY: ${{ secrets.RADAR_KEY }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/growth-production"
+          node growth/reuse_snapshot.mjs "$RUNNER_TEMP/growth-source/growth.html" "$RUNNER_TEMP/growth-production/snapshot.json" growth-scanner-v1.4.2
+      - name: Refresh common disclosed financials and close; run frozen models
+        if: steps.gate.outputs.mode == 'refresh'
+        env:
+          TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
+          DAY: ${{ steps.gate.outputs.day }}
+        run: |
+          set -euo pipefail
+          dir="$RUNNER_TEMP/growth-production"
+          python growth/build.py --asof "$DAY" --output "$dir"
+          python - "$dir" "$DAY" <<'PY'
+          import sys,json
+          from pathlib import Path
+          d=json.loads((Path(sys.argv[1])/"snapshot.json").read_text())["report"]
+          if not d["data_coverage_pass"] or d["quote_date"]!=sys.argv[2] or d["complete_metrics"]<1000:raise RuntimeError("Fresh scan incomplete or stale")
+          PY
+          python growth/valuation_build.py "$dir"
+          python growth/financial_engine_v142_build.py "$dir"
+      - name: Compress and encrypt; verify report and initial real UI
+        if: steps.gate.outputs.mode != 'skip'
+        env:
+          RADAR_KEY: ${{ secrets.RADAR_KEY }}
+          MODE: ${{ steps.gate.outputs.mode }}
+          DAY: ${{ steps.gate.outputs.day }}
+        run: |
+          set -euo pipefail
+          day="$DAY"; if [ "$MODE" = bootstrap ]; then day=20261125; fi
+          node growth/seal_production.mjs "$RUNNER_TEMP/growth-production/snapshot.json" "$RUNNER_TEMP/growth.enc.json" "$day"
+          node growth/seal_production.mjs --verify "$RUNNER_TEMP/growth.enc.json" "$day"
+          if [ "$MODE" = bootstrap ]; then node tests/test_growth_ui.cjs "$RUNNER_TEMP/growth.enc.json"; fi
+      - name: Publish authenticated ciphertext only
+        if: github.ref == 'refs/heads/main' && steps.gate.outputs.mode != 'skip'
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for n in 1 2 3; do
+            git fetch origin main
+            git reset --hard origin/main
+            python - <<'PY'
+          import json,os
+          from pathlib import Path
+          src=Path(os.environ["RUNNER_TEMP"])/"growth.enc.json"
+          dst=Path("data/growth.enc.json")
+          new=json.loads(src.read_text())
+          if dst.exists() and json.loads(dst.read_text()).get("asof","")>new["asof"]:
+              print("Preserve newer snapshot")
+          else:
+              dst.parent.mkdir(exist_ok=True)
+              dst.write_bytes(src.read_bytes())
+          PY
+            git add data/growth.enc.json
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m 'data: refresh encrypted growth scanner'
+            if git push origin HEAD:main; then exit 0; fi
+            sleep "$((2*n))"
+          done
+          exit 1
+      - name: Clean private temporary data
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/growth-production" "$RUNNER_TEMP/growth-source" "$RUNNER_TEMP/growth.enc.json" "$RUNNER_TEMP/growth-current.json"
