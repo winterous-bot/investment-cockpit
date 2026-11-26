@@ -1,6 +1,6 @@
-<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>高质量成长股扫描器 V1.4</title><style>
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>高质量成长股扫描器 V1.4.1</title><style>
 :root{color-scheme:dark}*{box-sizing:border-box}body{background:#090f1c;color:#e6edf6;font:15px/1.5 system-ui,sans-serif;max-width:900px;margin:auto;padding:16px}h1{font-size:24px}h2{font-size:18px}.panel{background:#111e31;border:1px solid #283c55;border-radius:12px;padding:14px;margin:12px 0}.muted{font-size:12px;color:#9eb1c8}button,input,select{font:inherit;color:inherit;background:#1c3045;border:1px solid #39536a;border-radius:8px;padding:9px}button{cursor:pointer}input[type=number]{width:100%}input[type=password],input[type=search]{width:100%}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}label{display:block}.presets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:8px 0}.presets button{padding:9px 4px;font-size:13px;white-space:normal}.presets button.active{background:#81d4da;color:#0b2531;font-weight:700}.presets small{display:block;font-weight:400;font-size:11px}.valuation{background:#0d1828;border:1px solid #283c55;border-radius:10px;padding:10px;margin:10px 0}.price-line{display:flex;align-items:baseline;justify-content:space-between;gap:8px}.price-line strong{font-size:22px;color:#e6edf6}.reference{border-top:1px solid #283c55;margin-top:9px;padding-top:8px}.reference b{display:block;font-size:17px}.reference .muted{display:block}.discount{font-size:13px;margin-top:4px}.dcf{border-top:1px solid #39536a;margin-top:12px;padding-top:10px}.dcf summary{cursor:pointer;color:#81d4da}.dcf table{width:100%;border-collapse:collapse;font-size:12px;margin:8px 0}.dcf td,.dcf th{text-align:right;border-bottom:1px solid #283c55;padding:5px 3px}.dcf td:first-child,.dcf th:first-child{text-align:left}.dcf h4{margin:10px 0 4px}.stock{border-bottom:1px solid #283c55;padding:12px 0}.metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:6px}.metric b{display:block}.metric span{font-size:11px;color:#9eb1c8}strong{color:#81d4da}a{color:#81d4da}[hidden]{display:none!important}
-</style><h1>高质量成长股扫描器 V1.4</h1><p class="muted">独立研究原型 · 已披露财务数据 · 非买入信号</p><section class="panel" id="unlock"><label>输入现有雷达固定密钥<input type="password" id="key" autocomplete="off" spellcheck="false"></label><p class="muted">只用于本次本地解密，不保存或发送。正式工具的密钥机制未更改。</p><button id="open">解密研究报告</button><p id="error" role="status"></p></section><main hidden id="main"><section class="panel"><h2>数据覆盖</h2><div id="health"></div></section><section class="panel"><h2>筛选场景</h2><div class="presets" id="presets"></div><p class="muted" id="sceneNote"></p><div class="grid" id="filters"></div><p><label><input type="checkbox" id="value"> 同时限定正PE-TTM上限（好价格独立筛选）</label></p><button id="reset">恢复当前场景参数</button></section><section class="panel"><h2 id="count"></h2><label>搜索公司或行业<input id="query" type="search"></label><label>排序 <select id="sort"><option value="roic">ROIC从高到低</option><option value="revenue_cagr">营收CAGR从高到低</option><option value="deducted_yoy">扣非增长从高到低</option><option value="cash_conversion">现金转化从高到低</option><option value="pe">PE从低到高</option></select></label><div id="rows"></div><button id="more" hidden>显示更多</button></section></main><script type="application/json" id="cipher">__CIPHER__</script><script>
+</style><h1>高质量成长股扫描器 V1.4.1</h1><p class="muted">独立研究原型 · 已披露财务数据 · 非买入信号</p><section class="panel" id="unlock"><label>输入现有雷达固定密钥<input type="password" id="key" autocomplete="off" spellcheck="false"></label><p class="muted">只用于本次本地解密，不保存或发送。正式工具的密钥机制未更改。</p><button id="open">解密研究报告</button><p id="error" role="status"></p></section><main hidden id="main"><section class="panel"><h2>数据覆盖</h2><div id="health"></div></section><section class="panel"><h2>筛选场景</h2><div class="presets" id="presets"></div><p class="muted" id="sceneNote"></p><div class="grid" id="filters"></div><p><label><input type="checkbox" id="value"> 同时限定正PE-TTM上限（好价格独立筛选）</label></p><button id="reset">恢复当前场景参数</button></section><section class="panel"><h2 id="count"></h2><label>搜索公司或行业<input id="query" type="search"></label><label>排序 <select id="sort"><option value="roic">ROIC从高到低</option><option value="revenue_cagr">营收CAGR从高到低</option><option value="deducted_yoy">扣非增长从高到低</option><option value="cash_conversion">现金转化从高到低</option><option value="pe">PE从低到高</option></select></label><div id="rows"></div><button id="more" hidden>显示更多</button></section></main><script type="application/json" id="cipher">__CIPHER__</script><script>
 const $=id=>document.getElementById(id), node=(tag,t,c)=>{const x=document.createElement(tag);if(t!==undefined)x.textContent=t;if(c)x.className=c;return x};let data=null,limit=50,scene="balanced";
 const fields=[['revenue_cagr','3年营收CAGR下限（%）',100],['deducted_yoy','扣非TTM增长下限（%）',100],['roic','年度ROIC下限（%）',100],['cash_conversion','经营现金流/净利润下限（%）',100],['debt_ratio','资产负债率上限（%）',100],['pe','PE-TTM上限（倍）',1]];
 const pct=x=>x==null?'—':(x*100).toFixed(1)+'%',num=x=>x==null?'—':x.toFixed(1);
@@ -15,6 +15,27 @@ function sceneStatus(){
 function createPresets(){const stats=data.report.preset_statistics.scenarios;for(const p of data.report.presets){const b=node('button',p.label);b.type='button';b.dataset.id=p.id;b.setAttribute('aria-pressed','false');const s=stats.find(x=>x.id===p.id);b.append(node('small','预设 '+s.quality_count+' 家'));b.onclick=()=>choose(p.id);$('presets').append(b)}}
 const dcfReasons={missing_financials:'历史财报字段不完整或有冲突',missing_fcff_ebit_roic:'FCFF、EBIT或ROIC缺失',nonpositive_annual_or_ttm_fcff_ebit:'至少一个年度或TTM的FCFF/EBIT非正',nonpositive_annual_roic:'历史ROIC非正',unstable_cash_conversion:'现金流转化波动过大或异常',roic_outside_model_range:'历史ROIC超出模型适用范围',unverified_equity_value:'收盘价与股本未通过校验',missing_ev_bridge:'净债务或权益字段缺失',minority_equity_mismatch:'少数股东权益核验失败',invalid_ev_bridge:'净债务或少数股东权益异常',invalid_other_equity:'其他权益工具异常',nonpositive_enterprise_value:'企业价值非正',ambiguous:'多解或不唯一',price_above_model_range:'价格超过模型可解释范围',price_below_model_range:'价格低于模型可解释范围',no_solution:'无有效解',residual_error:'数值校验未通过',requires_more_than_100pct_reinvestment:'需超过100%再投资'};
 Object.assign(dcfReasons,{missing_statement:'合并财报缺失或版本冲突',income_identity:'利润表勾稽校验失败',balance_identity:'资产负债表勾稽校验失败',cashflow_identity:'直接法与间接法现金流不一致',unstable_or_missing_effective_tax:'有效所得税率样本不足',nonpositive_invested_capital:'投入资本非正',base_scan_mismatch_ocf_ttm:'现金流与原筛选截面不一致',base_scan_mismatch_revenue_ttm:'收入与原筛选截面不一致',base_scan_mismatch_debt_ratio:'负债率与原筛选截面不一致',invalid_income:'利润表字段异常',invalid_cash:'现金余额异常',invalid_capex:'资本支出异常',invalid_debt_or_investments:'债务或金融投资字段异常',debt_exceeds_liabilities:'重构债务超过负债合计',missing_optional_schema:'报表接口缺少字段'});
+Object.assign(dcfReasons,{negative_current_minority_requires_review:'最新少数股东权益为负，需核实少数权益市场价值后再估值',negative_minority_unconfirmed:'少数权益为负但缺少单列字段佐证',missing_fin_exp_int_exp:'利息费用缺失，需核对财报附注'});
+function auditDetails(r){
+ const a=r?.audit;if(!a)return null;
+ const d=node('details');d.append(node('summary','查看利息、少数权益及ROIC口径排查'));
+ const fmt=v=>v==null?'缺失':num(v/1e8)+'亿';
+ for(const t of a.interest){
+   if(t.interest_expense==null||t.interest_expense<0||t.interest_income==null||t.interest_income<0)
+     d.append(node('p',t.period+'：利息费用 '+fmt(t.interest_expense)+'；利息收入 '+fmt(t.interest_income)+'；EBIT−利润总额（未验证代理） '+fmt(t.implied_interest)+'；不自动填补。','muted'));
+ }
+ for(const t of a.balance){
+   if(t.minority_implied<0||Object.keys(t.negative_items).length||Math.abs(t.minority_gap||0)>1e5)
+     d.append(node('p',t.period+'：单列少数权益 '+fmt(t.minority_reported)+'；权益差额 '+fmt(t.minority_implied)+(t.minority_negative_verified?'（负值勾稽一致）':'')+'；负值科目 '+Object.entries(t.negative_items).map(([k,v])=>k+' '+fmt(v)).join(' / '),'muted'));
+ }
+ const b=r.accounting?.roic_bridge?.at(-1);
+ if(b){
+  const labels={adjusted:'自主ROIC（原模型）',vendor_roic:'供应商ROIC',no_investment_deduction:'分母不扣金融投资',beginning_capital:'采用期初投入资本',closing_capital:'采用期末投入资本',unadjusted_operating:'分子不扣非核心收益',pbt_plus_interest:'分子采用利润总额加利息',actual_tax_roic:'采用当年实际税率'};
+  const grid=node('div',undefined,'grid');for(const [k,label] of Object.entries(labels)){const x=node('div',undefined,'metric');x.append(node('span',label),node('b',pct(b[k])));grid.append(x)}d.append(grid,node('p','每项均单独改变定义，只用于归因，不自动替换DCF使用的ROIC。差异超过10个百分点时提示人工复核。','muted'));
+ }
+ if(!d.querySelector('p'))d.append(node('p','未发现需要列示的利息或权益异常。','muted'));
+ return d;
+}
 function accountingDetails(r){
  const a=r?.accounting;if(!a)return null;
  const d=node('details');d.append(node('summary','查看自主财务计算及校验'));
@@ -26,13 +47,13 @@ function accountingDetails(r){
  const c=a.capital[a.capital.length-2];
  d.append(node('p','报告期债务代理 '+fmt(c.debt)+'，现金代理 '+fmt(c.cash)+'，识别的非经营投资 '+fmt(c.investments)+'。未分类负债 '+fmt(c.other_liab_unclassified),'muted'));
  d.append(node('p','可选报表空白项目按未披露处理，近似按0计算：利润表 '+a.optional_blank_income+' 项，资产负债表 '+a.optional_blank_balance+' 项；关键字段禁止补零。','muted'));
- const names={material_noncore_income:'非核心收益占比较高',accrual_cashflow_divergence:'现金流与独立勾稽桥差异较大',material_unclassified_liabilities:'未分类负债占比较高'};
+ const names={material_noncore_income:'非核心收益占比较高',accrual_cashflow_divergence:'现金流与独立勾稽桥差异较大',material_unclassified_liabilities:'未分类负债占比较高',negative_book_minority:'历史负少数权益（已核验）',roic_gap_material:'自主ROIC与供应商相差超过10个百分点'};
  if(a.warnings.length)d.append(node('p','需人工复核：'+a.warnings.map(v=>names[v]||v).join('；'),'muted'));
  return d;
 }
 function reverseDCFCard(x){
  const r=x.reverse_dcf,box=node('div',undefined,'dcf');box.append(node('h3','反向DCF · 股价隐含经营预期'));
- if(!r||r.status!=='ok'){box.append(node('p',(r?.category==='model'?'财务计算完成，模型不适用：':'财务数据不足或校验失败：')+(dcfReasons[r?.reason]||(r?.reason||'模型输入不足')),'muted'));const a=accountingDetails(r);if(a)box.append(a);return box}
+ if(!r||r.status!=='ok'){box.append(node('p',(r?.category==='model'?'财务计算完成，模型不适用：':'财务数据不足或校验失败：')+(dcfReasons[r?.reason]||(r?.reason||'模型输入不足')),'muted'));const a=accountingDetails(r);if(a)box.append(a);const au=auditDetails(r);if(au)box.append(au);return box}
  const b=r.base,center=n=>r.sensitivity.find(v=>v.years===n&&v.wacc===.10&&v.terminal===.03);
  box.append(node('p','基准假设：WACC 10% · 永续增长3% · 历史3年中位ROIC '+pct(b.roic),'muted'));
  const g=node('div',undefined,'grid');
