@@ -1,6 +1,7 @@
 """Growth scanner V1.0: current disclosed financials, no historical return claims."""
 from __future__ import annotations
-import math
+import math,json
+from pathlib import Path
 from datetime import date,datetime,timedelta
 def number(x):
     try:
@@ -54,7 +55,8 @@ def ttm(annual,current,previous):
 def yoy(a,b):return a/b-1 if a is not None and b is not None and b>0 else None
 def ratio(a,b):return a/b if a is not None and b is not None and b>0 else None
 def cagr(a,b,n):return (a/b)**(1/n)-1 if a is not None and b is not None and a>0 and b>0 else None
-DEFAULT={"revenue_cagr":.20,"deducted_yoy":.25,"roic":.12,"cash_conversion":.80,"debt_ratio":.60,"pe":50.}
+PRESETS=json.loads((Path(__file__).resolve().parent/"presets.json").read_text(encoding="utf8"))
+DEFAULT=next(p["limits"] for p in PRESETS if p["id"]=="balanced")
 QUALITY=("revenue_cagr","deducted_yoy","roic","cash_conversion","debt_ratio")
 def passes(x,limits=DEFAULT,valuation=False):
     if any(x.get(k) is None for k in QUALITY):return False
@@ -96,3 +98,29 @@ def metrics(code,plan,data,quotes):
     x["report_date"]=p
     x["quality_pass"]=passes(x);x["valuation_pass"]=passes(x,valuation=True)
     return x,"ok"
+
+def preset_summary(rows):
+    """Counts on a common calculable cross-section; no investment-return inference."""
+    from collections import Counter
+    summaries=[]
+    members={}
+    for p in PRESETS:
+        lim=p["limits"];g=[x for x in rows if passes(x,lim)];v=[x for x in g if passes(x,lim,valuation=True)]
+        members[p["id"]]={x["code"] for x in g}
+        # Sequential and independent gate counts distinguish strictness and interactions.
+        remaining=rows[:];funnel={};individual={}
+        for k in QUALITY:
+            def good(x):
+                a=x.get(k)
+                return a is not None and (a<=lim[k] if k=="debt_ratio" else a>=lim[k])
+            individual[k]=sum(good(x) for x in rows)
+            remaining=[x for x in remaining if good(x)]
+            funnel[k]=len(remaining)
+        summaries.append({"id":p["id"],"label":p["label"],"quality_count":len(g),
+                          "valuation_count":len(v),"missing_pe":sum(x.get("pe") is None for x in g),
+                          "individual_pass":individual,"funnel":funnel,
+                          "industries":len({x.get("industry") for x in g}),
+                          "largest_industry_count":max(Counter(x.get("industry") for x in g).values(),default=0)})
+    return {"sample":len(rows),"scenarios":summaries,
+            "unique_candidates":len(set().union(*members.values())),
+            "pairwise_overlap":{a+":"+b:len(members[a]&members[b]) for a in members for b in members if a<b}}
