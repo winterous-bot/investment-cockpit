@@ -19,7 +19,8 @@ jobs:
           python -m unittest discover -s tests -v
           python -m py_compile acceleration/matching.py acceleration/matched_build.py
           test "$(git hash-object acceleration/acceleration_model.py)" = 5e357c09d741cb291599b6016a229d7f15f54e13
-      - name: Historical matched controls, future growth and sampled price risk
+          test "$(git hash-object acceleration/matching.py)" = 35eea3a45cccf94f6fb7e5bb0dbbed0202860919
+      - name: Historical matched controls, future growth and sampled price risk (full SW .SI codes)
         env:
           TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
         run: python acceleration/matched_build.py --asof 20261125 --output "$RUNNER_TEMP/acceleration-v11"
