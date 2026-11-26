@@ -14,6 +14,7 @@ async function main(){
   const nodes=new Map();
   const get=id=>{if(!nodes.has(id))nodes.set(id,{value:'',checked:true,hidden:true,children:[],dataset:{},setAttribute(){},replaceChildren(){this.children=[]},select(){}});return nodes.get(id)};
   const context={window:{NorthstarRadarView:{extract,mount(h){h.children=[1];mounted++}}},document:{getElementById:get},indexedDB:{open(){throw Error('IDB blocked')}},localStorage:{getItem:k=>memory.get(k)||null,setItem:(k,v)=>memory.set(k,v),removeItem:k=>memory.delete(k)},navigator:{storage:{persist:async()=>true}},location:{protocol:'https:'},crypto:webcrypto,atob,TextEncoder,TextDecoder,Uint8Array,AbortController,setTimeout,clearTimeout,Intl,confirm:()=>true,fetch:async u=>{urls.push(u);return {ok:true,json:async()=>u.includes('api.github.com')?[{sha:rev}]:u.includes(rev)?current:stale}}};
+  vm.runInNewContext(fs.readFileSync('snapshot-store.js','utf8'),context);
   vm.runInNewContext(code,context);
   return {get,urls,mounted:()=>mounted};
  }

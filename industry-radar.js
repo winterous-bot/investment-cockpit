@@ -2,7 +2,7 @@
 /* Radar is isolated from the portfolio state; no personal positions are sent. */
 (function(){
  const DB='northstar-radar-key-v1', BACKUP='northstar-radar-fixed-key-v1', SECRET_LINK='https://github.com/winterous-bot/investment-cockpit/settings/secrets/actions/new';
- let key=null,dbPromise=null,plain=null,asof=null,loading=false,epoch=0,notice='',lastCipher=null;
+ let key=null,dbPromise=null,plain=null,asof=null,loading=false,epoch=0,notice='',lastCipher=null,lastVisibleCheck=0;
  const byId=x=>document.getElementById(x);
  function db(){
   if(!dbPromise)dbPromise=new Promise((resolve,reject)=>{
@@ -41,7 +41,7 @@
  function settings(open){byId('radarSettings').hidden=!open;byId('settingsToggle').setAttribute('aria-expanded',String(open));}
  function dateText(d){return d.slice(0,4)+'-'+d.slice(4,6)+'-'+d.slice(6)}
  async function refresh(force=false){
-  if(loading)return;const t=epoch;loading=true;byId('radarReload').disabled=true;
+  if(loading)return;lastVisibleCheck=Date.now();const t=epoch;loading=true;byId('radarReload').disabled=true;
   try{
    if(!key){const saved=await loadFixedKey();if(t!==epoch)return;key=saved;}
    if(t!==epoch)return;
@@ -67,8 +67,8 @@
   byId('radarGenerate').onclick=()=>{if(key&&!confirm('已有固定密钥。除非密钥泄漏，否则无需更换。确定生成新密钥？'))return;inp.value=Array.from(crypto.getRandomValues(new Uint8Array(32)),x=>x.toString(16).padStart(2,'0')).join('');inp.type='text';inp.select();setStatus('只在首次配置时生成；此后长期使用同一个固定密钥。请保存到密码管理器，并同步至GitHub Secret。')};
   byId('radarCopy').onclick=async()=>{if(!inp.value)return;try{await navigator.clipboard.writeText(inp.value);setStatus('密钥已复制，请仅粘贴至GitHub Secret。')}catch{inp.type='text';inp.select();setStatus('请长按选择并复制密钥。')}};
   byId('radarSave').onclick=async()=>{try{const v=await importKey(inp.value.trim());await remember(inp.value.trim(),v,byId('radarRemember').checked);key=v;epoch++;plain=null;asof=null;clearView();await window.NorthstarSnapshots.clear();inp.value='';inp.type='password';settings(false);setStatus('已保存本机密钥；读取最新快照。');refresh(true)}catch(e){setStatus(e.message)}};
-  byId('radarClear').onclick=async()=>{if(!confirm('仅删除本机雷达密钥，不影响后台任务和旧版本本机数据？'))return;try{let cleared=false;try{await storeKey(null);cleared=true}catch(_){}try{localStorage.removeItem(BACKUP);cleared=true}catch(_){}if(!cleared)throw Error('无法清除本机密钥存储');key=null;plain=null;asof=null;epoch++;inp.value='';clearView();await window.NorthstarSnapshots.clear();setStatus('已删除本机雷达密钥。')}catch(e){setStatus(e.message)}};
-  byId('settingsToggle').onclick=()=>settings(byId('radarSettings').hidden);byId('radarReload').onclick=()=>refresh(true);if(location.search&&new URLSearchParams(location.search).get('settings')==='1')settings(true);refresh();if(document.addEventListener)document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refresh()});
+  byId('radarClear').onclick=async()=>{if(!confirm('清除本机固定密钥和两个模块的加密数据缓存？不影响后台及其他设备。'))return;try{let cleared=false;try{await storeKey(null);cleared=true}catch(_){}try{localStorage.removeItem(BACKUP);cleared=true}catch(_){}if(!cleared)throw Error('无法清除本机密钥存储');key=null;plain=null;asof=null;epoch++;inp.value='';clearView();await window.NorthstarSnapshots.clear();setStatus('已删除本机雷达密钥。')}catch(e){setStatus(e.message)}};
+  byId('settingsToggle').onclick=()=>settings(byId('radarSettings').hidden);byId('radarReload').onclick=()=>refresh(true);if(location.search&&new URLSearchParams(location.search).get('settings')==='1')settings(true);refresh();if(document.addEventListener)document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&Date.now()-lastVisibleCheck>=15*60*1000)refresh()});
  }
  setup();
  if('serviceWorker' in navigator&&location.protocol==='https:'){

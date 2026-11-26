@@ -1,7 +1,7 @@
 'use strict';
 /* One authenticated encrypted snapshot per module. No plaintext or keys in this DB. */
 (function(root){
- const DB='northstar-encrypted-snapshots-v1',STORE='snapshots',TTL=15*60*1000,RETRY=60*1000;
+ const DB='northstar-encrypted-snapshots-v1',STORE='snapshots',TTL=15*60*1000,RETRY=15*60*1000;
  const files={radar:'industry_radar.enc.json',growth:'growth.enc.json'};
  const validRev=r=>typeof r==='string'&&/^[0-9a-f]{40}$/.test(r);
  const envelope=q=>q&&/^\d{8}$/.test(q.asof)&&typeof q.iv==='string'&&typeof q.ciphertext==='string';
@@ -53,9 +53,12 @@
     try{local=await decode(rec.snapshot);if(!alive())return;show(local,rec.snapshot,'local');notify('本地数据已加载',rec.snapshot)}catch(_){local=null;rec=null}
    }else rec=null;
    if(!alive())return;
-   if(local&&!force&&requestedAt-(rec.checkedAt||0)<TTL&&requestedAt>=rec.checkedAt){notify('本地数据 · 15分钟内已检查版本',rec.snapshot);return}
+   if(local&&!force&&requestedAt-(rec.checkedAt||0)<TTL&&requestedAt>=rec.checkedAt){notify('本地数据 · 15分钟内已核对版本',rec.snapshot);return}
+   if(local&&!force&&requestedAt-(rec.attemptedAt||0)<RETRY&&requestedAt>=rec.attemptedAt){notify('本地数据 · 等待下次版本检查（上次检查未完成或失败）',rec.snapshot);return}
    if(local&&!force&&attempts.has(id)&&requestedAt-attempts.get(id)<RETRY){notify('本地数据 · 等待下次版本检查',rec.snapshot);return}
    attempts.set(id,requestedAt);
+   // Persist only a timestamp change for a locally authenticated record. Keep original revision and ordering.
+   if(local){try{await store.put(id,{...rec,attemptedAt:requestedAt});}catch(_){}if(!alive())return;}
    notify(local?'本地数据 · 正在检查服务器版本':'首次读取加密快照…',rec?.snapshot);
    let rev=null,versionError='';
    const path='data/'+files[id];
@@ -70,7 +73,7 @@
     return persisted?'disk':'memory';
    }
    if(local&&rev&&rec.rev===rev){
-    const saved=await save({...rec,checkedAt:now(),requestedAt});if(!alive())return;
+    const saved=await save({...rec,checkedAt:now(),attemptedAt:requestedAt,requestedAt});if(!alive())return;
     notify(saved?'服务器版本未变化 · 无需下载':'本地数据 · 服务器版本未变化',rec.snapshot);return
    }
    // Never re-download MB-sized data on a metadata failure when a valid local snapshot exists.
@@ -96,12 +99,13 @@
     if(local){notify('更新失败，保留本地数据：'+why,rec.snapshot);return}
     throw Error(why)
    }
-   if(local&&best.q.asof<rec.snapshot.asof){notify('服务器快照较旧，保留本地数据',rec.snapshot);return}
+   if(local&&(best.q.asof<rec.snapshot.asof||(!best.rev&&best.q.asof===rec.snapshot.asof))){notify('未确认服务器新版本，保留本地数据',rec.snapshot);return}
    // If a concurrent tab stored a newer date/request, do not replace it.
-   const saved=await save({snapshot:best.q,rev:best.rev,checkedAt:best.rev?now():0,requestedAt});
+   const saved=await save({snapshot:best.q,rev:best.rev,checkedAt:best.rev?now():0,attemptedAt:requestedAt,requestedAt});
    if(!alive())return;
    if(saved===false){const latest=await safeGet(id);if(!alive())return;try{if(latest&&envelope(latest.snapshot)){const d=await decode(latest.snapshot);if(!alive())return;show(d,latest.snapshot,'local');notify('已保留较新本地数据',latest.snapshot);return}}catch(_){}}
    show(best.d,best.q,'network');
+   if(saved==='disk'){try{if(typeof navigator!=='undefined'&&navigator.storage?.persist)navigator.storage.persist().catch(()=>{})}catch(_){}}
    notify(saved==='disk'?'已更新并保存本地数据':saved==='memory'?'已更新 · 本机存储不可用':'已更新',best.q);
   }
   async function clear(){generation.n++;memory.clear();attempts.clear();clearing=store.clear().catch(()=>{});await clearing}

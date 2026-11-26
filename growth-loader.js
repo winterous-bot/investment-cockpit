@@ -2,7 +2,7 @@
 (function(){
  const status=document.getElementById('growthStatus'),root=document.getElementById('growthMain'),reload=document.getElementById('growthReload');
  const bytes=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
- let loading=false,last=null,lastDate=null,lastCipher=null;
+ let loading=false,last=null,lastDate=null,lastCipher=null,lastVisibleCheck=0;
  function readKey(){return new Promise((resolve,reject)=>{const r=indexedDB.open('northstar-radar-key-v1',1);r.onupgradeneeded=()=>r.result.createObjectStore('keys');r.onerror=()=>reject(r.error);r.onsuccess=()=>{const db=r.result;try{const t=db.transaction('keys','readonly'),q=t.objectStore('keys').get('radar');q.onsuccess=()=>resolve(q.result||null);q.onerror=()=>reject(q.error);t.oncomplete=()=>db.close();t.onabort=()=>db.close()}catch(e){db.close();reject(e)}}})}
  async function fixedKey(){try{const k=await readKey();if(k)return k}catch(_){}try{const h=localStorage.getItem('northstar-radar-fixed-key-v1');if(/^[0-9a-fA-F]{64}$/.test(h||''))return crypto.subtle.importKey('raw',Uint8Array.from(h.match(/../g),x=>parseInt(x,16)),'AES-GCM',false,['decrypt'])}catch(_){}return null}
  async function decode(q,key){
@@ -17,9 +17,9 @@
   return d;
  }
  async function refresh(force=false){
-  if(loading)return;loading=true;reload.disabled=true;
+  if(loading)return;lastVisibleCheck=Date.now();loading=true;reload.disabled=true;
   try{
-   const key=await fixedKey();if(!key){root.hidden=true;last=null;lastDate=null;throw Error('尚未配置固定密钥，请在行业雷达设置中保存原密钥；无需新密钥')}
+   const key=await fixedKey();if(!key){root.hidden=true;last=null;lastDate=null;lastCipher=null;throw Error('尚未配置固定密钥，请在行业雷达设置中保存原密钥；无需新密钥')}
    await window.NorthstarSnapshots.load('growth',{
     force,decode:q=>decode(q,key),
     show:(d,q)=>{if(lastDate&&q.asof<lastDate)return;if(lastCipher!==q.ciphertext||root.hidden){window.NorthstarGrowthView.mount(d);last=d;lastDate=d.report.asof;lastCipher=q.ciphertext}},
@@ -29,6 +29,6 @@
   finally{loading=false;reload.disabled=false}
  }
  reload.onclick=()=>refresh(true);refresh();
- if(document.addEventListener)document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refresh()});
+ if(document.addEventListener)document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&Date.now()-lastVisibleCheck>=15*60*1000)refresh()});
  if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).catch(()=>{});
 })();

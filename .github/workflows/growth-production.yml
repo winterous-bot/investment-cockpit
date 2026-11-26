@@ -2,10 +2,10 @@ name: Growth scanner production refresh
 on:
   push:
     branches: [main, release/growth-v2]
-    paths: ['growth/**','growth.html','growth-*.js','growth-ui.css','radar-ui.css','index.html','industry-radar.js','sw.js','tests/test_growth*','.github/workflows/growth-production.yml']
+    paths: ['growth/**','growth.html','growth-*.js','growth-ui.css','radar-ui.css','index.html','industry-radar.js','sw.js','snapshot-store.js','tests/test_snapshot_store.cjs','tests/test_growth*','.github/workflows/growth-production.yml']
   pull_request:
     branches: [main]
-    paths: ['growth/**','growth.html','growth-*.js','growth-ui.css','radar-ui.css','index.html','industry-radar.js','sw.js','tests/test_growth*','.github/workflows/growth-production.yml']
+    paths: ['growth/**','growth.html','growth-*.js','growth-ui.css','radar-ui.css','index.html','industry-radar.js','sw.js','snapshot-store.js','tests/test_snapshot_store.cjs','tests/test_growth*','.github/workflows/growth-production.yml']
   schedule:
     # Beijing 18:45 and 20:45; authenticated same-day snapshot skips retry.
     - cron: '45 10,12 * * 1-5'
@@ -29,6 +29,8 @@ jobs:
           python -m py_compile growth/build.py growth/valuation_build.py growth/financial_engine_v142_build.py
           node --check growth-loader.js
           node --check growth-view.js
+          node --check snapshot-store.js
+          node tests/test_snapshot_store.cjs
           node --check sw.js
           node --check industry-radar.js
           node tests/test_radar_view.cjs
