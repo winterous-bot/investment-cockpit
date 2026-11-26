@@ -1,0 +1,57 @@
+name: Company watchlist V1.1 isolated validation
+on:
+  push:
+    branches: [research/company-watchlist-v11]
+    paths: ['.github/workflows/company-watchlist-validation.yml']
+  pull_request:
+    branches: [main]
+    paths: ['company/**','watchlist*.js','company*.js','company.html','snapshot-store.js','sw.js','tests/test_watchlist*','.github/workflows/company-watchlist*.yml']
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Frozen model and regression checks
+        run: |
+          set -euo pipefail
+          test "$(git hash-object company/build.py)" = f88c6ca1725e53889092a1bde07c7a340214b2dd
+          test "$(git hash-object company/company_model.py)" = 0f75d73356a13c11a57e8c2f1188e7f8cc296bf9
+          test "$(git hash-object growth/financial_engine_v142.py)" = cedb41ab35062463ab783bba19c0bd2c0a16522b
+          python -m unittest discover -s tests -v
+          python -m py_compile company/watchlist_build.py
+          for f in watchlist.js watchlist-link.js company-view.js snapshot-store.js radar-view.js growth-view.js sw.js company/watchlist_seal.mjs; do node --check "$f"; done
+          node tests/test_snapshot_store.cjs
+          node tests/test_radar_fixed_key.cjs
+          node tests/test_radar_view.cjs
+          node tests/test_growth_ui.cjs
+          node tests/test_watchlist.mjs
+      - name: Isolated real five-company backend and browser test
+        if: github.event_name == 'push'
+        env:
+          TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
+          RADAR_KEY: ${{ secrets.RADAR_KEY }}
+        run: |
+          set -euo pipefail
+          d="$RUNNER_TEMP/watchlist-validation"
+          mkdir -p "$d"
+          node company/seal.mjs --growth data/growth.enc.json "$d/growth.json"
+          python - "$d" <<'PY'
+          import json,sys
+          from pathlib import Path
+          p=Path(sys.argv[1]);f=json.loads(Path("growth/public_filing_fixtures.json").read_text())
+          (p/"request.json").write_text(json.dumps({"codes":[x["code"] for x in f["companies"]]}))
+          PY
+          python company/watchlist_build.py --asof 20261125 --request "$d/request.json" --output "$d" --growth "$d/growth.json"
+          node tests/test_watchlist.mjs "$d"
+      - name: Cleanup all test data
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/watchlist-validation"
