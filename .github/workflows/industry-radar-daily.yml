@@ -47,7 +47,9 @@ jobs:
           node --check sw.js
           node radar/encrypt.mjs --test
   refresh:
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+    # Explicit recovery commits on main can refresh without a manual UI dispatch.
+    # Ordinary pushes and pull requests still run tests only.
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && contains(github.event.head_commit.message, '[radar-refresh]')))
     needs: test
     runs-on: ubuntu-latest
     timeout-minutes: 25
