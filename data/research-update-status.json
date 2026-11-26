@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "target": "20261126",
+  "checked_at": "2026-11-26T13:01:19.095Z",
+  "run_id": "45824532305",
+  "modules": {
+    "radar": {
+      "asof": "20261126",
+      "state": "ready",
+      "due": true
+    },
+    "growth": {
+      "asof": "20261126",
+      "state": "ready",
+      "due": true
+    },
+    "watchlist": {
+      "asof": "20261126",
+      "state": "ready",
+      "due": false
+    }
+  }
+}
