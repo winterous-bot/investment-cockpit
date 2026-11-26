@@ -83,7 +83,7 @@ def main():
     if a.growth:
         g=json.loads(Path(a.growth).read_text());r=g["report"]
         if r.get("version")=="growth-scanner-v1.4.2" and r.get("asof")==asof and r.get("quote_date")==day and r.get("periods")==plan and r.get("data_coverage_pass") and len(g["rows"])==r.get("complete_metrics"):
-            cohort=g["rows"];peer_date=day
+            cohort=[v for v in g["rows"] if v.get("valuation",{}).get("share_verified")];peer_date=day
     reports=[];checks=[];health=[]
     for f in fixtures["companies"]:
         k=f["code"];data,base,acc,h=load_company(api,k,asof,plan)
@@ -103,7 +103,7 @@ def main():
         if scan and cohort:peers,context=peer_reference({**row,**scan},q,cohort)
         row["valuation"]={"close":close,"quote_date":day if quote else None,"share_verified":bool(q and q["share_ok"])}
         y=int(plan["annual"][:4]);years=[str(z)+"1231" for z in range(y-2,y+1)]
-        dcf=fe.reconstruct(row,{t:v for (ep,t),v in acc.items() if ep=="income_vip"},{t:v for (ep,t),v in acc.items() if ep=="cashflow_vip"},{t:v for (ep,t),v in acc.items() if ep=="balancesheet_vip"},years,plan["latest"],plan["prior"])
+        dcf=fe.reconstruct({**row,**scan},{t:v for (ep,t),v in acc.items() if ep=="income_vip"},{t:v for (ep,t),v in acc.items() if ep=="cashflow_vip"},{t:v for (ep,t),v in acc.items() if ep=="balancesheet_vip"},years,plan["latest"],plan["prior"]) if scan else {"status":"unavailable","category":"data","reason":"base_scan_"+reason}
         v={"close":close,"quote_date":day if quote else None,"market_cap":row["market_cap"],"pe":row["pe"],"pb":gm.number(quote.get("pb")),"deducted_pe":row["deducted_pe"],"historical":history,"peer":peers,"industry_context":context,"peer_date":peer_date,"share_verified":row["valuation"]["share_verified"],"pe_history":[{"date":t,"pe":gm.number(qs.get(t,{}).get("pe_ttm"))} for t in dates]}
         # Compare raw FY2025 headline figures to independently sourced prior public filing fixtures.
         fy=next((x for x in p["annual"] if x["period"]==fixtures["period"]),None)

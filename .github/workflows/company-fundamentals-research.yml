@@ -1,0 +1,57 @@
+name: Company fundamentals V1.0 research
+on:
+  push:
+    branches: [research/company-fundamentals-v1]
+    paths: ['.github/workflows/company-fundamentals-research.yml']
+permissions:
+  contents: read
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Regression, frozen model and syntax checks
+        run: |
+          python -m unittest discover -s tests -v
+          python -m py_compile company/build.py company/company_model.py
+          test "$(git hash-object growth/financial_engine_v142.py)" = cedb41ab35062463ab783bba19c0bd2c0a16522b
+          test "$(git hash-object growth/reverse_dcf.py)" = f7ab449c4c81deaae2460f1e20e6c9fde0a40009
+          python - <<'PY'
+          import re
+          from pathlib import Path
+          s=re.findall(r"<script>(.*?)</script>",Path("company/view.html").read_text(),re.S)
+          assert len(s)==1
+          Path("/tmp/company-view.js").write_text(s[0])
+          PY
+          node --check /tmp/company-view.js
+          node --check company/seal.mjs
+      - name: Authenticate existing same-date peer research source
+        env:
+          RADAR_KEY: ${{ secrets.RADAR_KEY }}
+        run: node company/seal.mjs --growth data/growth.enc.json "$RUNNER_TEMP/company-growth.json"
+      - name: Real financials, valuation and public filing headline reconciliation
+        env:
+          TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
+        run: python company/build.py --asof 20261125 --growth "$RUNNER_TEMP/company-growth.json" --output "$RUNNER_TEMP/company-research"
+      - name: Encrypt company profiles
+        env:
+          RADAR_KEY: ${{ secrets.RADAR_KEY }}
+        run: node company/seal.mjs "$RUNNER_TEMP/company-research"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: company-fundamentals-v1
+          path: |
+            ${{ runner.temp }}/company-research/company.html
+            ${{ runner.temp }}/company-research/validation.json
+          retention-days: 3
+          if-no-files-found: error
+      - name: Clean private temporary data
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/company-research" "$RUNNER_TEMP/company-growth.json"
