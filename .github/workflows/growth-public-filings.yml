@@ -1,0 +1,20 @@
+name: V1.4 independent public financial statement check
+on:
+  push:
+    branches: [research/growth-scanner-v1]
+    paths: ['.github/workflows/growth-public-filings.yml']
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compare 5 companies against manually transcribed published annual report values
+        env:
+          TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
+        run: python growth/check_public_filings.py
