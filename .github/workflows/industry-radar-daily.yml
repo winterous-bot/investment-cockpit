@@ -1,16 +1,19 @@
 name: Industry radar daily refresh
 on:
   push:
-    branches: [main, release/industry-radar-v11]
+    branches: [main, release/radar-first-v12]
     paths:
       - 'radar/**'
       - 'industry-radar.js'
+      - 'radar-view.js'
+      - 'radar-ui.css'
+      - 'tests/test_radar_view.cjs'
       - 'index.html'
       - 'sw.js'
       - '.github/workflows/industry-radar-daily.yml'
   pull_request:
     branches: [main]
-    paths: ['radar/**','industry-radar.js','index.html','sw.js','.github/workflows/industry-radar-daily.yml']
+    paths: ['radar/**','industry-radar.js','radar-view.js','radar-ui.css','tests/test_radar_view.cjs','index.html','sw.js','.github/workflows/industry-radar-daily.yml']
   schedule:
     - cron: '10 13 * * 1-5'
   workflow_dispatch:
@@ -31,10 +34,12 @@ jobs:
           python -m unittest discover -s tests -v
           python -m py_compile radar/build_v11.py radar/model_v11.py radar/view_v11.py
           node --check industry-radar.js
+          node --check radar-view.js
+          node tests/test_radar_view.cjs
           node --check sw.js
           node radar/encrypt.mjs --test
   refresh:
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
     needs: test
     runs-on: ubuntu-latest
     timeout-minutes: 25
