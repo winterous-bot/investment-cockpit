@@ -43,7 +43,7 @@
   function stockTable(title,items){
    const sec=e('section',undefined,'radar-panel');sec.append(e('h3',title));
    if(!items?.length){sec.append(e('p','暂无符合条件或数据不足','radar-muted'));return sec}
-   for(const x of items){const row=e('div',undefined,'radar-stock');row.append(e('b',x.name+' '+x.code),e('span','5日 '+pct(x.r5)+' · 20日 '+pct(x.r20),'radar-muted'),e('span','相对行业 '+pct(x.rs5)+' · 成交额 '+ratio(x.amount_ratio),'radar-muted'));sec.append(row)}
+   for(const x of items){const row=e('div',undefined,'radar-stock');row.append(e('b',x.name+' '+x.code),e('span','5日 '+pct(x.r5)+' · 20日 '+pct(x.r20),'radar-muted'),e('span','相对行业 '+pct(x.rs5)+' · 成交额 '+ratio(x.amount_ratio),'radar-muted'));const add=root.NorthstarWatchlistLink?.addButton(x,e);if(add)row.append(add);sec.append(row)}
    return sec;
   }
   function open(x){

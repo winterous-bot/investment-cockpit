@@ -2,7 +2,8 @@
 /* One authenticated encrypted snapshot per module. No plaintext or keys in this DB. */
 (function(root){
  const DB='northstar-encrypted-snapshots-v1',STORE='snapshots',TTL=15*60*1000,RETRY=15*60*1000;
- const files={radar:'industry_radar.enc.json',growth:'growth.enc.json'};
+ const files={radar:'industry_radar.enc.json',growth:'growth.enc.json',watchlist:'watchlist.enc.json',directory:'company-directory.enc.json'};
+ const pathFor=id=>Object.prototype.hasOwnProperty.call(files,id)?files[id]:/^company:[0-9a-f]{64}$/.test(id)?'companies/'+id.slice(8)+'.enc.json':null;
  const validRev=r=>typeof r==='string'&&/^[0-9a-f]{40}$/.test(r);
  const envelope=q=>q&&/^\d{8}$/.test(q.asof)&&typeof q.iv==='string'&&typeof q.ciphertext==='string';
  const raw='https://raw.githubusercontent.com/winterous-bot/investment-cockpit/';
@@ -43,7 +44,7 @@
   const safeGet=async id=>{try{const a=await store.get(id),b=memory.get(id);return !a?b||null:!b?a:(a.snapshot.asof>b.snapshot.asof||(a.snapshot.asof===b.snapshot.asof&&(a.requestedAt||0)>=(b.requestedAt||0)))?a:b}catch(_){return memory.get(id)||null}};
   async function get(url,ms){const c=new AbortController(),timer=setTimeout(()=>c.abort(),ms);try{const r=await fetcher(url,{cache:'no-store',signal:c.signal});if(!r.ok)throw Error('HTTP '+r.status);return await r.json()}finally{clearTimeout(timer)}}
   async function load(id,{decode,show,notify,force=false,active=()=>true}){
-   if(!files[id])throw Error('未知研究模块');
+   const file=pathFor(id);if(!file)throw Error('未知研究模块');
    const gen=generation.n,alive=()=>gen===generation.n&&active();
    await clearing;
    if(!alive())return;
@@ -61,7 +62,7 @@
    if(local){try{await store.put(id,{...rec,attemptedAt:requestedAt});}catch(_){}if(!alive())return;}
    notify(local?'本地数据 · 正在检查服务器版本':'首次读取加密快照…',rec?.snapshot);
    let rev=null,versionError='';
-   const path='data/'+files[id];
+   const path='data/'+file;
    try{const v=await get(api+encodeURIComponent(path)+'&_='+now(),6000);if(validRev(v?.[0]?.sha))rev=v[0].sha;else throw Error('版本信息异常')}catch(e){versionError=e.message}
    if(!alive())return;
    async function save(next){
@@ -113,5 +114,5 @@
  }
  const manager=create();
  root.NorthstarSnapshots={...manager,create,TTL};
- if(typeof module!=='undefined'&&module.exports)module.exports={create,storage,TTL};
+ if(typeof module!=='undefined'&&module.exports)module.exports={create,storage,TTL,pathFor};
 })(typeof window!=='undefined'?window:globalThis);
