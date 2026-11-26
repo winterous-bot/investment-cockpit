@@ -8,7 +8,7 @@ from datetime import datetime,timedelta
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/"scripts"))
 from tushare_5000 import Tushare,SafeAPIError,POINTS
-from growth_model import period_plan,select,metrics,passes,DEFAULT,QUALITY,FIELDS,valid_date
+from growth_model import period_plan,select,metrics,passes,DEFAULT,QUALITY,FIELDS,valid_date,PRESETS,preset_summary
 POINTS.update({k:5000 for k in FIELDS})
 def fetch_period(api,endpoint,p,asof,eligible):
     base={"period":p}
@@ -97,11 +97,11 @@ def main():
         and all(h["coverage"]>=.90 for h in health))
     quality=[x for x in rows if passes(x)]
     valued=[x for x in quality if passes(x,valuation=True)]
-    report={"version":"growth-scanner-v1.0","asof":asof,"quote_date":quote_day,"periods":plan,
+    report={"version":"growth-scanner-v1.1","asof":asof,"quote_date":quote_day,"periods":plan,
       "listed_shsz":len(stocks),"eligible_by_list_date_and_name":len(names),"industrial_commercial":len(eligible),
       "company_type_missing":unknown_type,"eligible_financial_or_other":len(names)-len(eligible)-unknown_type,
       "quote_coverage":len(quotes),"complete_metrics":len(rows),"exclusions":dict(excluded),
-      "quality_pass":len(quality),"quality_and_valuation_pass":len(valued),"default_limits":DEFAULT,
+      "quality_pass":len(quality),"quality_and_valuation_pass":len(valued),"default_limits":DEFAULT,"presets":PRESETS,"preset_statistics":preset_summary(rows),
       "data_coverage_pass":completeness,"api_batches":health,"failed_batches":failures,
       "notes":["Current disclosed statements only; vendor revision and duplicate limitations; not a historical backtest.",
        "Shanghai/Shenzhen currently listed, excluding ST/delisting and IPOs after base-year start; financial businesses excluded.",
