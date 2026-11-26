@@ -70,6 +70,7 @@ def capital(b,c):
     if any(o[k]<0 for k in DEBT_FIELDS+INVEST_FIELDS+("oth_eqt_tools",)):raise ValueError("invalid_debt_or_investments")
     minority=e-r["total_hldr_eqy_exc_min_int"]
     if b.get("minority_int") is not None and not close(minority,o["minority_int"],e,.002):raise ValueError("minority_equity_mismatch")
+    if minority<0 and b.get("minority_int") is None:raise ValueError("negative_minority_unconfirmed")
     debt=sum(o[k] for k in DEBT_FIELDS)
     if debt>l+max(1e5,.002*a):raise ValueError("debt_exceeds_liabilities")
     # Current portion of noncurrent liabilities is a conservative debt proxy.
