@@ -2,7 +2,7 @@ name: Growth scanner V1.3 reverse DCF validation
 on:
   push:
     branches: [research/growth-scanner-v1]
-    paths: ['.github/workflows/growth-reverse-dcf.yml']
+    paths: ['.github/workflows/growth-reverse-dcf.yml','growth/reverse_dcf*.py','tests/test_reverse_dcf.py']
 permissions:
   contents: read
   actions: read
