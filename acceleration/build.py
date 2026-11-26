@@ -84,7 +84,9 @@ def main():
     st=api.ask("stock_basic",{"list_status":"L"},"ts_code,name,industry,list_date")
     names={x["ts_code"]:x for x in st if str(x.get("ts_code","")).endswith((".SH",".SZ")) and "ST" not in str(x.get("name","")).upper() and "退" not in str(x.get("name",""))}
     if len(names)<4500:raise RuntimeError("Current listings incomplete")
-    cal=api.ask("trade_cal",{"exchange":"SSE","start_date":cutoff(first),"end_date":asof,"is_open":"1"},"cal_date,is_open")
+    cal=[]
+    for y in range(int(cutoff(first)[:4]),int(asof[:4])+1):
+        cal.extend(api.ask("trade_cal",{"exchange":"SSE","start_date":max(str(y)+"0101",cutoff(first)),"end_date":min(str(y)+"1231",asof),"is_open":"1"},"cal_date,is_open"))
     days=sorted({str(z["cal_date"]) for z in cal if str(z.get("is_open"))=="1"})
     if len(days)<900 or not days:raise RuntimeError("Trade calendar incomplete")
     market_cache={};market_health=[];market_errors=[]
@@ -101,6 +103,7 @@ def main():
         if q%4==3:continue
         known=cutoff(q)
         d,h=get(q,known);rows,scan_h=scan(d,q)
+        if any(t["selected"]<2500 for t in h) or scan_h["scope"]<3000:raise RuntimeError("Historical statement coverage insufficient at "+period(q))
         rec={"period":period(q),"asof":known,"scan":scan_h,"coverage":h,"groups":{}}
         # Common eligible universe and identical cohort size; price never drives selection.
         gr=groups(rows);entry=bisect.bisect_right(days,known)
@@ -133,7 +136,7 @@ def main():
     report={"version":VERSION,"asof":asof,"quote_date":days[-1],"report_period":period(last),
        "params":PARAMS,"current_scan":cur,"current_financial_coverage":h,"current_quote_health":mh,
        "historical_first":period(first),"historical_last":period(last),"cohorts":cohorts,
-       "summary":summarize(cohorts),"financial_batches":health,"market_batches":market_health,
+       "summary":summarize(cohorts),"summary_2024_onwards":summarize([c for c in cohorts if c["period"]>="20240101"]),"financial_batches":health,"market_batches":market_health,
        "market_errors":market_errors,"notes":["Exploratory historical cross-section; vendor revisions and backfills may remain even with announcement-date gating. Not audited PIT.",
        "Historical scope uses period financial records, not current listed survivors. Historical ST, IPO eligibility, price limits, suspensions, delisting proceeds and industry histories not independently reconstructed.",
        "Only positive-profit comparable quarters, prior-year profit >=10m and margin >=1%; cash and revenue/margin quality gates applied to both acceleration and growth baseline.",
@@ -142,5 +145,5 @@ def main():
     out=Path(args.output);out.mkdir(parents=True,exist_ok=True)
     (out/"snapshot.json").write_text(json.dumps({"report":report,"rows":current},ensure_ascii=False,separators=(",",":"),allow_nan=False))
     (out/"validation.json").write_text(json.dumps(report,ensure_ascii=False,indent=2,allow_nan=False))
-    print(json.dumps({"acceleration_summary":report["summary"],"current_scan":cur,"financial_batches":len(health),"market_batches":len(market_health),"market_errors":market_errors,"current_signals":len(current)},ensure_ascii=False),flush=True)
+    print(json.dumps({"acceleration_summary":report["summary"],"summary_2024_onwards":report["summary_2024_onwards"],"current_scan":cur,"financial_batches":len(health),"market_batches":len(market_health),"market_errors":market_errors,"current_signals":len(current)},ensure_ascii=False),flush=True)
 if __name__=="__main__":main()

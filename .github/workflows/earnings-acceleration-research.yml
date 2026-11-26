@@ -1,0 +1,51 @@
+name: Earnings acceleration V1.0 research
+on:
+  push:
+    branches: [research/earnings-acceleration-v1]
+    paths: ['.github/workflows/earnings-acceleration-research.yml']
+permissions:
+  contents: read
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Regression and syntax checks
+        run: |
+          python -m unittest discover -s tests -v
+          python -m py_compile acceleration/acceleration_model.py acceleration/build.py
+          python - <<'PY'
+          import re
+          from pathlib import Path
+          s=re.findall(r"<script>(.*?)</script>",Path("acceleration/view.html").read_text(),re.S)
+          assert len(s)==1
+          Path("/tmp/acceleration-view.js").write_text(s[0])
+          PY
+          node --check /tmp/acceleration-view.js
+          node --check acceleration/seal.mjs
+      - name: Real financial history and historical comparisons
+        env:
+          TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
+        run: python acceleration/build.py --asof 20261125 --output "$RUNNER_TEMP/acceleration-research"
+      - name: Encrypt current company results
+        env:
+          RADAR_KEY: ${{ secrets.RADAR_KEY }}
+        run: node acceleration/seal.mjs "$RUNNER_TEMP/acceleration-research"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: earnings-acceleration-v1
+          path: |
+            ${{ runner.temp }}/acceleration-research/acceleration.html
+            ${{ runner.temp }}/acceleration-research/validation.json
+          retention-days: 3
+          if-no-files-found: error
+      - name: Remove temporary private data
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/acceleration-research"

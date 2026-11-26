@@ -1,0 +1,16 @@
+import {readFileSync,writeFileSync,unlinkSync} from 'node:fs';
+import {randomBytes,createCipheriv} from 'node:crypto';
+import assert from 'node:assert/strict';
+const [dir]=process.argv.slice(2),hex=process.env.RADAR_KEY||'';
+if(!/^[a-fA-F0-9]{64}$/.test(hex))throw Error('Existing RADAR_KEY invalid');
+const file=dir+'/snapshot.json',raw=readFileSync(file),x=JSON.parse(raw),asof=x.report.asof;
+assert(x.report.version==='earnings-acceleration-v1.0'&&/^\d{8}$/.test(asof)&&x.report.quote_date===asof&&Array.isArray(x.rows));
+const iv=randomBytes(12),aad=Buffer.from('northstar-acceleration-v1:'+asof),cipher=createCipheriv('aes-256-gcm',Buffer.from(hex,'hex'),iv);
+cipher.setAAD(aad);const ciphertext=Buffer.concat([cipher.update(raw),cipher.final(),cipher.getAuthTag()]);
+const key=await crypto.subtle.importKey('raw',Buffer.from(hex,'hex'),'AES-GCM',false,['decrypt']);
+const back=await crypto.subtle.decrypt({name:'AES-GCM',iv,additionalData:aad,tagLength:128},key,ciphertext);
+assert.deepEqual(Buffer.from(back),raw);
+const p={version:1,asof,iv:iv.toString('base64'),ciphertext:ciphertext.toString('base64')};
+const html=readFileSync(new URL('./view.html',import.meta.url),'utf8');
+assert.equal(html.split('__CIPHER__').length,2);writeFileSync(dir+'/acceleration.html',html.replace('__CIPHER__',JSON.stringify(p)));unlinkSync(file);
+console.log('Authenticated research report generated, no plaintext stock data published.');
