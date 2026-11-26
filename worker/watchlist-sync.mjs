@@ -26,10 +26,17 @@ async function bounded(request){
  const out=new Uint8Array(total);let i=0;for(const c of chunks){out.set(c,i);i+=c.length}
  return new TextDecoder('utf-8',{fatal:true}).decode(out);
 }
-function ghHeaders(token){return {'Authorization':'Bearer '+token,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','User-Agent':'northstar-watchlist-sync-v12','Content-Type':'application/json'}}
-const workflow='https://api.github.com/repos/'+REPO+'/actions/workflows/company-watchlist.yml';
+function ghHeaders(token,write=false){return {'Authorization':'Bearer '+token.trim(),'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','User-Agent':'northstar-watchlist-sync-v12',...(write?{'Content-Type':'application/json'}:{})}}
+const workflow='https://api.github.com/repos/'+REPO+'/actions/workflows/431516961';
+async function ghFetch(url,token,options={},ms=10000,fetcher=fetch){
+ const c=new AbortController(),timer=setTimeout(()=>c.abort(),ms);
+ try{return await fetcher(url,{...options,headers:ghHeaders(token,options.method==='POST'),redirect:'manual',signal:c.signal})}
+ finally{clearTimeout(timer)}
+}
+function upstream(stage,r){return json({error:'upstream',stage,github_status:r.status},502)}
+function network(stage,e){return json({error:'upstream',stage,network_error:e?.name==='AbortError'||e?.name==='TimeoutError'?'timeout':'transport'},502)}
 export async function dispatch(token,d,fetcher=fetch){
- const r=await fetcher(workflow+'/dispatches',{method:'POST',headers:ghHeaders(token),body:JSON.stringify({ref:'main',inputs:{mode:'sync',encrypted_request:JSON.stringify(d.encrypted_request)},return_run_details:true}),redirect:'error',signal:AbortSignal.timeout(12000)});
+ const r=await ghFetch(workflow+'/dispatches',token,{method:'POST',body:JSON.stringify({ref:'main',inputs:{mode:'sync',encrypted_request:JSON.stringify(d.encrypted_request)},return_run_details:true})},12000,fetcher);
  if(r.status===204)return {state:'accepted',run_id:null};
  if(r.status===200){const x=await r.json();return {state:'accepted',run_id:Number.isSafeInteger(x.workflow_run_id)&&x.workflow_run_id>0?x.workflow_run_id:null}}
  if([400,401,403,404,422,429].includes(r.status))return {state:'rejected'};
@@ -45,7 +52,7 @@ export default {async fetch(request,env){
  let raw,d;try{raw=await bounded(request);d=JSON.parse(raw);if(!validBody(d))throw Error('format')}catch{return fail('invalid',400)}
  try{if(!await verify(env.SYNC_AUTH_KEY,request.headers.get('X-Sync-Time'),raw,request.headers.get('X-Sync-Signature')))return fail('unauthorized',401)}catch{return fail('unauthorized',401)}
  if(d.type==='probe'){
-  try{const r=await fetch(workflow,{headers:ghHeaders(env.GITHUB_DISPATCH_TOKEN),signal:AbortSignal.timeout(8000),redirect:'error'});if(!r.ok)return fail('upstream',502);return json({state:'configured',version:1})}catch{return fail('upstream',502)}
+  try{const r=await ghFetch(workflow,env.GITHUB_DISPATCH_TOKEN,{},10000);if(!r.ok)return upstream('workflow',r);const d=await r.json();if(d.id!==431516961||d.state!=='active')return json({error:'upstream',stage:'workflow_metadata'},502);return json({state:'configured',version:2})}catch(e){return network('workflow',e)}
  }
  try{return await env.SYNC_GATE.get(env.SYNC_GATE.idFromName('owner')).fetch('https://internal/sync',{method:'POST',body:raw})}catch{return fail('unknown',503)}
 }};
@@ -65,11 +72,11 @@ export class SyncGate{
    }
    if(recent.some(x=>now-x.at<60000))return fail('busy',409);
    try{
-    const active=await fetch(workflow+'/runs?branch=main&per_page=20',{headers:ghHeaders(this.env.GITHUB_DISPATCH_TOKEN),signal:AbortSignal.timeout(7000),redirect:'error'});
-    if(!active.ok)return fail('upstream',502);
+    const active=await ghFetch(workflow+'/runs?branch=main&per_page=20',this.env.GITHUB_DISPATCH_TOKEN,{},10000);
+    if(!active.ok)return upstream('workflow_runs',active);
     const v=await active.json();if(!Array.isArray(v.workflow_runs))return fail('upstream',502);
     if(v.workflow_runs.some(x=>x.status!=='completed'))return fail('busy',409);
-   }catch{return fail('upstream',502)}
+   }catch(e){return network('workflow_runs',e)}
    const record={id:d.request_id,hash,at:now,state:'unknown',run_id:null};
    recent.push(record);await this.ctx.storage.put('recent',recent);
    let result;try{result=await dispatch(this.env.GITHUB_DISPATCH_TOKEN,d)}catch{return fail('unknown',503)}

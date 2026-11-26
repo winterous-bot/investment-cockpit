@@ -13,7 +13,7 @@ assert.throws(()=>client.endpoint(url+'/bad'));
 const s=await client.signed(key,d);assert(await verify(secret,s.ts,s.raw,s.sig));assert(!await verify(secret,s.ts,s.raw+' ',s.sig));assert(!await verify(secret,s.ts,s.raw,s.sig,Date.now()+180000));
 assert(!await verify('ff'.repeat(32),s.ts,s.raw,s.sig));
 let dispatches=0;
-const good=async(u,o)=>{dispatches++;const v=JSON.parse(o.body);assert.equal(v.ref,'main');assert.equal(v.inputs.mode,'sync');assert.equal(v.inputs.encrypted_request,JSON.stringify(d.encrypted_request));assert.equal(v.return_run_details,true);return Response.json({workflow_run_id:123})};
+const good=async(u,o)=>{dispatches++;assert.match(u,/\/workflows\/431516961\/dispatches$/);const v=JSON.parse(o.body);assert.equal(v.ref,'main');assert.equal(v.inputs.mode,'sync');assert.equal(v.inputs.encrypted_request,JSON.stringify(d.encrypted_request));assert.equal(v.return_run_details,true);return Response.json({workflow_run_id:123})};
 assert.deepEqual(await dispatch('fake',d,good),{state:'accepted',run_id:123});
 assert.equal((await dispatch('fake',d,async()=>new Response(null,{status:204}))).run_id,null);
 assert.equal((await dispatch('fake',d,async()=>new Response(null,{status:403}))).state,'rejected');
@@ -23,6 +23,17 @@ assert.equal((await gateway.fetch(req('https://bad.example'),env)).status,403);
 assert.equal((await gateway.fetch(req(origin,'00'.repeat(32)),env)).status,401);
 assert.equal((await gateway.fetch(req(origin),{})).status,503);
 assert.equal((await gateway.fetch(req(origin),env)).status,200);
+const probeRaw=await client.signed(key,{type:'probe'});
+const probe=()=>new Request(url+'/v1/watchlist',{method:'POST',headers:{Origin:origin,'X-Sync-Time':probeRaw.ts,'X-Sync-Signature':probeRaw.sig},body:probeRaw.raw});
+const initialFetch=globalThis.fetch;
+try{
+ globalThis.fetch=async(u,o)=>{assert.match(u,/\/workflows\/431516961$/);assert.equal(o.headers['Content-Type'],undefined);assert.equal(o.redirect,'manual');return Response.json({id:431516961,state:'active'})};
+ assert.deepEqual(await (await gateway.fetch(probe(),env)).json(),{state:'configured',version:2});
+ globalThis.fetch=async()=>new Response(null,{status:401});
+ assert.deepEqual(await (await gateway.fetch(probe(),env)).json(),{error:'upstream',stage:'workflow',github_status:401});
+ globalThis.fetch=async()=>{throw new TypeError('private internal details')};
+ assert.deepEqual(await (await gateway.fetch(probe(),env)).json(),{error:'upstream',stage:'workflow',network_error:'transport'});
+}finally{globalThis.fetch=initialFetch}
 const storage=new Map(),ctx={storage:{get:async k=>structuredClone(storage.get(k)),put:async(k,v)=>storage.set(k,structuredClone(v))},blockConcurrencyWhile:fn=>fn()};
 const oldFetch=globalThis.fetch;let posts=0;
 globalThis.fetch=async(u,o)=>{if(String(u).includes('/runs?'))return Response.json({workflow_runs:[]});posts++;return Response.json({workflow_run_id:456})};
