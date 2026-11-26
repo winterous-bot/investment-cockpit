@@ -7,7 +7,7 @@ const fail=(error,status)=>json({error},status);
 const fromHex=s=>Uint8Array.from(s.match(/../g),x=>parseInt(x,16));
 const toHex=b=>Array.from(new Uint8Array(b),x=>x.toString(16).padStart(2,'0')).join('');
 export function envelope(q){
- return q&&Object.keys(q).sort().join(',')==='asof,ciphertext,codec,iv,version'&&q.version===1&&q.codec==='json'&&DAY.test(q.asof)&&typeof q.iv==='string'&&/^[A-Za-z0-9+/]{16}$/.test(q.iv)&&typeof q.ciphertext==='string'&&q.ciphertext.length>=24&&q.ciphertext.length<=10000&&/^[A-Za-z0-9+/]+={0,2}$/.test(q.ciphertext);
+ return q&&Object.keys(q).sort().join(',')==='asof,ciphertext,codec,iv,version'&&q.version===1&&q.codec==='json'&&typeof q.asof==='string'&&DAY.test(q.asof)&&typeof q.iv==='string'&&/^[A-Za-z0-9+/]{16}$/.test(q.iv)&&typeof q.ciphertext==='string'&&q.ciphertext.length>=24&&q.ciphertext.length<=10000&&/^[A-Za-z0-9+/]+={0,2}$/.test(q.ciphertext);
 }
 export function validBody(d){
  if(!d||typeof d!=='object')return false;
@@ -60,7 +60,7 @@ export class SyncGate{
    if(prior){
     if(prior.hash!==hash)return fail('invalid',400);
     if(prior.state==='accepted')return json({state:'accepted',run_id:prior.run_id,duplicate:true});
-    if(prior.state==='rejected')return fail('upstream',502);
+    if(prior.state==='rejected')return fail('rejected',502);
     return fail('unknown',409);
    }
    if(recent.some(x=>now-x.at<60000))return fail('busy',409);
@@ -74,7 +74,7 @@ export class SyncGate{
    recent.push(record);await this.ctx.storage.put('recent',recent);
    let result;try{result=await dispatch(this.env.GITHUB_DISPATCH_TOKEN,d)}catch{return fail('unknown',503)}
    Object.assign(record,result);await this.ctx.storage.put('recent',recent);
-   return result.state==='accepted'?json({state:'accepted',run_id:result.run_id}):fail(result.state==='rejected'?'upstream':'unknown',502);
+   return result.state==='accepted'?json({state:'accepted',run_id:result.run_id}):fail(result.state==='rejected'?'rejected':'unknown',502);
   })
  }
 }

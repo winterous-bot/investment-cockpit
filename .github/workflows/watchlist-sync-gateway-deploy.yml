@@ -31,6 +31,7 @@ jobs:
           const auth=createHmac('sha256',Buffer.from(h,'hex')).update('northstar-watchlist-sync-auth-v12').digest('hex');
           writeFileSync(process.env.RUNNER_TEMP+'/watchlist-gateway-secrets.json',JSON.stringify({SYNC_AUTH_KEY:auth,GITHUB_DISPATCH_TOKEN:token}),{mode:0o600});
           JS
+          unset RADAR_KEY GITHUB_DISPATCH_TOKEN
           trap 'rm -f "$RUNNER_TEMP/watchlist-gateway-secrets.json"' EXIT
           npx --yes wrangler@4 deploy --config worker/watchlist-wrangler.toml
           npx --yes wrangler@4 secret bulk "$RUNNER_TEMP/watchlist-gateway-secrets.json" --config worker/watchlist-wrangler.toml

@@ -22,7 +22,7 @@
   const r=await fetcher(endpoint(url)+'/v1/watchlist',{method:'POST',headers:{'Content-Type':'application/json','X-Sync-Time':s.ts,'X-Sync-Signature':s.sig},body:s.raw,cache:'no-store',credentials:'omit',redirect:'error',signal:AbortSignal.timeout(25000)});
   let d;try{d=await r.json()}catch{throw Error('授权网关响应异常')}
   if(!r.ok){
-   const errors={unauthorized:'签名未通过，请检查原固定密钥及网关配置',busy:'后台已有请求或正在研究，请稍后重试',not_configured:'网关尚未配置',upstream:'GitHub 暂不可用或授权失效',invalid:'请求校验失败',unknown:'上次提交结果不确定，请先检查后台'};
+   const errors={unauthorized:'签名未通过，请检查原固定密钥及网关配置',busy:'后台已有请求或正在研究，请稍后重试',not_configured:'网关尚未配置',upstream:'GitHub 暂不可用或授权失效',rejected:'GitHub 明确拒绝本次请求，请检查令牌权限或稍后重试',invalid:'请求校验失败',unknown:'上次提交结果不确定，请先检查后台'};
    const e=Error(errors[d?.error]||'网关暂不可用（HTTP '+r.status+'）');e.code=d?.error;throw e;
   }
   return d;

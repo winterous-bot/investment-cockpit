@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {createHmac,webcrypto} from 'node:crypto';
 import {createRequire} from 'node:module';
 import gateway,{verify,validBody,dispatch,SyncGate} from '../worker/watchlist-sync.mjs';
-globalThis.crypto=webcrypto;
+if(!globalThis.crypto)Object.defineProperty(globalThis,'crypto',{value:webcrypto});
 const require=createRequire(import.meta.url),client=require('../watchlist-sync.js');
 const rawKey='12'.repeat(32),secret=createHmac('sha256',Buffer.from(rawKey,'hex')).update('northstar-watchlist-sync-auth-v12').digest('hex');
 const key=await client.authKey(rawKey),origin='https://winterous-bot.github.io',url='https://investment-watchlist-sync.example.workers.dev';

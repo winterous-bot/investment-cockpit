@@ -52,7 +52,7 @@ function renderSync(){
  $('syncReset').hidden=!pending;$('syncReset').disabled=submitting||!pending||Date.now()-pending.at<45*60*1000;
  $('syncRun').hidden=!pending?.run_id;if(pending?.run_id)$('syncRun').href='https://github.com/winterous-bot/investment-cockpit/actions/runs/'+pending.run_id;
  $('syncState').textContent=syncMessage||(pending?'同步请求已保留，正在等待后台确认。':syncUrl?'一键同步已配置；首次请测试连接。':'首次使用需配置授权网关；仍可使用手动同步。');
- $('syncUrl').value=syncUrl;
+ if(document.activeElement!==$('syncUrl')&&!$('syncUrl').value)$('syncUrl').value=syncUrl;
 }
 async function encryptedRequest(){if(!draft||!remote||draft.base!==remote.revision||!writeKey||draftError)throw Error('观察池版本不一致');const date=day();return encrypt({version:'watchlist-request-v1.1',base:remote.revision,asof:date,codes:draft.codes},writeKey,'northstar-watchlist-request-v11',date)}
 async function submitOne(retry=false){
@@ -66,7 +66,7 @@ async function submitOne(retry=false){
   if(d?.state!=='accepted')throw Error('网关未确认接收');
   const run_id=Number.isSafeInteger(d.run_id)&&d.run_id>0?d.run_id:null;
   savePending({...pending,state:'accepted',run_id});syncNotice('后台已接收；正在排队或研究，尚未完成同步。');
- }catch(e){syncNotice(e.message+'；本机草稿已保留。请先检查后台，必要时重试同一请求。')}
+ }catch(e){if(e.code==='rejected'){savePending(null);syncNotice(e.message+'；本机草稿已保留，可重新提交。')}else syncNotice(e.message+'；本机草稿已保留。请先检查后台，必要时重试同一请求。')}
  finally{submitting=false;renderPool();renderSearch();if(pending)pollSync()}
 }
 async function pollSync(){
@@ -76,7 +76,7 @@ async function pollSync(){
   if(!pending)return;
   if(pending.run_id){
    const r=await fetch('https://api.github.com/repos/winterous-bot/investment-cockpit/actions/runs/'+pending.run_id,{cache:'no-store',signal:AbortSignal.timeout(6000)});
-   if(r.ok){const d=await r.json();if(d.status==='completed'&&d.conclusion!=='success'){savePending(null);syncNotice('后台任务未成功（'+String(d.conclusion)+'），草稿仍在；可重新提交。')}
+   if(r.ok){const d=await r.json();if(d.status==='completed'&&d.conclusion!=='success'){savePending(null);syncNotice('后台任务未成功（'+String(d.conclusion)+'），草稿仍在；可重新提交。');renderPool();renderSearch()}
     else if(d.status==='completed'){syncNotice('后台任务已完成，等待加密名单发布确认。')}
     else syncNotice('后台 '+(d.status==='queued'?'排队中':'研究中')+'；完成后自动检查报告。')}
   }
@@ -156,7 +156,7 @@ $('oneSync').onclick=()=>submitOne();$('syncRetry').onclick=()=>submitOne(true);
 $('syncSave').onclick=()=>{try{if(busySync())throw Error('同步过程中不可更换网关');const v=syncApi.endpoint($('syncUrl').value);localStorage.setItem(SYNC_URL,v);syncUrl=v;syncNotice('网关地址已保存，请测试连接。');renderSync()}catch(e){syncNotice(e.message)}};
 $('syncProbe').onclick=async()=>{if(!authKey||!syncUrl){syncNotice('请先保存网关地址并授权本地编辑。');return}try{const d=await syncApi.send(syncUrl,authKey,{type:'probe'});syncNotice(d.state==='configured'?'授权网关连接通过；提交权限仍以实际同步结果为准。':'网关尚未就绪')}catch(e){syncNotice(e.message)}};
 $('syncReset').onclick=async()=>{if(!pending||submitting||Date.now()-pending.at<45*60*1000)return;await pollSync();if(pending&&confirm('仅解除本机等待，不取消后台任务。请确认后台已结束；保留草稿，重新提交可能遇到版本冲突。继续？')){savePending(null);syncNotice('已解除等待，草稿仍保留。');renderPool();renderSearch()}};
-setInterval(()=>{if(pending)pollSync()},30000);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&pending)pollSync()});
+setInterval(()=>{if(pending)pollSync()},120000);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&pending)pollSync()});
 $('loadDirectory').onclick=()=>loadDirectory(true);
 $('stockSearch').oninput=()=>{if(!dir&&$('stockSearch').value.trim())loadDirectory();else renderSearch()};
 $('unlockEdit').onclick=async()=>{try{const h=$('editKey').value.trim();writeKey=await encryptionKey(h,key);authKey=await syncApi.authKey(h);$('editKey').value='';renderPool();renderSearch();await handleHandoff()}catch(_){notice('原固定密钥未通过本机认证')}};
