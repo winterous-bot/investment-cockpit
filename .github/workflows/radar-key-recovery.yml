@@ -1,0 +1,96 @@
+name: Radar key rotation recovery (2026-11-25 snapshot)
+on:
+  push:
+    branches: [repair/radar-key-rotation-20261126]
+    paths: ['.github/workflows/radar-key-recovery.yml']
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: |
+          python -m unittest discover -s tests -v
+          python -m py_compile radar/build_v11.py radar/model_v11.py radar/view_v11.py
+          node --check industry-radar.js
+          node --check radar-view.js
+          node tests/test_radar_view.cjs
+          node --check sw.js
+          node radar/encrypt.mjs --test
+  refresh:
+    if: github.ref == 'refs/heads/repair/radar-key-rotation-20261126'
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: write
+    concurrency:
+      group: a-share-quotes
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check personal encryption key configuration
+        env:
+          RADAR_KEY: ${{ secrets.RADAR_KEY }}
+          TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
+        run: |
+          python - <<'PY'
+          import os,re
+          if not re.fullmatch(r"[0-9a-fA-F]{64}",os.environ.get("RADAR_KEY","")):
+              raise SystemExit("Setup required: configure RADAR_KEY from the personal radar page. No market data downloaded.")
+          if not os.environ.get("TUSHARE_TOKEN"):
+              raise SystemExit("TUSHARE_TOKEN missing.")
+          PY
+      - name: Scan latest trading session (no historical retest)
+        env:
+          TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
+        run: python radar/build_v11.py --daily --end 20261125 --output "${{ runner.temp }}/radar-daily"
+      - name: Encrypt locally and publish only authenticated ciphertext
+        env:
+          RADAR_KEY: ${{ secrets.RADAR_KEY }}
+        run: |
+          set -euo pipefail
+          dir="$RUNNER_TEMP/radar-daily"
+          [ -f "$dir/radar_snapshot.json" ] || { echo "Non-trading day: no change"; exit 0; }
+          node radar/encrypt.mjs "$dir" "$RUNNER_TEMP/radar.enc.json"
+          rm -rf "$dir"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for n in 1 2 3; do
+            git fetch origin main
+            git reset --hard origin/main
+            python - <<'PY'
+          import json,os
+          from pathlib import Path
+          src=Path(os.environ["RUNNER_TEMP"])/"radar.enc.json"
+          dst=Path("data/industry_radar.enc.json")
+          new=json.loads(src.read_text())
+          if dst.exists() and json.loads(dst.read_text()).get("asof","")>new["asof"]:
+              print("Preserve newer ciphertext.")
+          else:
+              dst.parent.mkdir(exist_ok=True)
+              dst.write_bytes(src.read_bytes())
+          PY
+            git add data/industry_radar.enc.json
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m 'data: re-encrypt latest completed radar snapshot after key rotation'
+            if git push origin HEAD:main; then exit 0; fi
+            sleep "$((2*n))"
+          done
+          exit 1
+      - name: Remove temporary plaintext even after failure
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/radar-daily"
