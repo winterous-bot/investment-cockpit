@@ -20,7 +20,7 @@ jobs:
       - name: Test financial formulas and existing research modules
         run: |
           python -m unittest discover -s tests -v
-          python -m py_compile growth/build.py growth/model.py
+          python -m py_compile growth/build.py growth/growth_model.py
           node --check growth/seal.mjs
           python - <<'PY'
           import re
