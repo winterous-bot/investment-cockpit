@@ -10,8 +10,8 @@ DESIGNS=("strict","growth_only")
 GROUPS=("early","sustained","union")
 def memberships(api):
     cs=api.ask("index_classify",{"level":"L1","src":"SW2021"},"index_code,level,is_pub")
-    codes=sorted({str(z["index_code"]).split(".")[0] for z in cs if z.get("level")=="L1" and str(z.get("is_pub","1")) not in ("0","False")})
-    if len(codes)!=31:raise RuntimeError("Historical industry taxonomy invalid")
+    codes=sorted({str(z["index_code"]) for z in cs if z.get("level")=="L1" and str(z.get("is_pub","1")) not in ("0","False")})
+    if len(codes)!=31 or any(not k.endswith(".SI") or not k.split(".")[0].isdigit() for k in codes):raise RuntimeError("Historical industry taxonomy invalid: expected full SW2021 index codes")
     out=[];health=[]
     for k in codes:
         for flag in ("Y","N"):
@@ -28,9 +28,11 @@ def memberships(api):
                 rows.extend(fresh);offset+=len(more);pages+=1
                 if len(more)<2000:complete=True
             if not complete:raise RuntimeError("Industry membership pagination incomplete: "+k+" "+flag)
-            if any(str(v.get("l1_code","")).split(".")[0]!=k or v.get("is_new")!=flag for v in rows):raise RuntimeError("Industry membership filter mismatch")
+            if any(str(v.get("l1_code",""))!=k or v.get("is_new")!=flag for v in rows):raise RuntimeError("Industry membership filter mismatch")
             out.extend(rows);health.append({"industry":k,"flag":flag,"rows":len(rows),"pages":pages})
             time.sleep(.1)
+    # A successful API status with empty payload is not successful data retrieval.
+    if any(h["flag"]=="Y" and h["rows"]==0 for h in health) or not any(h["flag"]=="N" and h["rows"]>0 for h in health):raise RuntimeError("Missing current or historical SW2021 constituents")
     return out,health
 def main():
     pa=argparse.ArgumentParser();pa.add_argument("--asof",required=True);pa.add_argument("--output",required=True);args=pa.parse_args()
@@ -40,6 +42,9 @@ def main():
     api=Tushare(os.environ.get("TUSHARE_TOKEN"))
     member,member_health=memberships(api)
     print(json.dumps({"membership_batches":len(member_health),"membership_records":len(member),"historical_records":sum(r.get("is_new")=="N" for r in member)}),flush=True)
+    industry_preflight=[{"period":period(q),"cutoff":cutoff(q),"active_unique":len(industry_at(member,cutoff(q)))} for q in range(first,last+1) if q%4!=3]
+    print(json.dumps({"industry_preflight":industry_preflight}),flush=True)
+    if any(v["active_unique"]<2500 for v in industry_preflight):raise RuntimeError("Historical SW2021 coverage too low; stop before paid financial scan")
     raw={};health=[]
     for q in range(first-7,last+1):
         for ep in FIELDS:
@@ -107,7 +112,7 @@ def main():
     verdict=decision(summary["full"]["strict"]["union"],summary["recent"]["strict"]["union"])
     report={"version":"earnings-acceleration-v1.1","asof":asof,"signal_params":PARAMS,"cohorts":cohorts,"summary":summary,"decision":verdict,
       "financial_batches":len(health),"membership_batches":len(member_health),"membership_records":len(member),
-      "historical_membership_records":sum(x.get("is_new")=="N" for x in member),"market_batches":len(market_health),"market_errors":market_errors,
+      "historical_membership_records":sum(x.get("is_new")=="N" for x in member),"industry_preflight":industry_preflight,"market_batches":len(market_health),"market_errors":market_errors,
       "notes":["V1.0 unchanged. Same cutoff, same quality gates. No current industry or survivor list used in history.",
        "Strict: contemporaneous SW2021 L1 membership, gross earnings growth factor ratio within 1.2, market cap and positive PE-TTM ratios within 2, one-to-one no replacement, max cardinality then minimum normalized log-distance. Growth-only sensitivity not a substitute for strict.",
        "Matching data last close on/before cutoff; outcome entry next close. No future data used in matching. Future revisions may remain in vendor history; no audited PIT, no historic ST screen.",
