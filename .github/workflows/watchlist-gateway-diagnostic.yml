@@ -1,0 +1,48 @@
+name: Watchlist gateway live diagnostic
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/watchlist-gateway-diagnostic.yml']
+permissions:
+  contents: read
+jobs:
+  probe:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify owner PAT and deployed gateway without disclosing credentials
+        env:
+          TOKEN: ${{ secrets.WATCHLIST_DISPATCH_TOKEN }}
+          RADAR_KEY: ${{ secrets.RADAR_KEY }}
+        run: |
+          node --input-type=module - <<'JS'
+          import {createHmac} from 'node:crypto';
+          const token=process.env.TOKEN||'', key=process.env.RADAR_KEY||'';
+          if(!token||! /^[a-f0-9]{64}$/i.test(key))throw Error('Required secrets absent');
+          const base='https://api.github.com/repos/winterous-bot/investment-cockpit';
+          const headers={Authorization:'Bearer '+token,Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','User-Agent':'northstar-watchlist-diagnostic'};
+          let failed=false;
+          for(const [name,path] of [['repository',''],['workflow','/actions/workflows/company-watchlist.yml'],['workflow_runs','/actions/workflows/company-watchlist.yml/runs?branch=main&per_page=1']]){
+            try{
+              const r=await fetch(base+path,{headers,redirect:'error',signal:AbortSignal.timeout(15000)});
+              const d=await r.json().catch(()=>({}));
+              console.log(JSON.stringify({check:name,status:r.status,ok:r.ok,workflow_state:name==='workflow'&&r.ok?d.state:undefined,workflow_id:name==='workflow'&&r.ok?d.id:undefined,rate_remaining:r.headers.get('x-ratelimit-remaining')}));
+              if(!r.ok)failed=true;
+            }catch(e){console.log(JSON.stringify({check:name,error:e.name}));failed=true;}
+          }
+          const auth=createHmac('sha256',Buffer.from(key,'hex')).update('northstar-watchlist-sync-auth-v12').digest();
+          const raw=JSON.stringify({type:'probe'}),ts=String(Math.floor(Date.now()/1000));
+          const signature=createHmac('sha256',auth).update(ts+'\n'+raw).digest('hex');
+          try{
+            const r=await fetch('https://investment-watchlist-sync.2306079301.workers.dev/v1/watchlist',{method:'POST',headers:{Origin:'https://winterous-bot.github.io','Content-Type':'application/json','X-Sync-Time':ts,'X-Sync-Signature':signature},body:raw,redirect:'error',signal:AbortSignal.timeout(20000)});
+            const d=await r.json().catch(()=>({}));
+            console.log(JSON.stringify({check:'deployed_gateway',status:r.status,state:d.state==='configured'?'configured':undefined,error:['upstream','unauthorized','not_configured','invalid'].includes(d.error)?d.error:undefined}));
+            if(!r.ok||d.state!=='configured')failed=true;
+          }catch(e){console.log(JSON.stringify({check:'deployed_gateway',error:e.name}));failed=true}
+          if(failed)process.exitCode=1;
+          JS
