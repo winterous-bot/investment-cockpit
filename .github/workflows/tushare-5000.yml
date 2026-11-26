@@ -1,13 +1,6 @@
 name: Tushare 5000积分统一市场数据验证与更新
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'scripts/tushare_5000.py'
-      - '.github/workflows/tushare-5000.yml'
-  schedule:
-    # 12:25 UTC = Beijing 20:25, Mon-Fri. SW and index daily usually finish after afternoon.
-    - cron: '25 12 * * 1-5'
+  # Legacy research only; retired UI no longer needs scheduled market updates.
   workflow_dispatch:
 permissions:
   contents: write
