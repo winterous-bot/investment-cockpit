@@ -68,7 +68,7 @@ def summarize(rows):
       "roic_gap_over_10pp":sum(g>.10 for g in gaps)}
 def main():
     d=Path(sys.argv[1]);p=d/"snapshot.json";x=json.loads(p.read_text());r=x["report"]
-    if r["version"]!="growth-scanner-v1.4.1" or not r.get("data_coverage_pass") or len(x["rows"])!=r["complete_metrics"]:raise RuntimeError("Base snapshot invalid")
+    if r["version"] not in ("growth-scanner-v1.4.1","growth-scanner-v1.2") or not r.get("data_coverage_pass") or len(x["rows"])!=r["complete_metrics"]:raise RuntimeError("Base snapshot invalid")
     asof=r["asof"];plan=r["periods"];y=int(plan["annual"][:4])
     years=[f"{i}1231" for i in range(y-2,y+1)];opening=f"{y-3}1231"
     latest,prior=plan["latest"],plan["prior"];periods=years+[latest,prior]
@@ -81,6 +81,7 @@ def main():
                 data[(ep,t)],h=fetch(api,ep,t,asof,universe,candidates);health.append(h)
             except SafeAPIError:
                 errors.append({"endpoint":ep,"period":t})
+    if errors or len(health)!=17 or any(h["covered"]<.9*len(universe) or h["candidate_covered"]<.9*len(candidates) for h in health):raise RuntimeError("Production raw financial coverage insufficient")
     def subset(ep,k):return {t:v.get(k) for (e,t),v in data.items() if e==ep}
     def compact(v):
         a=v.get("accounting");b=v.get("base")
@@ -96,13 +97,13 @@ def main():
           "model_roic":b["roic"] if b else None,
           "center":center,"any_unique_solution":any(q["status"]=="ok" for q in v.get("sensitivity",[]))}
     for z in x["rows"]:
-        old=compact(z["reverse_dcf"]);k=z["code"]
+        old=compact(z["reverse_dcf"]) if "reverse_dcf" in z else None;k=z["code"]
         args=(z,subset("income_vip",k),subset("cashflow_vip",k),subset("balancesheet_vip",k),years,latest,prior)
         same=compact(reconstruct_v141(*args))
         new=reconstruct(*args)
         current=compact(new)
         z["v141_result"]=same
-        z["v141_replay_matches_snapshot"]=same==old
+        z["v141_replay_matches_snapshot"]=same==old if old is not None else None
         if same["accounting"] and current["accounting"]:
             # Asset classification may change capital and EV only, never cash flows.
             if same["ttm_fcff"]!=current["ttm_fcff"] or same["ttm_nopat"]!=current["ttm_nopat"]:raise RuntimeError("Frozen cash flow changed")
@@ -132,7 +133,7 @@ def main():
         gap_old=[abs(o["roic_last"]-z["roic"])*100 for z,o,n in paired if z.get("roic") is not None]
         gap_new=[abs(n["roic_last"]-z["roic"])*100 for z,o,n in paired if z.get("roic") is not None]
         latest_items={k:sum(z["reverse_dcf"]["accounting"]["capital"][-2]["investment_items"][k]>0 for z,o,n in paired) for k in ("trad_asset","debt_invest","oth_debt_invest","oth_eq_invest","oth_illiq_fin_assets","lt_eqt_invest")}
-        return {"n":len(rows),"v141_snapshot_replay_matches":sum(z["v141_replay_matches_snapshot"] for z in rows),
+        return {"n":len(rows),"v141_snapshot_replay_matches":sum(z["v141_replay_matches_snapshot"] is True for z in rows),
             "same_raw_v141":totals(old),"v142":totals(new),"paired_accounting":len(paired),
             "roic_last_median_change_pp":med(shifts),"roic_changed":sum(abs(d)>1e-7 for d in shifts),
             "roic_gap_old_median_pp":med(gap_old),"roic_gap_new_median_pp":med(gap_new),
