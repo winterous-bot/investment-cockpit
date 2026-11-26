@@ -1,5 +1,8 @@
 name: Company watchlist (owner sync and daily refresh)
 on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/company-watchlist.yml']
   workflow_dispatch:
     inputs:
       mode:
@@ -13,7 +16,7 @@ on:
         type: string
         required: false
   schedule:
-    # Beijing 21:30 on trading weekdays; no automatic initial pool.
+    # Beijing 21:30 on trading weekdays.
     - cron: '30 13 * * 1-5'
 permissions:
   contents: write
@@ -46,6 +49,15 @@ jobs:
           EVENT: ${{ github.event_name }}
         run: |
           set -euo pipefail
+          # One-time, idempotent initialization on release. Never reset an existing pool.
+          if [ "$EVENT" = push ]; then
+            if [ -e data/watchlist.enc.json ]; then
+              echo "Existing observation pool preserved"
+              echo "run=no" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            export WATCHLIST_MODE=bootstrap
+          fi
           if [ "$EVENT" = schedule ] && [ ! -f data/watchlist.enc.json ]; then echo "run=no" >> "$GITHUB_OUTPUT"; exit 0; fi
           day=$(TZ=Asia/Shanghai date +%Y%m%d)
           if [ "$EVENT" = schedule ]; then
