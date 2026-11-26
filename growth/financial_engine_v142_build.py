@@ -150,7 +150,7 @@ def main():
     r.update(version="growth-scanner-v1.4.2",reverse_dcf_statistics=stats,
       v142_classification_comparison=comparisons,model_frozen=True,
       reverse_dcf_health={"annual_periods":years,"opening":opening,"latest":latest,"prior":prior,"api_batches":health,"failed_batches":errors},
-      reverse_dcf_method={**r["reverse_dcf_method"],
+      reverse_dcf_method={**r.get("reverse_dcf_method",{}),
         "capital":"Equity + debt - cash proxy - debt_invest - oth_debt_invest. Retain mixed trading assets, equity instruments, other noncurrent financial assets and long-term equity investment pending notes. Book-value classification proxy, not proven asset usage; numerator still excludes noncore income.",
         "ev":"Same classification in EV bridge; retained mixed investments are not separately credited as nonoperating asset value. Sensitivity to classification shown by same-raw V1.4.1 comparison. Current negative minority remains blocked.",
         "freeze":"Research model V1.4.2 frozen; no further tuning for coverage. All V1.4.1 FCFF, tax, ROIC domain, reinvestment and solver gates unchanged. Conditional results only."})
