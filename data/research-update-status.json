@@ -1,8 +1,8 @@
 {
   "version": 1,
   "target": "20261127",
-  "checked_at": "2026-11-27T10:58:54.043Z",
-  "run_id": "45984879915",
+  "checked_at": "2026-11-27T15:32:45.017Z",
+  "run_id": "46025374521",
   "modules": {
     "radar": {
       "asof": "20261127",
@@ -15,9 +15,9 @@
       "due": true
     },
     "watchlist": {
-      "asof": "20261126",
-      "state": "waiting",
-      "due": false
+      "asof": "20261127",
+      "state": "ready",
+      "due": true
     }
   }
 }
