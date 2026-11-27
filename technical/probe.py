@@ -11,6 +11,12 @@ PROBES=[
  ("stock_60min","stk_mins",{"ts_code":STOCK,"freq":"60min","start_date":"2026-08-01 09:00:00","end_date":"2026-11-27 19:00:00"},MIN_FIELDS),
  ("index_1min","idx_mins",{"ts_code":INDEX,"freq":"1min","start_date":"2026-11-27 09:00:00","end_date":"2026-11-27 19:00:00"},MIN_FIELDS),
  ("index_60min","idx_mins",{"ts_code":INDEX,"freq":"60min","start_date":"2026-08-01 09:00:00","end_date":"2026-11-27 19:00:00"},MIN_FIELDS),
+ ("stock_60min_day","stk_mins",{"ts_code":STOCK,"freq":"60min","start_date":"2026-11-27 09:00:00","end_date":"2026-11-27 19:00:00"},MIN_FIELDS),
+ ("stock_60min_week","stk_mins",{"ts_code":STOCK,"freq":"60min","start_date":"2026-11-23 09:00:00","end_date":"2026-11-27 19:00:00"},MIN_FIELDS),
+ ("stock_60min_month","stk_mins",{"ts_code":STOCK,"freq":"60min","start_date":"2026-10-26 09:00:00","end_date":"2026-11-27 19:00:00"},MIN_FIELDS),
+ ("stock_1min_week","stk_mins",{"ts_code":STOCK,"freq":"1min","start_date":"2026-11-23 09:00:00","end_date":"2026-11-27 19:00:00"},MIN_FIELDS),
+ ("stock_1min_old_day","stk_mins",{"ts_code":STOCK,"freq":"1min","start_date":"2025-11-27 09:00:00","end_date":"2025-11-27 19:00:00"},MIN_FIELDS),
+ ("stock_1min_other_symbol","stk_mins",{"ts_code":"000001.SZ","freq":"1min","start_date":"2026-11-27 09:00:00","end_date":"2026-11-27 19:00:00"},MIN_FIELDS),
  ("stock_daily","daily",{"ts_code":STOCK,"start_date":"20190101","end_date":DAY},DAY_FIELDS),
  ("adjustment","adj_factor",{"ts_code":STOCK,"start_date":"20190101","end_date":DAY},"ts_code,trade_date,adj_factor"),
  ("stock_daily_basic","daily_basic",{"ts_code":STOCK,"start_date":"20261101","end_date":DAY},"ts_code,trade_date,turnover_rate,volume_ratio"),
@@ -40,4 +46,4 @@ def probe(token,label,endpoint,params,fields):
 if __name__=="__main__":
     token=os.environ.get("TUSHARE_TOKEN")
     if not token:raise SystemExit("Missing token")
-    for item in PROBES:print("TECH_PROBE "+json.dumps(probe(token,*item),ensure_ascii=False),flush=True)
+    for item in PROBES[4:10]:print("TECH_PROBE "+json.dumps(probe(token,*item),ensure_ascii=False),flush=True)
