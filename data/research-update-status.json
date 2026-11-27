@@ -1,23 +1,23 @@
 {
   "version": 1,
-  "target": "20261126",
-  "checked_at": "2026-11-27T04:58:25.466Z",
-  "run_id": "45942964009",
+  "target": "20261127",
+  "checked_at": "2026-11-27T10:58:54.043Z",
+  "run_id": "45984879915",
   "modules": {
     "radar": {
-      "asof": "20261126",
+      "asof": "20261127",
       "state": "ready",
       "due": true
     },
     "growth": {
-      "asof": "20261126",
+      "asof": "20261127",
       "state": "ready",
       "due": true
     },
     "watchlist": {
       "asof": "20261126",
-      "state": "ready",
-      "due": true
+      "state": "waiting",
+      "due": false
     }
   }
 }
