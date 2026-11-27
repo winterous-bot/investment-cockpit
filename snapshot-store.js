@@ -78,8 +78,10 @@
     const saved=await save({...rec,checkedAt:now(),attemptedAt:requestedAt,requestedAt});if(!alive())return;
     notify(saved?'服务器版本未变化 · 无需下载':'本地数据 · 服务器版本未变化',rec.snapshot);return
    }
-   // Never re-download MB-sized data on a metadata failure when a valid local snapshot exists.
-   if(local&&!rev){notify('版本检查失败，保留本地数据（'+versionError+'）',rec.snapshot);return}
+   // A denied/rate-limited metadata endpoint must not block authenticated newer-day data.
+   // Ordinary transient errors retain the low-bandwidth retry policy; manual refresh always tries mirrors.
+   if(local&&!rev&&!force&&!/^HTTP (403|429)$/.test(versionError)){notify('版本检查失败，保留本地数据（'+versionError+'）',rec.snapshot);return}
+   if(local&&!rev)notify('版本接口暂不可用（'+versionError+'），正在尝试直接下载加密数据…',rec.snapshot);
    const urls=rev?[{url:raw+rev+'/'+path,rev}]:[];
    urls.push({url:'./'+path+'?ts='+now(),rev:null},{url:raw+'main/'+path+'?ts='+now(),rev:null});
    let best=null,err='数据尚未发布',auth=false;
@@ -90,9 +92,10 @@
      if(!envelope(q))throw Error('快照格式异常');
      const d=await decode(q);if(!alive())return;
      if(!best||q.asof>best.q.asof)best={q,d,rev:source.rev};
-     if(source.rev)break;
-     // A first authenticated fallback is sufficient; never download all large mirrors.
-     if(!local||q.asof>=rec.snapshot.asof)break;
+     if(source.rev&&(!local||q.asof>=rec.snapshot.asof))break;
+     // A verified newer date is sufficient. If one mirror is still on the local date,
+     // try the other mirror rather than prematurely concluding no update exists.
+     if(!local||q.asof>rec.snapshot.asof)break;
     }catch(e){err=e.message||'网络异常';if(e.name==='OperationError')auth=true}
    }
    if(!alive())return;
@@ -101,7 +104,10 @@
     if(local){notify('更新失败，保留本地数据：'+why,rec.snapshot);return}
     throw Error(why)
    }
-   if(local&&(best.q.asof<rec.snapshot.asof||(!best.rev&&best.q.asof===rec.snapshot.asof))){notify('未确认服务器新版本，保留本地数据',rec.snapshot);return}
+   if(local&&(best.q.asof<rec.snapshot.asof||(!best.rev&&best.q.asof===rec.snapshot.asof))){
+    const same=best.q.asof===rec.snapshot.asof&&best.q.ciphertext===rec.snapshot.ciphertext&&best.q.iv===rec.snapshot.iv;
+    notify(same?'备用数据源与本机数据一致 · 暂无已核实的新版本':'未确认服务器新版本，保留本地数据',rec.snapshot);return
+   }
    // If a concurrent tab stored a newer date/request, do not replace it.
    const saved=await save({snapshot:best.q,rev:best.rev,checkedAt:best.rev?now():0,attemptedAt:requestedAt,requestedAt});
    if(!alive())return;

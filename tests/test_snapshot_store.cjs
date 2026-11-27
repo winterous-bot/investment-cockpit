@@ -38,4 +38,30 @@ async function main(){
  const d=create({store:denied,fetcher,now:()=>now});r=await run(d);assert.match(r.notices.at(-1),/本机存储不可用/);r=await run(d);assert.equal(r.calls.length,0);
  console.log('Local-first tests passed: fresh reload zero requests, unchanged revision metadata-only, per-module isolation, new/same-day update, offline, rollback, wrong key, clear, storage denied.');
 }
-main().catch(e=>{console.error(e);process.exitCode=1});
+async function fallback(){
+ const store=disk();let now=200000000,apiStatus=200,apiRev=A,pages=q2,raw=q2,calls=[],shown=[],notices=[];
+ const q4=packet('20261127','friday-close'),q5=packet('20261130','monday-close');
+ const fetcher=async url=>{calls.push(url);if(url.includes('api.github.com')){if(apiStatus===0)throw Error('offline metadata');return {ok:apiStatus===200,status:apiStatus,json:async()=>[{sha:apiRev}]}}
+   const q=url.startsWith('./')?pages:raw;return {ok:true,json:async()=>q}};
+ const manager=()=>create({store,fetcher,now:()=>now});
+ const run=async(id='growth',force=false)=>{calls=[];shown=[];notices=[];await manager().load(id,{force,decode:async p=>{if(p.ciphertext==='bad')throw new DOMException('bad','OperationError');return p.asof},show:(d,p,source)=>shown.push({p,source}),notify:s=>notices.push(s)});return {calls:[...calls],shown:[...shown],notices:[...notices]}};
+ await run();assert.equal(store.data.get('growth').snapshot.asof,'20261126');
+ // Exact production failure: local date 26, commit API 403, Pages stale, Raw date 27.
+ apiStatus=403;raw=q4;now+=1000;let r=await run('growth',true);
+ assert.equal(r.calls.length,3);assert.match(r.calls[2],/raw.githubusercontent.com/);assert.equal(r.shown.at(-1).p.asof,'20261127');assert.equal(store.data.get('growth').rev,null);
+ // Automatic retry remains throttled; direct download is not repeated on every reopen.
+ r=await run();assert.equal(r.calls.length,0);
+ // Rate-limited normal refresh can move to the next trading day.
+ apiStatus=429;pages=q5;raw=q5;now+=TTL+1;r=await run();assert.equal(r.calls.length,2);assert.equal(r.shown.at(-1).p.asof,'20261130');
+ // A stale mirror or a same-day unversioned different ciphertext cannot roll back.
+ pages=q4;raw=packet('20261130','unverified-same-day');now+=1000;r=await run('growth',true);assert.equal(store.data.get('growth').snapshot.ciphertext,'monday-close');assert.match(r.notices.at(-1),/保留本地数据/);
+ // Corrupt snapshots cannot overwrite a local authenticated snapshot.
+ pages=raw=packet('20261201','bad');now+=1000;r=await run('growth',true);assert.equal(store.data.get('growth').snapshot.asof,'20261130');assert.match(r.notices.at(-1),/更新失败/);
+ // Generic network failure: automatic mode keeps bandwidth guard; manual refresh tries mirrors.
+ apiStatus=0;pages=raw=packet('20261201','tuesday-close');now+=TTL+1;r=await run();assert.equal(r.calls.length,1);
+ r=await run('growth',true);assert.equal(r.shown.at(-1).p.asof,'20261201');
+ // Once immutable version service recovers, same-date corrections work as before.
+ apiStatus=200;apiRev=B;raw=packet('20261201','tuesday-corrected');now+=1000;r=await run('growth',true);assert.equal(store.data.get('growth').snapshot.ciphertext,'tuesday-corrected');assert.equal(store.data.get('growth').rev,B);
+ console.log('Snapshot fallback: HTTP 403/429, stale Pages and newer Raw, manual metadata outage, retry throttling, same-day rollback guard, corrupt response and immutable recovery passed.');
+}
+main().then(fallback).catch(e=>{console.error(e);process.exitCode=1});

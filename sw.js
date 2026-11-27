@@ -1,5 +1,5 @@
-const CACHE='northstar-shell-v2.2.6';
-const FILES=['./','./index.html','./growth.html','./company.html','./company-ui.css?v=2.2.6','./company-view.js?v=2.2.6','./watchlist.js?v=2.2.6','./watchlist-sync.js?v=2.2.6','./watchlist-link.js?v=2.2.6','./snapshot-store.js?v=2.2.6','./update-status.js?v=2.2.6','./app-update.js?v=2.2.6','./growth-ui.css?v=2.2.6','./growth-view.js?v=2.2.6','./growth-loader.js?v=2.2.6','./radar-ui.css?v=2.2.6','./radar-view.js?v=2.2.6','./industry-radar.js?v=2.2.6','./manifest.webmanifest','./assets/icon-192.png','./assets/icon-512.png'];
+const CACHE='northstar-shell-v2.2.7';
+const FILES=['./','./index.html','./growth.html','./company.html','./company-ui.css?v=2.2.7','./company-view.js?v=2.2.7','./watchlist.js?v=2.2.7','./watchlist-sync.js?v=2.2.7','./watchlist-link.js?v=2.2.7','./snapshot-store.js?v=2.2.7','./update-status.js?v=2.2.7','./app-update.js?v=2.2.7','./growth-ui.css?v=2.2.7','./growth-view.js?v=2.2.7','./growth-loader.js?v=2.2.7','./radar-ui.css?v=2.2.7','./radar-view.js?v=2.2.7','./industry-radar.js?v=2.2.7','./manifest.webmanifest','./assets/icon-192.png','./assets/icon-512.png'];
 const VERSION=CACHE.slice('northstar-shell-v'.length);
 self.addEventListener('install',e=>e.waitUntil((async()=>{
  const c=await caches.open(CACHE);
