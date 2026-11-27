@@ -1,0 +1,21 @@
+name: Technical research V1.0 read-only API probe
+on:
+  push:
+    branches: ['research/technical-data-probe-v1']
+    paths: ['.github/workflows/technical-data-probe.yml','technical/probe.py']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Probe public sample symbols (metadata only)
+        env:
+          TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
+        run: python technical/probe.py
