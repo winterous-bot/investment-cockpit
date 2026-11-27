@@ -1,0 +1,23 @@
+name: Technical foundation V1.0 validation
+on:
+  push:
+    branches: ['research/technical-foundation-v1']
+    paths: ['technical/**','tests/test_technical_foundation.py','.github/workflows/technical-foundation-validation.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Unit test adjustment, aggregation, indicator math and date gates
+        run: python -m unittest discover -s tests -p 'test_technical_foundation.py' -v
+      - name: Read-only sample validation against 2026-11-27 screenshots
+        env:
+          TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
+        run: python -m technical.validate
