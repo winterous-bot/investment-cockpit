@@ -2,7 +2,7 @@
 import sys
 from pathlib import Path
 from datetime import datetime,timedelta
-from .indicators import normalize,aggregate,indicators,risk_features,relative_strength,number,date
+from .indicators import normalize,aggregate,indicators,risk_features,relative_strength,number,date,directions
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/"scripts"))
 from tushare_5000 import Tushare
@@ -27,7 +27,7 @@ def calendar(api,asof):
     if len(days)!=(hi-lo).days+1 or len(rows)!=len(days) or any(v not in ("0","1") for v in days.values()):raise ValueError("calendar incomplete")
     if days.get(asof)!="1":raise ValueError("target is not an exchange trading day")
     return [d for d,v in sorted(days.items()) if v=="1"]
-def stock_history(api,code,asof):
+def stock_history(api,code,asof,details=False):
     r=api.ask("stock_basic",{"ts_code":code,"list_status":"L"},"ts_code,list_date")
     exact=[x for x in r if x.get("ts_code")==code]
     if len(exact)!=1:raise ValueError("listing date unavailable")
@@ -35,7 +35,7 @@ def stock_history(api,code,asof):
     bars=series(api,"daily",code,start,asof,FIELDS)
     fs=series(api,"adj_factor",code,start,asof,"ts_code,trade_date,adj_factor")
     result=normalize(bars,fs,code,asof)
-    return result,start
+    return (result,start,bars,fs) if details else (result,start)
 def benchmarks(api,asof):
     out={}
     for code in INDEXES:
@@ -47,8 +47,8 @@ def benchmarks(api,asof):
             # Missing index must never be silently replaced with a different benchmark.
             out[code]=None
     return out
-def build(api,code,asof,cal,indices):
-    bars,start=stock_history(api,code,asof)
+def build(api,code,asof,cal,indices,history=None):
+    bars,start=history if history is not None else stock_history(api,code,asof)
     groups={"day":bars,"week":aggregate(bars,"week",asof,cal),"month":aggregate(bars,"month",asof,cal)}
     daily_basic=api.ask("daily_basic",{"ts_code":code,"trade_date":asof},"ts_code,trade_date,turnover_rate,volume_ratio")
     exact=[r for r in daily_basic if r.get("ts_code")==code and r.get("trade_date")==asof]
@@ -57,6 +57,7 @@ def build(api,code,asof,cal,indices):
             "counts":{k:len(v) for k,v in groups.items()},
             "completed":{"day":True,**{k:groups[k][-1]["complete"] for k in ("week","month")}},
             "indicators":{k:indicators(v,k) for k,v in groups.items()},
+            "directions":{k:directions(v,k) for k,v in groups.items()},
             "features":risk_features(bars),"daily_basic":basic,
             "relative_strength":{k:{str(n):relative_strength(bars,v,n) if v else None for n in (5,20,60)} for k,v in indices.items()},
             "missing_recent_sessions":len(set(d for d in cal if bars[0]["date"]<=d<=asof)-{b["date"] for b in bars}),

@@ -1,5 +1,5 @@
 import unittest
-from technical.indicators import normalize,aggregate,indicators,risk_features,relative_strength,ema,rsi
+from technical.indicators import normalize,aggregate,indicators,risk_features,relative_strength,ema,rsi,directions
 from technical.data import chunks
 def bar(d,c,code="000001.SZ",vol=10):
     return dict(ts_code=code,trade_date=d,open=c,high=c+1,low=c-1,close=c,vol=vol,amount=100)
@@ -23,13 +23,24 @@ class FoundationTest(unittest.TestCase):
         self.assertEqual(m["ma5"],258);self.assertEqual(m["ma250"],135.5);self.assertEqual(m["rsi6"],100)
         self.assertAlmostEqual(m["dif"],7,places=5);self.assertAlmostEqual(m["dea"],7,places=5)
         self.assertAlmostEqual(m["macd"],0,places=5);self.assertAlmostEqual(m["boll_mid"],250.5)
-        self.assertAlmostEqual(m["boll_upper"],250.5+2*(33.25**.5))
+        self.assertAlmostEqual(m["boll_upper"],250.5+2*((665/19)**.5))
         self.assertEqual(m["vol_ma5"],100);self.assertEqual(m["vol_ma10"],100)
         self.assertIsNone(indicators(x[:10],"day")["ma250"])
         self.assertIsNone(indicators(x[:10],"day")["dif"])
         self.assertIsNone(rsi([10]*30,6));self.assertEqual(rsi(list(range(30,0,-1)),6),0)
         self.assertEqual(ema([1,3],3),[1,2])
         self.assertAlmostEqual(risk_features(x)["atr14"],2)
+    def test_sample_boll_and_directions(self):
+        from math import sqrt
+        x=[dict(close=float(i),vol=i) for i in range(1,41)]
+        m=indicators(x,"day")
+        center=sum(range(21,41))/20
+        sd=sqrt(sum((i-center)**2 for i in range(21,41))/19)
+        self.assertAlmostEqual(m["boll_upper"],center+2*sd)
+        self.assertAlmostEqual(m["boll_lower"],center-2*sd)
+        a=directions(x,"day")
+        self.assertEqual(a["ma5"],1);self.assertEqual(a["vol_ma10"],1);self.assertEqual(a["rsi6"],0)
+        self.assertIsNone(a["ma250"])
     def test_rs_and_chunks(self):
         s=[{"date":str(i),"close":p} for i,p in enumerate([10,11,12])]
         b=[{"date":str(i),"close":p} for i,p in enumerate([10,10,11])]

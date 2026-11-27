@@ -1,10 +1,10 @@
 """Technical foundation V1.0. Deterministic, as-of only, no prediction."""
 from datetime import datetime
 from math import isfinite, sqrt, log
-from statistics import fmean, pstdev
+from statistics import fmean, pstdev, stdev
 from collections import defaultdict
 
-VERSION="technical-foundation-v1.0"
+VERSION="technical-foundation-v1.0-r1"
 def number(v):
     if isinstance(v,bool): raise ValueError("boolean numeric field")
     n=float(v)
@@ -89,10 +89,15 @@ def indicators(bars,freq):
     out.update(dif=dif[-1] if len(c)>=35 else None,dea=dea[-1] if len(c)>=35 else None,macd=2*(dif[-1]-dea[-1]) if len(c)>=35 else None)
     for n in (6,12,24):out["rsi"+str(n)]=rsi(c,n)
     if len(c)>=20:
-        m=fmean(c[-20:]);sd=pstdev(c[-20:]);out.update(boll_mid=m,boll_upper=m+2*sd,boll_lower=m-2*sd)
+        m=fmean(c[-20:]);sd=stdev(c[-20:]);out.update(boll_mid=m,boll_upper=m+2*sd,boll_lower=m-2*sd)
     else:out.update(boll_mid=None,boll_upper=None,boll_lower=None)
     return out
 
+def directions(bars,freq):
+    """Compare current period to previous actual bar; no fabricated historical completion."""
+    if len(bars)<2:return {}
+    a,b=indicators(bars[:-1],freq),indicators(bars,freq)
+    return {k:(None if a[k] is None or b[k] is None else (1 if b[k]>a[k] else -1 if b[k]<a[k] else 0)) for k in b if k in a}
 def risk_features(bars):
     c=[x["close"] for x in bars];v=[x["vol"] for x in bars]
     tr=[bars[0]["high"]-bars[0]["low"]]+[max(b["high"]-b["low"],abs(b["high"]-a["close"]),abs(b["low"]-a["close"])) for a,b in zip(bars,bars[1:])]
