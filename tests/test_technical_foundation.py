@@ -3,6 +3,7 @@ from technical.indicators import normalize,aggregate,indicators,risk_features,re
 from technical.data import chunks
 from technical.signals import crossing,signal_snapshot
 from technical.r2 import provider_periods,oracle
+from technical.r21 import unit_report,pick_periods,continuity
 def bar(d,c,code="000001.SZ",vol=10):
     return dict(ts_code=code,trade_date=d,open=c,high=c+1,low=c-1,close=c,vol=vol,amount=100)
 def fac(d,f):return dict(ts_code="000001.SZ",trade_date=d,adj_factor=f)
@@ -60,6 +61,28 @@ class FoundationTest(unittest.TestCase):
         x.append(dict(close=1,high=2,low=.5,vol=100))
         self.assertEqual(signal_snapshot(x,"day")["breakout20"],-1)
         self.assertEqual(signal_snapshot(x,"day"),oracle(x,"day"))
+    def test_r21_units(self):
+        p=[(10000,100,0),(20000,200,10)]
+        r=unit_report(p,(1,100),1)
+        self.assertEqual([(x["divisor"],x["scope"]) for x in r if x["passed"]==x["n"]==2],[(100,"regular")])
+        p=[(11000,100,10),(22000,200,20)]
+        r=unit_report(p,(1,100),1)
+        self.assertEqual([(x["divisor"],x["scope"]) for x in r if x["passed"]==x["n"]==2],[(100,"including_afterhours")])
+    def test_r21_snapshot_vintage(self):
+        local={(2026,10):{"date":"20261030","complete":True},(2026,11):{"date":"20261127","complete":False}}
+        def row(label,end):
+            return dict(ts_code="000001.SZ",freq="month",trade_date=label,end_date=end,open=10,high=11,low=9,close=10,vol=100,amount=100,
+                open_hfq=20,high_hfq=22,low_hfq=18,close_hfq=20,open_qfq=10,high_qfq=11,low_qfq=9,close_qfq=10)
+        rows=[row("20261031","20261029"),row("20261031","20261127"),row("20261031","20261128"),row("20261130","20261127")]
+        m,s,e=pick_periods(rows,"000001.SZ","month","20261127",local,True)
+        self.assertEqual(m[(2026,10)][0],"20261127");self.assertEqual(len(m),1);self.assertEqual(s["rejected_invalid_cutoff"],2)
+    def test_r21_exright_continuity(self):
+        rows=[dict(bar("20261125",20),pre_close=20,pct_chg=0),dict(bar("20261126",10),pre_close=10,pct_chg=0),dict(bar("20261127",11),pre_close=10,pct_chg=10)]
+        factors=[fac("20261125",1),fac("20261126",2),fac("20261127",2)]
+        r=continuity(rows,factors,"000001.SZ","20261127")
+        self.assertEqual(r["factor_change_pre_close_pass"],1);self.assertEqual(r["factor_change_return_pass"],1);self.assertEqual(r["ordinary_return_pass"],1)
+        r=continuity(rows,[fac("20261125",1),fac("20261126",1.8),fac("20261127",1.8)],"000001.SZ","20261127")
+        self.assertEqual(r["factor_change_failed_pairs"],1)
     def test_rs_and_chunks(self):
         s=[{"date":str(i),"close":p} for i,p in enumerate([10,11,12])]
         b=[{"date":str(i),"close":p} for i,p in enumerate([10,10,11])]

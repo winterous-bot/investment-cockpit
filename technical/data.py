@@ -27,12 +27,12 @@ def calendar(api,asof):
     if len(days)!=(hi-lo).days+1 or len(rows)!=len(days) or any(v not in ("0","1") for v in days.values()):raise ValueError("calendar incomplete")
     if days.get(asof)!="1":raise ValueError("target is not an exchange trading day")
     return [d for d,v in sorted(days.items()) if v=="1"]
-def stock_history(api,code,asof,details=False):
+def stock_history(api,code,asof,details=False,audit_fields=False):
     r=api.ask("stock_basic",{"ts_code":code,"list_status":"L"},"ts_code,list_date")
     exact=[x for x in r if x.get("ts_code")==code]
     if len(exact)!=1:raise ValueError("listing date unavailable")
     start=date(exact[0]["list_date"])
-    bars=series(api,"daily",code,start,asof,FIELDS)
+    bars=series(api,"daily",code,start,asof,FIELDS+(",pre_close,pct_chg,ah_vol,ah_amount" if audit_fields else ""))
     fs=series(api,"adj_factor",code,start,asof,"ts_code,trade_date,adj_factor")
     result=normalize(bars,fs,code,asof)
     return (result,start,bars,fs) if details else (result,start)
