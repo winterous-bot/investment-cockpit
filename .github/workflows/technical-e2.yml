@@ -1,0 +1,88 @@
+name: Technical E2 A0 and bounded private A1
+on:
+  push:
+    branches: ['research/technical-model-v1']
+    paths: ['technical/e2_evidence.py','technical/e2_a1.py','tests/test_technical_e2.py','.github/workflows/technical-e2.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  a0:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify frozen engine and plan unchanged
+        run: git diff --exit-code a4e103d5e29c76636fe68c91c433455ff9c45c88 HEAD -- technical/indicators.py technical/signals.py technical/quality.py technical/data.py technical/model_a.py technical/model_b.py technical/model_b_data.py technical/model_c.py technical/model_c_r1.py technical/model_d.py technical/model_e0.py technical/e0_r2_acceleration.py technical/e0_r3_index.py technical/e0_r3_store.py technical/e0_r3_validate.py docs/technical-model-v1.0-E-research-plan.md
+      - name: Verify accepted Q1 audit and approved scope plan unchanged
+        run: git diff --exit-code 1ad080f6c7c834d6a6df63b0bc0d8c1664cd8a29 HEAD -- technical/e1_q1_audit.py technical/e1_q1_r1.py technical/e1_q1_r2.py technical/e1_freeze_manifest.py technical/e1_manifest.py docs/technical-model-v1.0-E1.2A-R3-scope-research-plan.md
+      - name: Verify exact candidate freeze and E2 plan
+        run: |
+          git diff --exit-code f9ca93a907e81010738f4627f4a1ea6845a67f6d HEAD -- technical/e1_scope_candidates.py technical/e1_scope_study.py
+          git diff --exit-code cc285b011d9ddc34caa50dd39c38d02a4915929f HEAD -- docs/technical-model-v1.0-E2-implementation-plan.md
+          git fetch origin frozen/technical-scope-r3-v1
+          test "$(git rev-parse FETCH_HEAD)" = f9ca93a907e81010738f4627f4a1ea6845a67f6d
+      - name: Regression tests
+        run: python -m unittest discover -s tests -p 'test_technical*.py' -v
+      - name: Read permanent frozen manifest
+        run: |
+          git fetch origin frozen/e1-manifest-v1
+          test "$(git rev-parse FETCH_HEAD)" = 12973ce32c66429ff0026e0392576aa29031d436
+          mkdir -p e1-manifest
+          git show FETCH_HEAD:research/e1/sample-manifest.json > e1-manifest/sample-manifest.json
+          python -m technical.e1_freeze_manifest e1-manifest/sample-manifest.json
+      - name: Check real outcome publication gate
+        env:
+          PRIVATE_REPO: ${{ github.event.repository.private }}
+          PRIVATE_AUTHORIZED: ${{ vars.E2_PRIVATE_RESEARCH_AUTHORIZED }}
+        run: |
+          if [ "$PRIVATE_REPO" != "true" ] || [ "$PRIVATE_AUTHORIZED" != "1" ]; then
+            echo "TECH_E2_A1_BLOCKED: no authorized private output; no real outcomes computed"
+          fi
+  a1:
+    needs: a0
+    if: ${{ github.event.repository.private == true && vars.E2_PRIVATE_RESEARCH_AUTHORIZED == '1' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Read permanent manifest
+        run: |
+          git fetch origin frozen/e1-manifest-v1
+          test "$(git rev-parse FETCH_HEAD)" = 12973ce32c66429ff0026e0392576aa29031d436
+          mkdir -p e1-manifest
+          git show FETCH_HEAD:research/e1/sample-manifest.json > e1-manifest/sample-manifest.json
+      - name: Download accepted baseline audit ledger
+        uses: actions/download-artifact@v4
+        with:
+          name: e1-q1-audit-evidence
+          path: scope-baseline
+          run-id: '46114274504'
+          github-token: ${{ github.token }}
+      - name: Private four-arm fixed Q1 outcome evaluation
+        env:
+          TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
+          PYTHONUNBUFFERED: '1'
+          E2_PRIVATE_RESEARCH_AUTHORIZED: '1'
+          E2_REPOSITORY_PRIVATE: ${{ github.event.repository.private }}
+        run: python -m technical.e2_a1 e1-manifest/sample-manifest.json
+      - name: Save private aggregate evidence
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2-private-evidence
+          path: |
+            e2-private/evidence.json
+          if-no-files-found: ignore
+          retention-days: 14
