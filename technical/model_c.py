@@ -41,16 +41,16 @@ def contiguous_tail(bs,freq,sessions,asof):
         out.append(b)
     return list(reversed(out))
 
-def pivot_events(bs,freq,major=False):
+def pivot_events(bs,freq,major=False,atr_values=None,clean_offset=0):
     """Trailing extrema, followed by *observed* three-bar rejection.
     Formation is never usable before confirmation date. No future bars.
     Thresholds: trailing 5 bars, >=1 formation-period ATR rejection in
     next 3 observed complete bars, no close through level by >0.25 ATR.
     """
-    av=atr_series(bs);out=[];start=max(5,len(bs)-LOOKBACK[freq])
+    av=atr_series(bs) if atr_values is None else atr_values;out=[];start=max(5,len(bs)-LOOKBACK[freq])
     for i in range(start,len(bs)-3):
         b=bs[i];a=av[i]
-        if not pos(a) or (major and i+1<WARMUP):continue
+        if not pos(a) or (major and clean_offset+i+1<WARMUP):continue
         prior=bs[i-5:i];future=bs[i+1:i+4]
         for side,key,sgn in (("support","low",1),("resistance","high",-1)):
             p=b[key]
@@ -111,7 +111,7 @@ def valid_zones(events,daily,atr,sessions,ma_refs=None):
     out["resistance"].sort(key=lambda z:z["low"])
     return out
 
-def breakout_events(bs,freq,major=False):
+def breakout_events(bs,freq,major=False,atr_values=None,clean_offset=0):
     """Per-lookback state machine, replayed from guarded contiguous prefix.
     Next observed *exchange-contiguous* bar confirms only if still beyond the
     frozen pre-break level. Retest uses low/high near level, close reclaimed,
@@ -119,12 +119,12 @@ def breakout_events(bs,freq,major=False):
     5 bars of confirmation; later loss is invalidation. Expire after 20 bars.
     All prices share analysis-date adjustment anchor.
     """
-    av=atr_series(bs);out=[]
+    av=atr_series(bs) if atr_values is None else atr_values;out=[]
     for n in (20,60):
         for sign,label in ((1,"up"),(-1,"down")):
             state=None
             for i,b in enumerate(bs):
-                if i<max(n,20) or (major and i+1<WARMUP):continue
+                if i<max(n,20) or (major and clean_offset+i+1<WARMUP):continue
                 a=av[i];prior=fmean(x["vol"] for x in bs[i-20:i])
                 if not pos(a) or not pos(prior):continue
                 vr=b["vol"]/prior
@@ -153,6 +153,27 @@ def breakout_events(bs,freq,major=False):
                 out.append({k:v for k,v in state.items() if k not in ("i","confirmed_i")})
     return out
 
+def role_reversal_events(bs,freq,major=False,atr_values=None,clean_offset=0):
+    # Replay only the most recent 24 bars for role reversal evidence. A retest
+    # is a touch, not an independent rejection until three more closes observed.
+    av=atr_series(bs) if atr_values is None else atr_values
+    out=[];seen=set()
+    for i in range(max(21,len(bs)-27),len(bs)-3):
+        a=av[i]
+        if not pos(a):continue
+        for e in breakout_events(bs[:i+1],freq,major,av[:i+1],clean_offset):
+            if e["state"]!="retest" or e["event_date"]!=bs[i]["date"]:continue
+            p=e["level"];sgn=1 if e["direction"]=="up" else -1
+            future=bs[i+1:i+4];strength=max(sgn*(b["close"]-p)/a for b in future)
+            if strength<1-EPS or min(sgn*(b["close"]-p) for b in future)<-.25*a-EPS:continue
+            key=(e["event_date"],e["direction"],p)
+            if key in seen:continue
+            seen.add(key)
+            out.append({"price":p,"side":"support" if sgn==1 else "resistance","frequency":freq,
+                        "formation":e["event_date"],"confirmed":future[-1]["date"],"rejection_atr":strength,
+                        "role_reversal":True,"breakout_date":e["formation_date"]})
+    return out
+
 def location_c(q,asof,sessions):
     if not isinstance(q,QualityHistory):raise TypeError("audited history required")
     if list(sessions)!=sorted(set(sessions)) or asof not in sessions:raise ValueError("invalid sessions")
@@ -164,12 +185,27 @@ def location_c(q,asof,sessions):
     for f in LOOKBACK:
         bs=completed_bars(v,f,sessions)
         tail=contiguous_tail(bs,f,sessions,asof)
-        # Preserve frozen ATR seed: daily full clean history when calendar covers
-        # only a recent suffix; for event scan use contiguous window and report it.
-        # If a major event occurred, full recursive warmup also applies to this suffix.
         coverage[f]=len(tail)
-        all_events.extend(pivot_events(tail,f,major))
-        breaks.extend(breakout_events(tail,f,major))
+        # Use the full clean completed series to seed ATR, not the two-year
+        # calendar suffix. Candidate/confirmation windows still never cross gaps.
+        full=[b for b in v["groups"][f]["bars"] if f=="day" or b["complete"]]
+        full_index={b["date"]:i for i,b in enumerate(full)}
+        av=atr_series(full)
+        offset=full_index[tail[0]["date"]] if tail else 0
+        vals=[av[full_index[b["date"]]] for b in tail]
+        ev=pivot_events(tail,f,major,vals,offset)
+        # A weekly/monthly extreme may have formed on an earlier daily bar;
+        # resolve its source date before deduplicating cross-frequency touches.
+        for e in ev:
+            if f!="day":
+                key="low" if e["side"]=="support" else "high"
+                hits=[b["date"] for b in daily if period(b["date"],f)==period(e["formation"],f) and abs(b[key]-e["price"])<=EPS*max(1,e["price"])]
+                if not hits:continue
+                e={**e,"period_end":e["formation"],"formation":hits[0]}
+            all_events.append(e)
+        breaks.extend(breakout_events(tail,f,major,vals,offset))
+        # Role reversal evidence is restricted to day bars for exact touch dates.
+        if f=="day":all_events.extend(role_reversal_events(tail,f,major,vals,offset))
     ma={}
     for f in LOOKBACK:
         for k in ("ma20","ma60","ma250") if f=="day" else ("ma20",):

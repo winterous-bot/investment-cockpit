@@ -7,7 +7,7 @@ from .model_a import analyze
 from .model_b import attach
 from .model_b_data import prefix
 from .model_a_validate import sessions_for
-from .model_c import attach_c,location_c,breakout_events,completed_bars,contiguous_tail
+from .model_c import attach_c,location_c,breakout_events,completed_bars,contiguous_tail,atr_series
 from .diagnostics import emit
 
 def main():
@@ -40,7 +40,8 @@ def main():
         for d in [x for x in sessions if x<=end][-120:]:
             if d not in q.dates:continue
             v=q.view(d,sessions);bs=contiguous_tail(completed_bars(v,"day",sessions),"day",sessions,d)
-            for e in breakout_events(bs,"day",bool(v["last_major"])):
+            full=v["groups"]["day"]["bars"];av=atr_series(full)
+            for e in breakout_events(bs,"day",bool(v["last_major"]),av[-len(bs):] if bs else [],len(full)-len(bs)):
                 if e["event_date"]!=d:continue
                 key=(e["direction"],e["lookback"],e["formation_date"],e["state"],d)
                 if key in seen:continue

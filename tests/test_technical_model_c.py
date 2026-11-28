@@ -39,6 +39,12 @@ class ModelCTest(unittest.TestCase):
         self.assertFalse(z["resistance"]) # a single level cannot create valid RR
         put(b,70,95,96,94,100);put(b,71,95,96,94,100)
         self.assertFalse(valid_zones(events,b,a,ds)["support"])
+    def test_role_reversal_needs_three_observed_closes(self):
+        b=bars()
+        put(b,75,103,104,102,200);put(b,76,103,104,102,100);put(b,77,102,103,101.2,90)
+        for i in (78,79,80):put(b,i,104,105,103,100)
+        self.assertFalse(role_reversal_events(b[:80],"day"))
+        self.assertTrue(any(e.get("role_reversal") and e["confirmed"]==b[80]["date"] for e in role_reversal_events(b[:81],"day")))
     def test_calendar_gap(self):
         b=bars();ds=[x["date"] for x in b]
         self.assertEqual(len(contiguous_tail(b[:-3]+b[-2:],"day",ds,ds[-1])),2)
