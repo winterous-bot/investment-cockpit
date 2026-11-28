@@ -1,0 +1,21 @@
+name: Technical E0 calendar diagnostics
+on:
+  push:
+    branches: ['research/technical-model-v1']
+    paths: ['technical/e0_calendar_diagnostic.py','.github/workflows/technical-model-e0-calendar-diagnostic.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  calendar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Diagnose calendar date coverage
+        env:
+          TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
+        run: python -m technical.e0_calendar_diagnostic
