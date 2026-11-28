@@ -1,0 +1,23 @@
+name: Technical model V1.0-B validation
+on:
+  push:
+    branches: ['research/technical-model-v1']
+    paths: ['technical/model_b*.py','tests/test_technical_model_b.py','.github/workflows/technical-model-b-validation.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Foundation and A/B regression tests
+        run: python -m unittest discover -s tests -p 'test_technical*.py' -v
+      - name: Read-only fresh market and industry validation
+        env:
+          TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
+        run: python -m technical.model_b_validate
