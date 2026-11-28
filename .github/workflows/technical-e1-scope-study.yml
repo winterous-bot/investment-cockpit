@@ -1,0 +1,55 @@
+name: Technical E1.2A-R3 DW and history scope study
+on:
+  push:
+    branches: ['research/technical-model-v1']
+    paths: ['technical/e1_scope_candidates.py','technical/e1_scope_study.py','tests/test_technical_e1_scope.py','.github/workflows/technical-e1-scope-study.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify frozen engine and plan unchanged
+        run: git diff --exit-code a4e103d5e29c76636fe68c91c433455ff9c45c88 HEAD -- technical/indicators.py technical/signals.py technical/quality.py technical/data.py technical/model_a.py technical/model_b.py technical/model_b_data.py technical/model_c.py technical/model_c_r1.py technical/model_d.py technical/model_e0.py technical/e0_r2_acceleration.py technical/e0_r3_index.py technical/e0_r3_store.py technical/e0_r3_validate.py docs/technical-model-v1.0-E-research-plan.md
+      - name: Verify accepted Q1 audit and approved scope plan unchanged
+        run: git diff --exit-code 1ad080f6c7c834d6a6df63b0bc0d8c1664cd8a29 HEAD -- technical/e1_q1_audit.py technical/e1_q1_r1.py technical/e1_q1_r2.py technical/e1_freeze_manifest.py technical/e1_manifest.py docs/technical-model-v1.0-E1.2A-R3-scope-research-plan.md
+      - name: Regression tests
+        run: python -m unittest discover -s tests -p 'test_technical*.py' -v
+      - name: Read permanent frozen manifest
+        run: |
+          git fetch origin frozen/e1-manifest-v1
+          test "$(git rev-parse FETCH_HEAD)" = 12973ce32c66429ff0026e0392576aa29031d436
+          mkdir -p e1-manifest
+          git show FETCH_HEAD:research/e1/sample-manifest.json > e1-manifest/sample-manifest.json
+          python -m technical.e1_freeze_manifest e1-manifest/sample-manifest.json
+      - name: Download accepted baseline audit ledger
+        uses: actions/download-artifact@v4
+        with:
+          name: e1-q1-audit-evidence
+          path: scope-baseline
+          run-id: '46114274504'
+          github-token: ${{ github.token }}
+      - name: Four-arm full fixed Q1 comparison
+        env:
+          TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
+          PYTHONUNBUFFERED: '1'
+        run: python -m technical.e1_scope_study e1-manifest/sample-manifest.json
+      - name: Save aggregate scope research evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e1-scope-study-evidence
+          path: |
+            scope-ledger/*.json
+            scope-report/*.json
+          if-no-files-found: ignore
+          retention-days: 14
