@@ -1,59 +1,16 @@
-name: Technical E1.2A Q1 admission audit
+name: Technical E1.2A-R1 Q1 admission audit
 on:
   push:
     branches: ['research/technical-model-v1']
-    paths: ['technical/e1_freeze_manifest.py','technical/e1_q1_audit.py','tests/test_technical_e1_audit.py','.github/workflows/technical-e1-q1-audit.yml']
+    paths: ['technical/e1_q1_audit.py','technical/e1_q1_r1.py','tests/test_technical_e1_q1_r1.py','.github/workflows/technical-e1-q1-audit.yml']
   workflow_dispatch:
-    inputs:
-      resume_run:
-        description: Prior same-version audit run ID
-        required: false
-        type: string
 permissions:
   contents: read
   actions: read
 jobs:
-  freeze:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      actions: read
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - name: Download original E1.1 artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: e1-sample-manifest
-          path: e1-manifest
-          run-id: '46109711196'
-          github-token: ${{ github.token }}
-      - name: Verify semantic SHA256 and partition invariants
-        run: python -m technical.e1_freeze_manifest e1-manifest/sample-manifest.json
-      - name: Persist derived manifest in dedicated frozen branch
-        run: |
-          set -eu
-          branch=frozen/e1-manifest-v1
-          file=research/e1/sample-manifest.json
-          if git ls-remote --exit-code --heads origin "$branch" >/dev/null; then
-            git fetch origin "$branch"
-            git show FETCH_HEAD:"$file" > /tmp/existing-e1.json
-            python -m technical.e1_freeze_manifest /tmp/existing-e1.json
-            cmp /tmp/existing-e1.json e1-manifest/sample-manifest.json
-          else
-            git switch -c "$branch"
-            mkdir -p research/e1
-            cp e1-manifest/sample-manifest.json "$file"
-            git add "$file"
-            git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m "Freeze approved E1 derived sampling manifest"
-            git push origin "HEAD:refs/heads/$branch"
-          fi
   audit:
-    needs: freeze
     runs-on: ubuntu-latest
-    timeout-minutes: 240
+    timeout-minutes: 300
     steps:
       - uses: actions/checkout@v4
         with:
@@ -63,21 +20,30 @@ jobs:
           python-version: '3.12'
       - name: Verify frozen engine and plan unchanged
         run: git diff --exit-code a4e103d5e29c76636fe68c91c433455ff9c45c88 HEAD -- technical/indicators.py technical/signals.py technical/quality.py technical/data.py technical/model_a.py technical/model_b.py technical/model_b_data.py technical/model_c.py technical/model_c_r1.py technical/model_d.py technical/model_e0.py technical/e0_r2_acceleration.py technical/e0_r3_index.py technical/e0_r3_store.py technical/e0_r3_validate.py docs/technical-model-v1.0-E-research-plan.md
+      - name: Verify legacy worker and count semantics unchanged
+        run: |
+          python - <<'PY'
+          import ast,subprocess,pathlib
+          p="technical/e1_q1_audit.py"
+          a=ast.parse(subprocess.check_output(["git","show","3e866811dc7517a6a015900bb5f54cfa62776a14:"+p],text=True));b=ast.parse(pathlib.Path(p).read_text())
+          for n in ("worker","count_row","population_vol"):
+              assert ast.dump(next(x for x in a.body if isinstance(x,ast.FunctionDef) and x.name==n))==ast.dump(next(x for x in b.body if isinstance(x,ast.FunctionDef) and x.name==n)),n
+          PY
       - name: Regression tests
         run: python -m unittest discover -s tests -p 'test_technical*.py' -v
       - name: Read permanent frozen manifest
         run: |
           git fetch origin frozen/e1-manifest-v1
+          test "$(git rev-parse FETCH_HEAD)" = 12973ce32c66429ff0026e0392576aa29031d436
           mkdir -p e1-manifest
           git show FETCH_HEAD:research/e1/sample-manifest.json > e1-manifest/sample-manifest.json
           python -m technical.e1_freeze_manifest e1-manifest/sample-manifest.json
-      - name: Restore prior aggregate ledger
-        if: ${{ inputs.resume_run != '' }}
+      - name: Restore original partial checkpoint ledger
         uses: actions/download-artifact@v4
         with:
           name: e1-q1-audit-evidence
-          path: .
-          run-id: ${{ inputs.resume_run }}
+          path: e1-legacy
+          run-id: '46110956700'
           github-token: ${{ github.token }}
       - name: Full 2023Q1 feature and admission audit
         env:

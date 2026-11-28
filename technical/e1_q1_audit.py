@@ -17,6 +17,9 @@ from .e0_r3_index import CalendarIndex,indexed
 from .e0_r3_store import Ledger,atomic
 from .data import Tushare
 from .diagnostics import emit
+from .e1_q1_r1 import load_stock,AuditLedger,legacy_hit,OLD_SHA
+from .model_b import point_membership
+from tushare_5000 import SafeAPIError
 CTX=None
 def population_vol(u,prices,factors,cal,d):
     # Predeclared descriptive tertile: all then-eligible shares with exact 21 observed
@@ -93,6 +96,41 @@ def worker(task):
                     count_row(dims[name+"|"+kind+"|"+str(key)],r,reason)
     return {"counts":dict(counts),"panels":{k:dict(v) for k,v in panels.items()},"dimensions":{k:dict(v) for k,v in dims.items()},
         "output_digest":digest(hashes),"paired_checks":checks,"prefix_checks":prefixes,"compute_seconds":elapsed,"stage_seconds":dict(stage)}
+def isolated_worker(task):
+    q,members,dates,weekly,group,daily,oracle,interval,diag=task
+    cal,market,tax,vols,regimes,date_meta=CTX
+    # Only dates strictly before first invalid source row may be evaluated.
+    first=diag.get("first_invalid")
+    good=[d for d in dates if q is not None and first is not None and d<first]
+    if good:
+        out=worker((q,members,good,weekly,group,daily,oracle,interval))
+    else:
+        out={"counts":{},"panels":{},"dimensions":{},"output_digest":digest([]),"paired_checks":0,"prefix_checks":0,"compute_seconds":0.,"stage_seconds":{}}
+    counts=Counter(out["counts"]);panels=defaultdict(Counter,{k:Counter(v) for k,v in out["panels"].items()});dims=defaultdict(Counter,{k:Counter(v) for k,v in out["dimensions"].items()})
+    observed=set(diag.get("observed_dates",[]));blocked=[]
+    for d in dates:
+        if d in good:continue
+        reason="source_unavailable" if diag["state"]=="source_unavailable" else "data_quality_blocked"
+        if reason=="data_quality_blocked" and first and d not in observed and interval[1] and d>=interval[1]:reason="not_observed"
+        blocked.append([d,reason])
+        def add(c):
+            c["planned"]+=1;c[reason]+=1
+            if reason=="not_observed":c["delisted_or_after_exit"]+=1
+        add(counts)
+        names=["unique"]+(["core"] if d in weekly else [])+(["daily"] if daily else [])+(["overlap"] if daily and d in weekly else [])
+        industry=point_membership(members,diag["code"],d,tax).get("code","unclassified")
+        age=(datetime.strptime(d,"%Y%m%d")-datetime.strptime(interval[0],"%Y%m%d")).days
+        age_band="<1y" if age<365 else "1-3y" if age<1095 else "3-5y" if age<1825 else "5y+"
+        for name in names:
+            add(panels[name])
+            for kind,key in (("board",group.split("/")[0]),("liquidity",group.split("/")[1]),("industry",industry),("volatility",vols[d].get(diag["code"],"unknown")),("regime",regimes[d]),("risk","unknown"),("listing_age",age_band),("date",d)):
+                add(dims[name+"|"+kind+"|"+str(key)])
+    # The original prefix label gate returns future_not_available when truncated.
+    # No invalid-source or missing future label is admitted. Explicitly disclose cutoff.
+    out.update(counts=dict(counts),panels={k:dict(v) for k,v in panels.items()},dimensions={k:dict(v) for k,v in dims.items()},
+        output_digest=digest([out["output_digest"],blocked]),quality_state=diag["state"],first_invalid=first)
+    return out
+
 def main():
     global CTX
     start=time.perf_counter();m=verify(sys.argv[1]);qm=m["quarters"]["2023Q1"];api=Tushare(os.environ["TUSHARE_TOKEN"])
@@ -130,21 +168,39 @@ def main():
         regimes[d]=regime
     CTX=(cal,market,tax,vols,regimes,{x["date"]:x for x in qm["dates"]})
     identity=digest([os.environ["GITHUB_SHA"],EXPECTED,digest([cal,market,tax,vols,regimes])])
-    ledger=Ledger("e1-q1-ledger",identity);outcomes={};label_end=cal[cal.index(qdates[-1])+40]
+    ledger=AuditLedger("e1-q1-ledger",identity);outcomes={};diagnostics={};reused=0;fresh=0
+    legacy_identity=digest([OLD_SHA,EXPECTED,digest([cal,market,tax,vols,regimes])])
+    legacy=Ledger("e1-legacy/e1-q1-ledger",legacy_identity)
+    label_end=cal[cal.index(qdates[-1])+40]
     def save(k,source,out):
-        ledger.write(k,source,out);outcomes[k]=out
+        nonlocal fresh
+        ledger.write(k,source,out);outcomes[k]=out;fresh+=1
         emit("TECH_E1_AUDIT_STOCK",{"code":k,"computed":out["counts"]["computed"],"done":len(outcomes),"total":240})
     # Eight deterministic batches, serial API requests, bounded two-process queue.
     for shard in range(8):
         batch=codes[shard::8];pending=[]
         with ProcessPoolExecutor(max_workers=2,mp_context=multiprocessing.get_context("fork")) as pool:
             for k in batch:
-                q,meta=historical_history(api,k,u[k],label_end);members=membership_rows(api,k)
-                source=digest([meta["digest"],members,tasks[k],u[k],group[k],k in daily,k in oracle])
-                hit=ledger.read(k,source)
-                if hit is not None:
-                    outcomes[k]=hit;emit("TECH_E1_AUDIT_RESUME",{"code":k})
-                else:pending.append((k,source,pool.submit(worker,(q,members,tasks[k],weekly,group[k],k in daily,k in oracle,u[k]))))
+                q,diag=load_stock(api,k,u[k],label_end);diag["code"]=k
+                try:members=membership_rows(api,k)
+                except SafeAPIError:
+                    # Retry once; if unavailable, block source-dependent stock rather than fabricate membership.
+                    try:members=membership_rows(api,k)
+                    except SafeAPIError:
+                        members=[];q=None;diag["state"]="source_unavailable";diag["membership_unavailable"]=True
+                if diag["state"]!="ok" or diag.get("prior_errors") or k=="600460.SH":
+                    public={a:b for a,b in diag.items() if a not in ("observed_dates","source")}
+                    diagnostics[k]=public;emit("TECH_E1_AUDIT_INPUT",public)
+                args=(q,members,tasks[k],weekly,group[k],k in daily,k in oracle,u[k])
+                if diag["state"]=="ok":
+                    source=digest([diag["source"],members,tasks[k],u[k],group[k],k in daily,k in oracle])
+                    hit=ledger.read(k,source) or legacy_hit(legacy,k,source,tasks[k],weekly,k in daily)
+                    if hit is not None:
+                        ledger.write(k,source,hit);outcomes[k]=hit;reused+=1;emit("TECH_E1_AUDIT_RESUME",{"code":k,"verified_source":True})
+                    else:pending.append((k,source,pool.submit(worker,args)))
+                else:
+                    source=digest([diag["source"],diag["state"],members,tasks[k],u[k],group[k],k in daily,k in oracle])
+                    pending.append((k,source,pool.submit(isolated_worker,args+(diag,))))
                 if len(pending)>=2:
                     k,source,f=pending.pop(0);save(k,source,f.result())
             for k,source,f in pending:save(k,source,f.result())
@@ -155,7 +211,7 @@ def main():
         for k,v in o["panels"].items():panels[k].update(v)
         for k,v in o["dimensions"].items():dims[k].update(v)
     for name,n in (("core",2880),("daily",3540),("overlap",720),("unique",5700)):
-        assert panels[name]["planned"]==n and n==panels[name]["computed"]+panels[name]["not_observed"]
+        assert panels[name]["planned"]==n and n==sum(panels[name][k] for k in ("computed","not_observed","data_quality_blocked","source_unavailable"))
         for kind in ("board","liquidity","industry","volatility","regime","risk","listing_age","date"):
             assert sum(v["planned"] for k,v in dims.items() if k.startswith(name+"|"+kind+"|"))==n
     for k in set(panels["core"])|set(panels["daily"])|set(panels["unique"]):
@@ -163,9 +219,9 @@ def main():
     pairs=sum(o["paired_checks"] for o in outcomes.values());prefixes=sum(o["prefix_checks"] for o in outcomes.values())
     assert pairs==prefixes and pairs>0
     result={"manifest":EXPECTED,"identity":identity,"panels":{k:dict(v) for k,v in panels.items()},"dimensions":{k:dict(v) for k,v in dims.items()},
-        "stocks":240,"oracle_pairs":pairs,"prefix_checks":prefixes,"oracle_planned":60,"stock_output_digest":digest([[k,outcomes[k]["output_digest"]] for k in codes]),
+        "stocks":240,"fresh":fresh,"reused":reused,"input_diagnostics":diagnostics,"oracle_pairs":pairs,"prefix_checks":prefixes,"oracle_planned":60,"stock_output_digest":digest([[k,outcomes[k]["output_digest"]] for k in codes]),
         "compute_seconds":sum(o["compute_seconds"] for o in outcomes.values()),"wall_seconds":time.perf_counter()-start,"api_counts":api.counts,
         "no_outcomes":True,"full_feature_store":False}
     atomic(Path("e1-q1-audit")/"aggregate-audit.json",result)
-    emit("TECH_E1_AUDIT_DONE",{k:v for k,v in result.items() if k!="dimensions"})
+    emit("TECH_E1_AUDIT_DONE",{k:v for k,v in result.items() if k not in ("dimensions","input_diagnostics")})
 if __name__=="__main__":main()
