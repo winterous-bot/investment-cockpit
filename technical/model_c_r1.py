@@ -155,9 +155,15 @@ def analyze_r1(q,report,sessions,holding=None,portfolio_permission=None):
         locs[h]=loc
     # No mix of short stop and medium target. Existing plan only accepts short
     # location, and medium context remains advisory until D validates policy.
-    plan=conditional_plan(report,locs["short"],holding,portfolio_permission)
-    if locs["short"].get("risk_veto") is not False:assert plan["new_exposure"]!="conditional_opportunity"
-    tracking=trend_tracking(report,locs["short"],daily)
+    # Even if A's latest week looks complete, an unverified completed period
+    # must not create new exposure. Keep original C policy and add a guard.
+    gate={**locs["short"],"risk_veto":locs["short"].get("risk_veto") is not False or wtrend!="bullish"}
+    plan=conditional_plan(report,gate,holding,portfolio_permission)
+    # A short-horizon entry never suppresses the original weekly downside review.
+    if holding is True and any(x["direction"]=="down" and x["state"] in ("confirmed","retest") and x["frequency"]=="week" for x in br):
+        plan["holding_review"]="review_risk"
+    if gate["risk_veto"]:assert plan["new_exposure"]!="conditional_opportunity"
+    tracking=trend_tracking(report,locs["short"],contiguous_tail(daily,"day",sessions,asof))
     # Monthly levels are background only, never an input into either RR.
     bg=zones_for(e,daily,scales.get("month"),sessions,("month",))
     return {"version":VERSION,"code":q.code,"asof":asof,"locations":locs,"monthly_background":bg,
