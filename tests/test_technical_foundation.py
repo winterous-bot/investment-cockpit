@@ -4,6 +4,7 @@ from technical.data import chunks
 from technical.signals import crossing,signal_snapshot
 from technical.r2 import provider_periods,oracle
 from technical.r21 import unit_report,pick_periods,continuity
+from technical.quality import QualityHistory,classify,public_summary
 def bar(d,c,code="000001.SZ",vol=10):
     return dict(ts_code=code,trade_date=d,open=c,high=c+1,low=c-1,close=c,vol=vol,amount=100)
 def fac(d,f):return dict(ts_code="000001.SZ",trade_date=d,adj_factor=f)
@@ -83,6 +84,55 @@ class FoundationTest(unittest.TestCase):
         self.assertEqual(r["factor_change_pre_close_pass"],1);self.assertEqual(r["factor_change_return_pass"],1);self.assertEqual(r["ordinary_return_pass"],1)
         r=continuity(rows,[fac("20261125",1),fac("20261126",1.8),fac("20261127",1.8)],"000001.SZ","20261127")
         self.assertEqual(r["factor_change_failed_pairs"],1)
+    def test_quality_classification(self):
+        a={"close":20};b={"trade_date":"20261126","close":10,"pre_close":10,"pct_chg":0}
+        self.assertIsNone(classify(a,b,1,2))
+        self.assertEqual(classify(a,b,1,1.8)["severity"],"major")
+        self.assertEqual(classify(a,{"trade_date":"20261126","close":10},1,2)["reason"],"missing_or_invalid_reference")
+        a={"close":500.018};b={"trade_date":"20261126","close":500,"pre_close":500,"pct_chg":0}
+        # Small price discrepancy, valid return comparison and relative bound.
+        self.assertEqual(classify(a,b,1,1.000001)["severity"],"minor")
+        self.assertEqual(classify(a,b,1,1)["severity"],"major")
+    def test_quality_prefix_and_label_isolation(self):
+        from datetime import date as dt,timedelta
+        ds=[(dt(2026,1,1)+timedelta(days=i)).strftime("%Y%m%d") for i in range(180) if (dt(2026,1,1)+timedelta(days=i)).weekday()<5]
+        rows=[];fs=[]
+        for i,d in enumerate(ds):
+            c=20 if i<70 else 10
+            rows.append(dict(bar(d,c),pre_close=20 if i==70 else c,pct_chg=-50 if i==70 else 0))
+            fs.append(fac(d,1 if i<70 else 2))
+        q=QualityHistory(rows,fs,"000001.SZ",ds[-1])
+        self.assertEqual([(e["date"],e["severity"]) for e in q.events],[(ds[70],"major")])
+        self.assertIsNone(q.view(ds[69],ds)["last_major"])
+        z=q.view(ds[70],ds);self.assertTrue(all(not x["bars"] for x in z["groups"].values()))
+        self.assertFalse(z["combined_feature_ready"])
+        z=q.view(ds[71],ds);self.assertEqual(z["groups"]["day"]["count"],1)
+        self.assertEqual(q.label_admission(ds[69],1,ds)["reason"],"major_event_in_label_window")
+        self.assertEqual(q.label_admission(ds[70],1,ds)["reason"],"major_event_in_label_window")
+        self.assertTrue(q.label_admission(ds[71],5,ds)["eligible"])
+        self.assertFalse(q.training_admission(ds[71],5,ds)["eligible"])
+        self.assertEqual(q.label_admission(ds[-1],5,ds)["reason"],"future_not_available")
+        z=q.view(ds[-1],ds);self.assertIsNone(z["groups"]["day"]["indicators"]["dif"])
+        self.assertTrue(all(b["date"]>ds[70] for b in z["groups"]["day"]["bars"]))
+        for fq in ("week","month"):
+            from technical.indicators import period
+            self.assertTrue(all(period(b["date"],fq)>period(ds[70],fq) for b in z["groups"][fq]["bars"]))
+        # Remove one observed session; never silently extend horizon to next observed bar.
+        q2=QualityHistory([r for i,r in enumerate(rows) if i!=90],fs,"000001.SZ",ds[-1])
+        self.assertEqual(q2.label_admission(ds[89],2,ds)["reason"],"missing_or_suspended_session")
+    def test_quality_recursive_recovery(self):
+        from datetime import date as dt,timedelta
+        # 13 years of weekday observations, with a severe early structural break.
+        ds=[(dt(2000,1,1)+timedelta(days=i)).strftime("%Y%m%d") for i in range(4800) if (dt(2000,1,1)+timedelta(days=i)).weekday()<5]
+        rows=[];fs=[]
+        for i,d in enumerate(ds):
+            c=20 if i<70 else 10
+            rows.append(dict(bar(d,c),pre_close=20 if i==70 else c,pct_chg=-50 if i==70 else 0))
+            fs.append(fac(d,1 if i<70 else 2))
+        q=QualityHistory(rows,fs,"000001.SZ",ds[-1]);v=q.view(ds[-2],ds)
+        self.assertTrue(v["combined_feature_ready"])
+        self.assertTrue(q.training_admission(ds[-2],1,ds)["eligible"])
+        self.assertFalse(q.training_admission(ds[-2],1,ds[-30:])["eligible"])
     def test_rs_and_chunks(self):
         s=[{"date":str(i),"close":p} for i,p in enumerate([10,11,12])]
         b=[{"date":str(i),"close":p} for i,p in enumerate([10,10,11])]

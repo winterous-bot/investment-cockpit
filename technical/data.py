@@ -3,6 +3,7 @@ import sys
 from pathlib import Path
 from datetime import datetime,timedelta
 from .indicators import normalize,aggregate,indicators,risk_features,relative_strength,number,date,directions
+from .quality import QualityHistory,public_summary,WARMUP
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/"scripts"))
 from tushare_5000 import Tushare
@@ -48,17 +49,27 @@ def benchmarks(api,asof):
             out[code]=None
     return out
 def build(api,code,asof,cal,indices,history=None):
-    bars,start=history if history is not None else stock_history(api,code,asof)
-    groups={"day":bars,"week":aggregate(bars,"week",asof,cal),"month":aggregate(bars,"month",asof,cal)}
+    if history is None:
+        _,start,raw,factors=stock_history(api,code,asof,details=True,audit_fields=True)
+    else:
+        raw,factors,start=history
+    q=QualityHistory(raw,factors,code,asof);view=q.view(asof,cal)
+    groups={k:v["bars"] for k,v in view["groups"].items()};bars=groups["day"]
+    features=risk_features(bars) if bars else {}
+    if view["last_major"] and len(bars)<WARMUP:
+        for k in ("atr14","atr14_pct"):
+            if k in features:features[k]=None
+    missing=len(set(d for d in cal if q.dates[0]<=d<=asof)-set(q.dates))
     daily_basic=api.ask("daily_basic",{"ts_code":code,"trade_date":asof},"ts_code,trade_date,turnover_rate,volume_ratio")
     exact=[r for r in daily_basic if r.get("ts_code")==code and r.get("trade_date")==asof]
     basic={k:number(exact[0][k]) if len(exact)==1 and exact[0].get(k) is not None else None for k in ("turnover_rate","volume_ratio")}
-    return {"asof":asof,"code":code,"listing_date":start,"first_bar":bars[0]["date"],
+    return {"asof":asof,"code":code,"listing_date":start,"first_bar":q.dates[0],
             "counts":{k:len(v) for k,v in groups.items()},
-            "completed":{"day":True,**{k:groups[k][-1]["complete"] for k in ("week","month")}},
-            "indicators":{k:indicators(v,k) for k,v in groups.items()},
-            "directions":{k:directions(v,k) for k,v in groups.items()},
-            "features":risk_features(bars),"daily_basic":basic,
-            "relative_strength":{k:{str(n):relative_strength(bars,v,n) if v else None for n in (5,20,60)} for k,v in indices.items()},
-            "missing_recent_sessions":len(set(d for d in cal if bars[0]["date"]<=d<=asof)-{b["date"] for b in bars}),
+            "completed":{"day":bool(bars),**{k:groups[k][-1]["complete"] if groups[k] else False for k in ("week","month")}},
+            "indicators":{k:v["indicators"] for k,v in view["groups"].items()},
+            "directions":{k:v["directions"] for k,v in view["groups"].items()},
+            "signals":{k:v["signals"] for k,v in view["groups"].items()},
+            "features":features,"daily_basic":basic,
+            "relative_strength":{k:{str(n):relative_strength(bars,v,n) if v and bars else None for n in (5,20,60)} for k,v in indices.items()},
+            "data_quality":public_summary(view),"missing_recent_sessions":missing,
             "minutes":{"state":"disabled_by_scope","reason":"no paid minute data"}}

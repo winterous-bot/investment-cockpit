@@ -5,6 +5,7 @@ from .data import Tushare,calendar,benchmarks,build,stock_history
 from .diagnostics import sensitivity,historical_checks,emit
 from .r2 import signal_checks
 from .r21 import period_checks,continuity
+from .quality_validate import check_cases
 REF=json.loads(Path(__file__).with_name("reference_20261127.json").read_text())
 def compare(report):
     out=[]
@@ -22,7 +23,7 @@ def main():
     for code in (REF["code"],"600000.SH","300750.SZ"):
         try:
             bars,start,raw,factors=stock_history(api,code,asof,details=True,audit_fields=True)
-            r=build(api,code,asof,cal,idx,history=(bars,start))
+            r=build(api,code,asof,cal,idx,history=(raw,factors,start))
             summary={"code":code,"status":"ok","asof":r["asof"],"first_bar":r["first_bar"],"listing_date":r["listing_date"],"counts":r["counts"],"completed":r["completed"],"missing_recent_sessions":r["missing_recent_sessions"],"feature_count":sum(v is not None for v in r["features"].values()),"daily_basic_complete":all(v is not None for v in r["daily_basic"].values()),"benchmark_count":sum(all(v is not None for v in x.values()) for x in r["relative_strength"].values())}
             if code==REF["code"]:
                 c=compare(r);summary["matches"]=sum(x["match"] for x in c);summary["total"]=len(c)
@@ -33,11 +34,12 @@ def main():
                 for p,expected in arrows.items():
                     for k,sign in expected.items():emit("TECH_DIRECTION",{"period":p,"metric":k,"expected":sign,"actual":r["directions"][p].get(k),"match":r["directions"][p].get(k)==sign})
             print("TECH_FOUNDATION "+json.dumps(summary,ensure_ascii=False),flush=True)
+            check_cases(api,code,raw,factors,asof,cal,r)
             period_checks(api,code,bars,raw,factors,asof,cal)
             emit("TECH_R21_CONTINUITY",continuity(raw,factors,code,asof))
             historical_checks(api,code,raw,factors)
             signal_checks(code,raw,factors,asof,cal)
         except Exception as e:
             print("TECH_FOUNDATION "+json.dumps({"code":code,"status":"failed","reason":type(e).__name__,"detail":str(e)[:120] if isinstance(e,ValueError) else "source unavailable"},ensure_ascii=False),flush=True)
-            raise RuntimeError("R2.1 sample validation unavailable") from None
+            raise RuntimeError("V1.0 quality acceptance unavailable") from None
 if __name__=="__main__":main()
