@@ -1,0 +1,23 @@
+name: Technical model V1.0-C R1 validation
+on:
+  push:
+    branches: ['research/technical-model-v1']
+    paths: ['technical/model_c_r1*.py','tests/test_technical_model_c_r1.py','.github/workflows/technical-model-c-r1-validation.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Foundation and A/B/C/R1 regression tests
+        run: python -m unittest discover -s tests -p 'test_technical*.py' -v
+      - name: Nine actual samples and old-new price evidence
+        env:
+          TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
+        run: python -m technical.model_c_r1_validate
