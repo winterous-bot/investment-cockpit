@@ -2,7 +2,8 @@
 import os,json
 from pathlib import Path
 from .data import Tushare,calendar,benchmarks,build,stock_history
-from .diagnostics import sensitivity,provider_check,historical_checks,emit
+from .diagnostics import sensitivity,historical_checks,emit
+from .r2 import provider_check_r2,signal_checks
 REF=json.loads(Path(__file__).with_name("reference_20261127.json").read_text())
 def compare(report):
     out=[]
@@ -31,9 +32,10 @@ def main():
                 for p,expected in arrows.items():
                     for k,sign in expected.items():emit("TECH_DIRECTION",{"period":p,"metric":k,"expected":sign,"actual":r["directions"][p].get(k),"match":r["directions"][p].get(k)==sign})
             print("TECH_FOUNDATION "+json.dumps(summary,ensure_ascii=False),flush=True)
-            provider_check(api,code,bars,asof,cal)
+            provider_check_r2(api,code,bars,raw,factors,asof,cal)
             historical_checks(api,code,raw,factors)
+            signal_checks(code,raw,factors,asof,cal)
         except Exception as e:
             print("TECH_FOUNDATION "+json.dumps({"code":code,"status":"failed","reason":type(e).__name__,"detail":str(e)[:120] if isinstance(e,ValueError) else "source unavailable"},ensure_ascii=False),flush=True)
-            if code==REF["code"]:raise RuntimeError("Reference data validation unavailable") from None
+            raise RuntimeError("R2 sample validation unavailable") from None
 if __name__=="__main__":main()

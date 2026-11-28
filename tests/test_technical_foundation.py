@@ -1,6 +1,8 @@
 import unittest
 from technical.indicators import normalize,aggregate,indicators,risk_features,relative_strength,ema,rsi,directions
 from technical.data import chunks
+from technical.signals import crossing,signal_snapshot
+from technical.r2 import provider_periods,oracle
 def bar(d,c,code="000001.SZ",vol=10):
     return dict(ts_code=code,trade_date=d,open=c,high=c+1,low=c-1,close=c,vol=vol,amount=100)
 def fac(d,f):return dict(ts_code="000001.SZ",trade_date=d,adj_factor=f)
@@ -41,6 +43,23 @@ class FoundationTest(unittest.TestCase):
         a=directions(x,"day")
         self.assertEqual(a["ma5"],1);self.assertEqual(a["vol_ma10"],1);self.assertEqual(a["rsi6"],0)
         self.assertIsNone(a["ma250"])
+    def test_r2_provider_alignment(self):
+        local={(2026,10):{"date":"20261030","complete":True},(2026,11):{"date":"20261127","complete":False}}
+        def row(label,end,close=10):
+            return dict(ts_code="000001.SZ",freq="month",trade_date=label,end_date=end,close=close,vol=100,close_hfq=20,close_qfq=10)
+        remote=[row("20261031","20261029"),row("20261031","20261030"),row("20261031","20261030"),row("20261130","20261127")]
+        p,r,d=provider_periods(remote,"000001.SZ","month","20261127",local)
+        self.assertEqual(len(p),1);self.assertEqual(p[(2026,10)][0],"20261030");self.assertEqual((r,d),(1,1))
+        with self.assertRaises(RuntimeError):provider_periods(remote+[row("20261031","20261030",11)],"000001.SZ","month","20261127",local)
+    def test_r2_signals(self):
+        self.assertEqual([crossing(-1,1),crossing(1,-1),crossing(0,0),crossing(None,1)],[1,-1,0,None])
+        x=[dict(close=float(i),high=i+1,low=i-1,vol=100) for i in range(10,100)]
+        x.append(dict(close=110,high=111,low=109,vol=100))
+        r=signal_snapshot(x,"day")
+        self.assertEqual(r["prior_high20"],100);self.assertEqual(r["breakout20"],1)
+        x.append(dict(close=1,high=2,low=.5,vol=100))
+        self.assertEqual(signal_snapshot(x,"day")["breakout20"],-1)
+        self.assertEqual(signal_snapshot(x,"day"),oracle(x,"day"))
     def test_rs_and_chunks(self):
         s=[{"date":str(i),"close":p} for i,p in enumerate([10,11,12])]
         b=[{"date":str(i),"close":p} for i,p in enumerate([10,10,11])]
