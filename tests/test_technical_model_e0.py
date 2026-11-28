@@ -17,6 +17,20 @@ class E0Test(unittest.TestCase):
         class API:
             def ask(self,*a,**k):return [{"cal_date":"20260101","is_open":0}]
         with self.assertRaises(ValueError):full_calendar(API(),"20260101","20260102")
+    def test_common_calendar_and_mismatch(self):
+        class API:
+            def __init__(self,mismatch=False):self.mismatch=mismatch
+            def ask(self,name,p,fields):
+                return [{"cal_date":"20260101","is_open":0},{"cal_date":"20260102","is_open":0 if self.mismatch and p["exchange"]=="SZSE" else 1},{"cal_date":"20260103","is_open":1}]
+        self.assertEqual(common_calendar(API(),"20260101","20260103"),["20260102","20260103"])
+        with self.assertRaises(ValueError):common_calendar(API(True),"20260101","20260103")
+    def test_feature_window_before_calendar(self):
+        class Q:dates=["20100101","20230103"]
+        # Synthetic monthly counts with first required bar older than calendar.
+        bs=[{"date":"20100101","complete":True} for _ in range(60)]+[{"date":"20230103","complete":True}]
+        v={"asof":"20230103","last_major":None,"groups":{"day":{"bars":[]},"week":{"bars":[]},"month":{"bars":bs}}}
+        x=feature_calendar_diagnostics(Q(),v,["20120104","20230103"])
+        self.assertEqual(x["month"]["state"],"calendar_not_covered")
     def test_cache_full_parity(self):
         ds=[(datetime(2024,1,1)+timedelta(days=i)).strftime("%Y%m%d") for i in range(90) if (datetime(2024,1,1)+timedelta(days=i)).weekday()<5]
         code="600001.SH";raw=[dict(ts_code=code,trade_date=d,open=10,high=11,low=9,close=10,vol=100,amount=100,pre_close=10,pct_chg=0) for d in ds]

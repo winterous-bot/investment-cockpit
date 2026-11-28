@@ -119,6 +119,7 @@ def pilot(api,u,cal):
                     assert analyze(q,d,cal,i)==a
                     qt=QualityHistory([x for x in q.raw if x["trade_date"]<=d],[x for x in q.factors if x["trade_date"]<=d],k,d)
                     assert analyze(qt,d,cal,i)==a
+                    assert analyze_r1(q,b,cal)==r
                     assert analyze_r1(qt,b,cal)==r
                     oracle+=1
             cnt["cache_hits"]=ch.hits;cnt["cache_misses"]=ch.misses
@@ -136,8 +137,8 @@ def pilot(api,u,cal):
 def main():
     api=Tushare(os.environ["TUSHARE_TOKEN"]);u=universe_history(api)
     earliest=min(a for a,b in u.values())
-    cal=full_calendar(api,earliest,"20261231")
-    emit("TECH_E0_CALENDAR",{"first_listing":earliest,"first_open":cal[0],"last_open":cal[-1],"sessions":len(cal),"study_sessions":sum("20230101"<=d<=END for d in cal),"universe":len(u),"delisted":sum(b is not None for a,b in u.values()),"digest":digest(cal)})
+    cal=common_calendar(api)
+    emit("TECH_E0_CALENDAR",{"first_listing":earliest,"verified_calendar_start":CALENDAR_START,"verified_calendar_end":CALENDAR_END,"exchange_parity":True,"pre_2012_raw_history_retained":True,"first_open":cal[0],"last_open":cal[-1],"sessions":len(cal),"study_sessions":sum("20230101"<=d<=END for d in cal),"universe":len(u),"delisted":sum(b is not None for a,b in u.values()),"digest":digest(cal)})
     if sys.argv[1]=="source":source(api,u,cal)
     elif sys.argv[1]=="pilot":pilot(api,u,cal)
     else:raise ValueError("unknown mode")
