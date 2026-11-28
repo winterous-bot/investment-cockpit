@@ -57,6 +57,8 @@ class ModelCTest(unittest.TestCase):
         self.assertEqual(conditional_plan(r,l,False,True)["new_exposure"],"conditional_opportunity")
         r["cycles"]["week"]["provisional"]=True
         self.assertEqual(conditional_plan(r,l,False,True)["new_exposure"],"watch")
+        l["completed_week_trend"]="bullish"
+        self.assertEqual(conditional_plan(r,l,False,True)["new_exposure"],"conditional_opportunity")
         r["market_industry_context"]["state"]="defensive";r["cycles"]["week"]["trend"]="bearish"
         p=conditional_plan(r,l,True,True)
         self.assertEqual(p["new_exposure"],"defensive_no_new_exposure");self.assertEqual(p["holding_review"],"review_risk")

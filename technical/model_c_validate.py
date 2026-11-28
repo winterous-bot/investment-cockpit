@@ -15,12 +15,12 @@ def main():
     # Reuse the exact accepted B historical market snapshot summaries only for
     # veto regression, not claim a new B source validation. No fabricated user permission.
     # Industry readiness is intentionally unknown here; full integration follows D.
-    baseline={"20261030":(0,1,1.5),"20261120":(0,.5,1.5),"20261127":(1,1.5,3.5)}
+    baseline={"20261030":(0,1,1.5,99.328),"20261120":(0,.5,1.5,99.361),"20261127":(1,1.5,3.5,99.386)}
     for code in ("002475.SZ","600000.SH","300750.SZ"):
         _,_,raw,fs=stock_history(api,code,end,details=True,audit_fields=True);q=QualityHistory(raw,fs,code,end)
         for d,ss in baseline.items():
             a=analyze(q,d,sessions,{k:prefix(v,d) for k,v in idx.items()})
-            ctx=[{"asof":d,"score":s,"coverage":100} for s in ss]
+            ctx=[{"asof":d,"score":s,"coverage":ss[3] if i==1 else 100} for i,s in enumerate(ss[:3])]
             b=attach(a,*ctx,{"ready":False})
             c=attach_c(q,b,sessions)
             qt=QualityHistory([r for r in raw if r["trade_date"]<=d],[r for r in fs if r["trade_date"]<=d],code,d)

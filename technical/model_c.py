@@ -3,7 +3,7 @@ Consumes guarded foundation and A/B reports. No changes to A/B scores or policie
 """
 from statistics import fmean
 from .indicators import risk_features,indicators,period,wilder
-from .model_a import pos,finite
+from .model_a import pos,finite,cycle
 from .quality import QualityHistory,WARMUP
 VERSION="technical-model-v1.0-C"
 LOOKBACK={"day":120,"week":52,"month":24}
@@ -206,6 +206,8 @@ def location_c(q,asof,sessions):
         breaks.extend(breakout_events(tail,f,major,vals,offset))
         # Role reversal evidence is restricted to day bars for exact touch dates.
         if f=="day":all_events.extend(role_reversal_events(tail,f,major,vals,offset))
+    wk=contiguous_tail(completed_bars(v,"week",sessions),"week",sessions,asof)
+    completed_week_trend=cycle(q.view(wk[-1]["date"],sessions),"week")["trend"] if wk else "unknown"
     ma={}
     for f in LOOKBACK:
         for k in ("ma20","ma60","ma250") if f=="day" else ("ma20",):
@@ -226,7 +228,7 @@ def location_c(q,asof,sessions):
            "unfavorable_rr":rr<2-EPS if rr is not None else None,"missing_level":stop is None or target is None}
     return {"state":"ready" if not any(x is not False for x in flags.values()) else "caution","risk_veto":any(x is not False for x in flags.values()),
             "price":c,"atr14":a,"support":s,"resistance":r,"invalidation":stop,"target_reference":target,
-            "reward_risk":rr,"risk_fraction":risk,"flags":flags,"zones":zones,"breakouts":breaks,"contiguous_counts":coverage}
+            "reward_risk":rr,"risk_fraction":risk,"flags":flags,"zones":zones,"breakouts":breaks,"contiguous_counts":coverage,"completed_week_trend":completed_week_trend,"completed_week_date":wk[-1]["date"] if wk else None}
 
 def conditional_plan(report,loc,holding=None,portfolio_permission=None):
     """Separate exit review and new-risk permission. Never issue orders.
@@ -255,7 +257,8 @@ def conditional_plan(report,loc,holding=None,portfolio_permission=None):
         # Only current candidate or current retest can trigger a new plan;
         # an old confirmed breakout is context, not a fresh entry.
         active=any(e["direction"]=="up" and e["state"] in ("candidate","retest") and e["event_date"]==report["asof"] for e in events)
-        good=w.get("trend")=="bullish" and w.get("provisional") is False and m.get("trend") not in ("bearish","unknown",None) and finite(d) and d>=20
+        weekly_ok=(w.get("trend")=="bullish" if w.get("provisional") is False else loc.get("completed_week_trend")=="bullish" and w.get("trend") in ("bullish","range"))
+        good=weekly_ok and m.get("trend") not in ("bearish","unknown",None) and finite(d) and d>=20
         action="conditional_opportunity" if good and active else "watch"
     return {"new_exposure":action,"holding_review":held,"portfolio_permission_verified":portfolio_permission is not None,
             "reference_entry":loc.get("price") if action=="conditional_opportunity" else None,
