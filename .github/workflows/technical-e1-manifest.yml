@@ -1,0 +1,36 @@
+name: Technical E1 frozen sampling manifest
+on:
+  push:
+    branches: ['research/technical-model-v1']
+    paths: ['technical/e1_manifest.py','tests/test_technical_e1_manifest.py','.github/workflows/technical-e1-manifest.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  manifest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify frozen R3 engine files unchanged
+        run: |
+          git diff --exit-code a4e103d5e29c76636fe68c91c433455ff9c45c88 HEAD -- technical/indicators.py technical/signals.py technical/quality.py technical/data.py technical/model_a.py technical/model_b.py technical/model_b_data.py technical/model_c.py technical/model_c_r1.py technical/model_d.py technical/model_e0.py technical/e0_r2_acceleration.py technical/e0_r3_index.py technical/e0_r3_store.py technical/e0_r3_validate.py docs/technical-model-v1.0-E-research-plan.md
+      - name: Regression tests
+        run: python -m unittest discover -s tests -p 'test_technical*.py' -v
+      - name: Build all 16 quarterly manifests without outcomes
+        env:
+          TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
+          PYTHONUNBUFFERED: '1'
+        run: python -m technical.e1_manifest
+      - name: Save derived sampling manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: e1-sample-manifest
+          path: e1-manifest/sample-manifest.json
+          if-no-files-found: error
+          retention-days: 14
