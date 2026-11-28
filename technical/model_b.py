@@ -43,7 +43,7 @@ def point_membership(rows,code,asof,taxonomy):
         # conservative: reject ambiguous differing intervals rather than assume continuous tenure.
         if len(matches)!=1:return {"state":"unavailable","reason":"no_or_ambiguous_membership","matches":len(matches)}
         k,start,end=next(iter(matches))
-        return {"state":"matched","code":k,"name":taxonomy[k],"in_date":start,"out_date":end,"taxonomy":TAXONOMY,"asof":asof}
+        return {"state":"matched","code":k,"name":taxonomy[k],"in_date":start,"out_date":None,"taxonomy":TAXONOMY,"asof":asof}
     except (ValueError,KeyError,TypeError):return {"state":"unavailable","reason":"invalid_membership"}
 def industry_context(q,asof,sessions,indices,taxonomy,membership,sector_rows):
     m=point_membership(membership,q.code,asof,taxonomy)

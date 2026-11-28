@@ -41,7 +41,7 @@ def universe_history(api):
     out={}
     for status in ("L","D","P"):
         rows=api.ask("stock_basic",{"list_status":status},"ts_code,list_date,delist_date,list_status")
-        if not rows or len(rows)>=6000:raise ValueError("universe query empty or truncated")
+        if (not rows and status in ("L","D")) or len(rows)>=6000:raise ValueError("universe query empty or truncated")
         for r in rows:
             k=str(r.get("ts_code",""))
             if not k.endswith((".SH",".SZ")):continue

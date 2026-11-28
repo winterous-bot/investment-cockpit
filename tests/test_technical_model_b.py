@@ -16,6 +16,7 @@ class ModelBTest(unittest.TestCase):
         tax={"801080.SI":"电子","801780.SI":"银行"}
         r=[{"ts_code":"X","l1_code":"801080.SI","in_date":"20220101","out_date":"20260101"},{"ts_code":"X","l1_code":"801780.SI","in_date":"20260101","out_date":None}]
         self.assertEqual(point_membership(r,"X","20251231",tax)["code"],"801080.SI")
+        self.assertIsNone(point_membership(r,"X","20251231",tax)["out_date"]) # no future end date in historical output
         self.assertEqual(point_membership(r,"X","20260101",tax)["code"],"801780.SI")
         self.assertEqual(point_membership(r,"X","20210101",tax)["state"],"unavailable")
         self.assertEqual(point_membership(r[1:],"X","20251231",tax)["state"],"unavailable")
