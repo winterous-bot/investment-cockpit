@@ -116,12 +116,13 @@ def _completed_week_views(q,view,sessions,limit=3):
     # Completed week is accepted only if its close matches the last exchange
     # session in its period. No suspended close treated as completed signal.
     out=[]
-    for b in reversed(view["groups"]["week"]["bars"]):
-        if not b["complete"]:continue
-        ds=[d for d in sessions if period(d,"week")==period(b["date"],"week")]
-        if not ds or ds[-1]!=b["date"]:break
-        out.append(q.view(b["date"],sessions))
-        if len(out)==limit:break
+    calendar_ends={}
+    for d in sessions:calendar_ends[period(d,"week")]=d
+    observed={b["date"] for b in view["groups"]["week"]["bars"] if b["complete"]}
+    expected=sorted(d for d in calendar_ends.values() if d<=view["asof"])[-limit:]
+    for d in reversed(expected):
+        if d not in observed:break
+        out.append(q.view(d,sessions))
     return out
 
 def _qualifies(view,sign):

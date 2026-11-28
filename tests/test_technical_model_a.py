@@ -41,7 +41,7 @@ class ModelATest(unittest.TestCase):
         self.assertIsNone(relative_component(s,ix,ds,ds[-1],(20,60))["R"])
         self.assertIsNone(relative_component(s[:-2]+s[-1:],ix,ds,ds[-1],(20,60))["R"])
     def test_volume_and_cluster(self):
-        bars=[{"close":100,"high":101,"low":99,"vol":100} for _ in range(20)]+[{"close":103,"high":104,"low":102,"vol":150}]
+        bars=[{"date":str(i),"close":100,"high":101,"low":99,"vol":100} for i in range(20)]+[{"date":"20","close":103,"high":104,"low":102,"vol":150}]
         v={"last_major":None,"groups":{"day":{"bars":bars}}}
         self.assertEqual(volume_component(v,"day")["V"],100)
         bars[-1]["vol"]=74;self.assertEqual(volume_component(v,"day")["V"],0)
@@ -77,7 +77,9 @@ class ModelATest(unittest.TestCase):
         self.assertIsNone(r["cycles"]["day"]["M"]);self.assertIsNone(r["horizons"]["short"]["D"])
         self.assertIsNone(r["location"]["risk_veto"])
     def test_risk_guard(self):
-        ds,raw,fs=history();d=raw[-1]["trade_date"];v=QualityHistory(raw,fs,"X",d).view(d,ds)
+        ds,raw,fs=history();d=raw[-1]["trade_date"];c=raw[-1]["close"]+10;prev=raw[-2]["close"]
+        raw[-1].update(close=c,open=c,high=c+1,low=c-1,pre_close=prev,pct_chg=100*(c/prev-1))
+        v=QualityHistory(raw,fs,"X",d).view(d,ds)
         l=location(v);self.assertTrue(l["risk_veto"]) # trending all-time high, missing resistance
         self.assertTrue(l["flags"]["missing_level"])
         self.assertIsNone(l["reward_risk"])
