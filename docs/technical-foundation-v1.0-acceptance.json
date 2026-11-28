@@ -1,0 +1,99 @@
+{
+  "version": "technical-foundation-v1.0",
+  "status": "frozen_research_baseline",
+  "validated_commit": "547ee8aae925bfdc55bc273c27133d367d7bc49c",
+  "validation_run_id": 46088045838,
+  "validated_at_utc": "2026-11-28T00:30:19Z",
+  "asof": "20261127",
+  "scope": [
+    "daily",
+    "weekly",
+    "monthly"
+  ],
+  "production_deployed": false,
+  "probability_model_validated": false,
+  "metrics": {
+    "unit_tests": {
+      "passed": 12,
+      "total": 12
+    },
+    "screenshot_numeric": {
+      "passed": 43,
+      "total": 50
+    },
+    "screenshot_direction": {
+      "passed": 47,
+      "total": 47
+    },
+    "technical_signal_oracle": {
+      "passed": 6480,
+      "total": 6480
+    },
+    "raw_ohlc": {
+      "passed": 720,
+      "total": 720
+    },
+    "adjusted_ohlc": {
+      "passed": 360,
+      "total": 360
+    },
+    "volume_periods_per_source": {
+      "passed": 90,
+      "total": 90
+    },
+    "amount_periods_per_source": {
+      "passed": 90,
+      "total": 90
+    },
+    "daily_continuity": {
+      "passed": 12391,
+      "total": 12393
+    },
+    "known_exception_classification": {
+      "passed": 2,
+      "total": 2
+    }
+  },
+  "known_cases": [
+    {
+      "code": "600000.SH",
+      "date": "20060512",
+      "severity": "major",
+      "action": "segment_reset_and_reject_crossing_labels",
+      "current_feature_ready": true
+    },
+    {
+      "code": "300750.SZ",
+      "date": "20210705",
+      "severity": "minor",
+      "action": "warn_preserve_original_data",
+      "current_feature_ready": true
+    }
+  ],
+  "policy": {
+    "normal_pre_close_abs_cny": 0.01,
+    "pct_tolerance_pp": 0.01,
+    "minor_price_abs_cny": 0.05,
+    "minor_price_relative": 0.0001,
+    "recursive_clean_completed_bars": 120,
+    "recursive_direction_clean_completed_bars": 121,
+    "min_combined_bars": {
+      "day": 253,
+      "week": 61,
+      "month": 61
+    },
+    "major_event_day_excluded": true,
+    "major_event_week_month_excluded": true,
+    "label_must_pass_quality_gate": true,
+    "missing_sessions": "reject_label_no_forward_fill",
+    "source_repair": false
+  },
+  "limitations": [
+    "External vendor screenshot validation limited to one stock/date; seven numeric mismatches remain under original tolerance rule.",
+    "Provider cross-checks are between Tushare endpoints, not independently sourced market records.",
+    "Historical provider revisions and full-market corporate-action coverage have not been independently validated.",
+    "Major-event 120/121-bar warmup and minor thresholds are conservative engineering policy, not optimized or proven predictive.",
+    "Training admission requires verified full exchange calendar; feature/label gate must be called by future probability model. Historical data is not certified as point-in-time vintage.",
+    "Minute data excluded; no production integration or probability model training."
+  ]
+}
