@@ -17,6 +17,7 @@ from .e0_r3_index import CalendarIndex,indexed
 from .e0_r3_store import Ledger,atomic
 from .data import Tushare
 from .diagnostics import emit
+from .e1_q1_r2 import R1_SHA,validate_stock,validate_panels,checkpoint_hit,stock_event,report_dimensions
 from .e1_q1_r1 import load_stock,AuditLedger,legacy_hit,OLD_SHA
 from .model_b import point_membership
 from tushare_5000 import SafeAPIError
@@ -169,13 +170,15 @@ def main():
     CTX=(cal,market,tax,vols,regimes,{x["date"]:x for x in qm["dates"]})
     identity=digest([os.environ["GITHUB_SHA"],EXPECTED,digest([cal,market,tax,vols,regimes])])
     ledger=AuditLedger("e1-q1-ledger",identity);outcomes={};diagnostics={};reused=0;fresh=0
-    legacy_identity=digest([OLD_SHA,EXPECTED,digest([cal,market,tax,vols,regimes])])
-    legacy=Ledger("e1-legacy/e1-q1-ledger",legacy_identity)
+    legacy_identity=digest([R1_SHA,EXPECTED,digest([cal,market,tax,vols,regimes])])
+    legacy=AuditLedger("e1-legacy/e1-q1-ledger",legacy_identity)
+    emit("TECH_E1_R2_LEDGER",{"previous_commit":R1_SHA,"files":len(list(legacy.path.glob("*.json"))),"identity":legacy_identity})
     label_end=cal[cal.index(qdates[-1])+40]
     def save(k,source,out):
         nonlocal fresh
+        validate_stock(out,tasks[k],weekly,k in daily,out.get("quality_state"),out.get("first_invalid"))
         ledger.write(k,source,out);outcomes[k]=out;fresh+=1
-        emit("TECH_E1_AUDIT_STOCK",{"code":k,"computed":out["counts"]["computed"],"done":len(outcomes),"total":240})
+        emit("TECH_E1_AUDIT_STOCK",stock_event(k,out,len(outcomes),240))
     # Eight deterministic batches, serial API requests, bounded two-process queue.
     for shard in range(8):
         batch=codes[shard::8];pending=[]
@@ -194,13 +197,16 @@ def main():
                 args=(q,members,tasks[k],weekly,group[k],k in daily,k in oracle,u[k])
                 if diag["state"]=="ok":
                     source=digest([diag["source"],members,tasks[k],u[k],group[k],k in daily,k in oracle])
-                    hit=ledger.read(k,source) or legacy_hit(legacy,k,source,tasks[k],weekly,k in daily)
-                    if hit is not None:
-                        ledger.write(k,source,hit);outcomes[k]=hit;reused+=1;emit("TECH_E1_AUDIT_RESUME",{"code":k,"verified_source":True})
-                    else:pending.append((k,source,pool.submit(worker,args)))
                 else:
                     source=digest([diag["source"],diag["state"],members,tasks[k],u[k],group[k],k in daily,k in oracle])
-                    pending.append((k,source,pool.submit(isolated_worker,args+(diag,))))
+                hit=checkpoint_hit(ledger,k,source,tasks[k],weekly,k in daily,diag["state"],diag.get("first_invalid"))
+                if hit is None:
+                    hit=checkpoint_hit(legacy,k,source,tasks[k],weekly,k in daily,diag["state"],diag.get("first_invalid"))
+                if hit is not None:
+                    ledger.write(k,source,hit);outcomes[k]=hit;reused+=1
+                    emit("TECH_E1_AUDIT_RESUME",{"verified_source":True,**stock_event(k,hit,len(outcomes),240)})
+                else:
+                    pending.append((k,source,pool.submit(worker,args) if diag["state"]=="ok" else pool.submit(isolated_worker,args+(diag,))))
                 if len(pending)>=2:
                     k,source,f=pending.pop(0);save(k,source,f.result())
             for k,source,f in pending:save(k,source,f.result())
@@ -210,12 +216,7 @@ def main():
     for o in outcomes.values():
         for k,v in o["panels"].items():panels[k].update(v)
         for k,v in o["dimensions"].items():dims[k].update(v)
-    for name,n in (("core",2880),("daily",3540),("overlap",720),("unique",5700)):
-        assert panels[name]["planned"]==n and n==sum(panels[name][k] for k in ("computed","not_observed","data_quality_blocked","source_unavailable"))
-        for kind in ("board","liquidity","industry","volatility","regime","risk","listing_age","date"):
-            assert sum(v["planned"] for k,v in dims.items() if k.startswith(name+"|"+kind+"|"))==n
-    for k in set(panels["core"])|set(panels["daily"])|set(panels["unique"]):
-        assert panels["core"][k]+panels["daily"][k]-panels["overlap"][k]==panels["unique"][k],"overlap accounting mismatch"
+    validate_panels({k:dict(v) for k,v in panels.items()},{k:dict(v) for k,v in dims.items()},{"core":2880,"daily":3540,"overlap":720,"unique":5700})
     pairs=sum(o["paired_checks"] for o in outcomes.values());prefixes=sum(o["prefix_checks"] for o in outcomes.values())
     assert pairs==prefixes and pairs>0
     result={"manifest":EXPECTED,"identity":identity,"panels":{k:dict(v) for k,v in panels.items()},"dimensions":{k:dict(v) for k,v in dims.items()},
@@ -223,5 +224,6 @@ def main():
         "compute_seconds":sum(o["compute_seconds"] for o in outcomes.values()),"wall_seconds":time.perf_counter()-start,"api_counts":api.counts,
         "no_outcomes":True,"full_feature_store":False}
     atomic(Path("e1-q1-audit")/"aggregate-audit.json",result)
+    emit("TECH_E1_AUDIT_DIMENSIONS",report_dimensions(result["dimensions"]))
     emit("TECH_E1_AUDIT_DONE",{k:v for k,v in result.items() if k not in ("dimensions","input_diagnostics")})
 if __name__=="__main__":main()
