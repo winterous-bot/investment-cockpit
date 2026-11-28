@@ -1,0 +1,24 @@
+name: Technical E0 R2 performance validation
+on:
+  push:
+    branches: ['research/technical-model-v1']
+    paths: ['technical/e0_r2*.py','tests/test_technical_e0_r2.py','.github/workflows/technical-e0-r2-validation.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  pilot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Regression tests
+        run: python -m unittest discover -s tests -p 'test_technical*.py' -v
+      - name: Profile and validate exact acceleration
+        env:
+          TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
+          PYTHONUNBUFFERED: '1'
+        run: python -m technical.e0_r2_validate
