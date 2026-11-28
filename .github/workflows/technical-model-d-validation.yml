@@ -1,0 +1,31 @@
+name: Technical model V1.0-D validation
+on:
+  push:
+    branches: ['research/technical-model-v1']
+    paths: ['technical/model_d*.py','tests/test_technical_model_d.py','.github/workflows/technical-model-d-validation.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Foundation and A/B/C/R1/D regression tests
+        run: python -m unittest discover -s tests -p 'test_technical*.py' -v
+      - name: Fresh joined market industry stock report validation
+        env:
+          TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
+        run: python -m technical.model_d_validate
+      - name: Upload derived research reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: technical-model-d-reports
+          path: research-reports-d/
+          if-no-files-found: ignore
+          retention-days: 14
