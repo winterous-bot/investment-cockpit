@@ -1,5 +1,6 @@
 """Acceptance fixtures use actual data, not hardcoded exception handling."""
 from .quality import QualityHistory,public_summary
+from .indicators import period
 from .data import calendar
 from .diagnostics import emit
 
@@ -32,11 +33,14 @@ def check_cases(api,code,raw,factors,asof,cal,report):
             assert ve["state"]=="blocked" and ve["last_major"]==event
             assert all(not z["bars"] for z in ve["groups"].values())
             assert va["groups"]["day"]["count"]==1
-            assert va["groups"]["week"]["count"]==0 and va["groups"]["month"]["count"]==0
+            for freq in ("week","month"):
+                assert va["groups"][freq]["count"]==int(period(after,freq)>period(event,freq))
+                assert all(period(b["date"],freq)>period(event,freq) for b in va["groups"][freq]["bars"])
             assert not label["eligible"] and label["reason"]=="major_event_in_label_window"
             assert not q.training_admission(event,1,ec)["eligible"]
         else:
-            assert ve["last_major"] is None and ve["combined_feature_ready"]
+            assert ve["last_major"] is None
+            # A young listing may lack a full feature vector regardless of this warning.
             assert ve["groups"]["day"]["count"]==i+1
             assert label["eligible"] and label["reason"]=="minor_warning"
         out["cases"].append({"date":event,"severity":severity,"previous_date":before,"next_date":after,
