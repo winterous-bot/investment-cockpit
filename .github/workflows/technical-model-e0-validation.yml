@@ -1,0 +1,28 @@
+name: Technical model V1.0-E0 validation
+on:
+  push:
+    branches: ['research/technical-model-v1']
+    paths: ['technical/model_e0*.py','tests/test_technical_model_e0.py','.github/workflows/technical-model-e0-validation.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        mode: [source, pilot]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Regression tests
+        run: python -m unittest discover -s tests -p 'test_technical*.py' -v
+      - name: Read-only E0 validation
+        env:
+          TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
+        run: python -m technical.model_e0_validate ${{ matrix.mode }}
