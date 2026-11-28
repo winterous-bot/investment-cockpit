@@ -1,0 +1,46 @@
+name: Technical E0 R3 sharded validation
+on:
+  push:
+    branches: ['research/technical-model-v1']
+    paths: ['technical/e0_r3*.py','tests/test_technical_e0_r3.py','.github/workflows/technical-e0-r3-validation.yml']
+  workflow_dispatch:
+    inputs:
+      resume_run:
+        description: Prior R3 run ID (same code and verified source)
+        required: false
+        type: string
+permissions:
+  contents: read
+  actions: read
+jobs:
+  pilot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Regression tests
+        run: python -m unittest discover -s tests -p 'test_technical*.py' -v
+      - name: Restore prior aggregate checkpoint ledger
+        if: ${{ inputs.resume_run != '' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: r3-aggregate-ledger
+          path: r3-ledger
+          run-id: ${{ inputs.resume_run }}
+          github-token: ${{ github.token }}
+      - name: Indexed sharded pilot with exact comparisons
+        env:
+          TUSHARE_TOKEN: ${{ secrets.TUSHARE_TOKEN }}
+          PYTHONUNBUFFERED: '1'
+        run: python -m technical.e0_r3_validate
+      - name: Save aggregate checkpoint ledger
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r3-aggregate-ledger
+          path: r3-ledger/*.json
+          if-no-files-found: ignore
+          retention-days: 14
